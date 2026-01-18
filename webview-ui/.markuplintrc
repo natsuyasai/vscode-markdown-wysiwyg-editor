@@ -1,0 +1,35 @@
+{
+  "extends": [
+    "markuplint:recommended-react"
+  ],
+  "excludeFiles": [
+    "./node_modules/**/*"
+  ],
+  "parser": {
+    ".tsx$": "@markuplint/jsx-parser"
+  },
+  "specs": {
+    ".tsx$": "@markuplint/react-spec"
+  },
+  "nodeRules": [
+    {
+      "selector": "div[role=button]",
+      "rules": {
+        "invalid-attr": {
+          "options": {
+            "allowAttrs": [
+              "onDoubleClick"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "overrides": {
+    "./**/editable-table/EditableTable.tsx": {
+      "rules": {
+        "permitted-contents": false
+      }
+    }
+  }
+}

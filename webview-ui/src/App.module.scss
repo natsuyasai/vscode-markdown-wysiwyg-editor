@@ -1,0 +1,16 @@
+.root {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 100%;
+  grid-template-columns: 100%;
+  grid-template-areas: "content";
+}
+
+.main {
+  grid-area: content;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
