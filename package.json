@@ -42,6 +42,21 @@
           "group": "navigation"
         }
       ]
+    },
+    "configuration": {
+      "title": "Markdown WYSIWYG Editor",
+      "properties": {
+        "markdownWysiwygEditor.javaPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Java executable. If not set, the extension will try to find Java in JAVA_HOME or PATH."
+        },
+        "markdownWysiwygEditor.plantumlServerPort": {
+          "type": "number",
+          "default": 8888,
+          "description": "Port number for the local PlantUML server."
+        }
+      }
     }
   },
   "scripts": {
@@ -65,6 +80,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
+    "@types/pako": "^2.0.4",
     "@types/vscode": "^1.99.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
@@ -75,5 +91,8 @@
     "prettier": "^3.7.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.1"
+  },
+  "dependencies": {
+    "pako": "^2.1.0"
   }
 }

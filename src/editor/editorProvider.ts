@@ -1,9 +1,19 @@
 // WebViewの内容を表示するためのクラス
 import * as vscode from "vscode";
-import { ThemeKind, UpdateMessage, UpdateTheameMessage } from "../message/messageTypeToWebview";
-import { Message } from "../message/messageTypeToExtention";
+import {
+  DocumentInfoMessage,
+  PlantUmlResultMessage,
+  SaveImageResultMessage,
+  ThemeKind,
+  UpdateMessage,
+  UpdateTheameMessage,
+} from "../message/messageTypeToWebview";
+import { Message, RenderPlantUmlMessage, SaveImageMessage } from "../message/messageTypeToExtention";
 import { getUri } from "../util/getUri";
 import { getNonce } from "../util/util";
+import { saveImageLocally } from "./imageStorage";
+import { getPlantUmlServer } from "../plantuml/plantUmlServer";
+import * as path from "path";
 
 export class EditorProvider implements vscode.CustomTextEditorProvider {
   /**
@@ -69,6 +79,14 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
       } satisfies UpdateTheameMessage);
     }
 
+    function sendDocumentInfo() {
+      const dirPath = path.dirname(document.uri.fsPath);
+      webviewPanel.webview.postMessage({
+        type: "documentInfo",
+        payload: { dirPath },
+      } satisfies DocumentInfoMessage);
+    }
+
     vscode.window.onDidChangeActiveColorTheme(() => {
       updateTheme();
     });
@@ -88,26 +106,52 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
 
     // Receive message from the webview.
     const webviewReceiveMessageSubscription = webviewPanel.webview.onDidReceiveMessage(
-      (e: Message) => {
+      async (e: Message) => {
         // console.log(`${e.type}:${e.payload}`);
         switch (e.type) {
           case "init":
             updateTheme();
+            sendDocumentInfo();
             updateWebview();
             return;
           case "update":
             if (e.payload !== undefined) {
-              this.updateTextDocument(document, e.payload);
+              this.updateTextDocument(document, e.payload as string);
             }
             return;
           case "save":
             if (e.payload !== undefined) {
-              this.updateTextDocument(document, e.payload);
+              this.updateTextDocument(document, e.payload as string);
             }
             return;
           case "reload":
             updateWebview();
             return;
+          case "saveImage": {
+            const saveImageMessage = e as SaveImageMessage;
+            const { imageData, fileName, mimeType } = saveImageMessage.payload;
+            const result = await saveImageLocally(document, imageData, fileName, mimeType);
+            webviewPanel.webview.postMessage({
+              type: "saveImageResult",
+              payload: result,
+            } satisfies SaveImageResultMessage);
+            return;
+          }
+          case "renderPlantUml": {
+            const renderMessage = e as RenderPlantUmlMessage;
+            const { code, requestId } = renderMessage.payload;
+            const server = getPlantUmlServer(this.context.extensionPath);
+            const result = await server.render(code);
+            webviewPanel.webview.postMessage({
+              type: "plantUmlResult",
+              payload: {
+                requestId,
+                svg: result.svg,
+                error: result.error,
+              },
+            } satisfies PlantUmlResultMessage);
+            return;
+          }
         }
       }
     );
@@ -156,7 +200,7 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} data: blob: file: https:;">
           <!-- <link rel="stylesheet" href="" id="vscode-codicon-stylesheet"> -->
           <link rel="stylesheet" type="text/css" href="${stylesUri.toString()}" />
           <title>CSVEditor</title>

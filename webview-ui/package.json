@@ -28,6 +28,7 @@
     "@wysimark/react": "^3.0.20",
     "csv-parse": "^6.1.0",
     "csv-stringify": "^6.6.0",
+    "mermaid": "^11.12.2",
     "react": "^19.2.1",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",

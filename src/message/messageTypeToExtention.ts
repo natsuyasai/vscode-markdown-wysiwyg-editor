@@ -1,8 +1,8 @@
-export type MessageType = "init" | "update" | "reload" | "save";
+export type MessageType = "init" | "update" | "reload" | "save" | "saveImage" | "renderPlantUml";
 
 export interface Message {
   type: MessageType;
-  payload?: string;
+  payload?: unknown;
 }
 
 export interface UpdateMessage extends Message {
@@ -22,4 +22,21 @@ export interface SaveMessage extends Message {
 
 export interface InitMessage extends Message {
   type: "init";
+}
+
+export interface SaveImageMessage extends Message {
+  type: "saveImage";
+  payload: {
+    imageData: string; // Base64エンコードされた画像データ
+    fileName: string; // ファイル名
+    mimeType: string; // image/png, image/jpeg等
+  };
+}
+
+export interface RenderPlantUmlMessage extends Message {
+  type: "renderPlantUml";
+  payload: {
+    code: string;
+    requestId: string;
+  };
 }
