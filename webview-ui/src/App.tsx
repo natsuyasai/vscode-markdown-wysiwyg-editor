@@ -1,17 +1,15 @@
 import { InitMessage } from "@message/messageTypeToExtention";
 import { Message, ThemeKind, UpdateMessage } from "@message/messageTypeToWebview";
-import { parse as csvParseSync } from "csv-parse/browser/esm/sync";
-import { stringify as csvStringfy } from "csv-stringify/browser/esm/sync";
+import { Editable, useEditor } from "@wysimark/react";
 import { useCallback, useEffect, useState } from "react";
 import styles from "./App.module.scss";
-import { debounce } from "./utilities/debounce";
-import { vscode } from "./utilities/vscode";
 import { useEventListener } from "./hooks/useEventListener";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { debounce } from "./utilities/debounce";
+import { vscode } from "./utilities/vscode";
 
 export default function App() {
-  const [rawText, setRawText] = useState("");
-  const [csvArray, setCSVArray] = useState<Array<Array<string>>>([]);
+  const [markdown, setMarkdown] = useState("");
   const [theme, setTheme] = useState<ThemeKind>("light");
 
   const handleMessagesFromExtension = useCallback((event: MessageEvent<Message>) => {
@@ -23,7 +21,7 @@ export default function App() {
         {
           const updateMessage = message as UpdateMessage;
           debounce(() => {
-            updateCSVFromExtension(updateMessage.payload);
+            updateMarkdownFromExtension(updateMessage.payload);
           })();
         }
         break;
@@ -50,9 +48,9 @@ export default function App() {
   const handleApply = useCallback(() => {
     vscode.postMessage({
       type: "save",
-      payload: rawText,
+      payload: markdown,
     });
-  }, [rawText]);
+  }, [markdown]);
 
   // グローバルキーボードショートカット
   useKeyboardShortcuts({
@@ -68,22 +66,21 @@ export default function App() {
     element: window as unknown as HTMLElement,
   });
 
-  function updateCSVFromExtension(text: string) {
-    setRawText(text);
-    const records = csvParseSync(text);
-    setCSVArray(records);
+  function updateMarkdownFromExtension(text: string) {
+    setMarkdown(text);
   }
 
-  function updateMarkdownText(csv: Array<Array<string>>) {
-    setCSVArray(csv);
-    const text = csvStringfy(csv);
-    setRawText(text);
+  function updateMarkdownText(text: string) {
+    setMarkdown(text);
   }
 
+  const editor = useEditor({});
   return (
     <>
       <div className={styles.root}>
-        <main className={styles.main}></main>
+        <main className={styles.main}>
+          <Editable editor={editor} value={markdown} onChange={setMarkdown} />
+        </main>
       </div>
     </>
   );
