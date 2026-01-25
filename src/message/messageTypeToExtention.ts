@@ -1,4 +1,4 @@
-export type MessageType = "init" | "update" | "reload" | "save" | "saveImage" | "renderPlantUml";
+export type MessageType = "init" | "update" | "reload" | "save" | "saveImage" | "renderPlantUml" | "saveSettings";
 
 export interface Message {
   type: MessageType;
@@ -38,5 +38,14 @@ export interface RenderPlantUmlMessage extends Message {
   payload: {
     code: string;
     requestId: string;
+  };
+}
+
+export type ThemeSetting = "auto" | "light" | "dark";
+
+export interface SaveSettingsMessage extends Message {
+  type: "saveSettings";
+  payload: {
+    themeSetting: ThemeSetting;
   };
 }

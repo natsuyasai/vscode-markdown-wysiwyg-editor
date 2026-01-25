@@ -55,6 +55,12 @@
           "type": "number",
           "default": 8888,
           "description": "Port number for the local PlantUML server."
+        },
+        "markdownWysiwygEditor.theme": {
+          "type": "string",
+          "enum": ["auto", "light", "dark"],
+          "default": "auto",
+          "description": "Editor theme. 'auto' follows VS Code's color theme."
         }
       }
     }

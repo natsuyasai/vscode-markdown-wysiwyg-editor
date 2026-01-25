@@ -1,11 +1,16 @@
 .root {
   height: 100vh;
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto 1fr auto;
   grid-template-columns: 100%;
   grid-template-areas:
+    "toolbar"
     "content"
     "diagram";
+}
+
+.toolbar {
+  grid-area: toolbar;
 }
 
 .main {

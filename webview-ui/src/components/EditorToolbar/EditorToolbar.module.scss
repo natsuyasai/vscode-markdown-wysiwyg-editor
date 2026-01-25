@@ -1,0 +1,77 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: var(--vscode-editor-background, #fff);
+  border-bottom: 1px solid var(--vscode-editorWidget-border, #e0e0e0);
+  flex-shrink: 0;
+}
+
+.toolbarButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 4px;
+  background-color: var(--vscode-button-secondaryBackground, #f0f0f0);
+  color: var(--vscode-button-secondaryForeground, #333);
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background-color: var(--vscode-button-secondaryHoverBackground, #e0e0e0);
+  }
+
+  &.active {
+    background-color: var(--vscode-button-background, #007acc);
+    color: var(--vscode-button-foreground, #fff);
+
+    &:hover {
+      background-color: var(--vscode-button-hoverBackground, #0062a3);
+    }
+  }
+}
+
+.icon {
+  font-size: 14px;
+}
+
+.label {
+  font-weight: 500;
+}
+
+.separator {
+  width: 1px;
+  height: 20px;
+  background-color: var(--vscode-editorWidget-border, #e0e0e0);
+  margin: 0 4px;
+}
+
+.themeSelector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.themeLabel {
+  color: var(--vscode-foreground, #333);
+}
+
+.themeSelect {
+  padding: 3px 8px;
+  border: 1px solid var(--vscode-dropdown-border, #ccc);
+  border-radius: 4px;
+  background-color: var(--vscode-dropdown-background, #fff);
+  color: var(--vscode-dropdown-foreground, #333);
+  font-size: 12px;
+  cursor: pointer;
+
+  &:focus {
+    outline: 1px solid var(--vscode-focusBorder, #007acc);
+    outline-offset: -1px;
+  }
+}

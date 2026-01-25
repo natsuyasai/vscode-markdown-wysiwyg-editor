@@ -1,7 +1,8 @@
-import { InitMessage } from "@message/messageTypeToExtention";
-import { Message, ThemeKind, UpdateMessage } from "@message/messageTypeToWebview";
+import { InitMessage, SaveSettingsMessage, ThemeSetting } from "@message/messageTypeToExtention";
+import { Message, ThemeKind, UpdateMessage, UpdateSettingsMessage } from "@message/messageTypeToWebview";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./App.module.scss";
+import { EditorToolbar } from "./components/EditorToolbar";
 import { MermaidRenderer } from "./components/MermaidRenderer";
 import { MilkdownEditor } from "./components/MilkdownEditor";
 import { PlantUmlRenderer } from "./components/PlantUmlRenderer";
@@ -48,7 +49,10 @@ function cleanupMarkdown(text: string, lineEnding: LineEnding): string {
 export default function App() {
   const [markdown, setMarkdown] = useState("");
   const [theme, setTheme] = useState<ThemeKind>("light");
+  const [themeSetting, setThemeSetting] = useState<ThemeSetting>("auto");
+  const [readonly, setReadonly] = useState(false);
   const originalLineEndingRef = useRef<LineEnding>("\n");
+  const vscodeThemeRef = useRef<ThemeKind>("light");
 
   const handleMessagesFromExtension = useCallback((event: MessageEvent<Message>) => {
     const message = event.data satisfies Message;
@@ -69,8 +73,28 @@ export default function App() {
         break;
       case "updateTheme":
         {
-          const theme = event.data.payload as ThemeKind;
-          setTheme(theme);
+          const vscodeTheme = event.data.payload as ThemeKind;
+          vscodeThemeRef.current = vscodeTheme;
+          // themeSettingがautoの場合はVSCodeのテーマに追従
+          setThemeSetting((currentSetting) => {
+            if (currentSetting === "auto") {
+              setTheme(vscodeTheme);
+            }
+            return currentSetting;
+          });
+        }
+        break;
+      case "updateSettings":
+        {
+          const settingsMessage = event.data as UpdateSettingsMessage;
+          const newThemeSetting = settingsMessage.payload.themeSetting;
+          setThemeSetting(newThemeSetting);
+          // テーマ設定に応じてthemeを更新
+          if (newThemeSetting === "auto") {
+            setTheme(vscodeThemeRef.current);
+          } else {
+            setTheme(newThemeSetting);
+          }
         }
         break;
       default:
@@ -131,6 +155,22 @@ export default function App() {
     onImageInserted: handleImageInserted,
   });
 
+  // テーマ設定変更ハンドラ
+  const handleThemeSettingChange = useCallback((newThemeSetting: ThemeSetting) => {
+    setThemeSetting(newThemeSetting);
+    // テーマ設定に応じてthemeを更新
+    if (newThemeSetting === "auto") {
+      setTheme(vscodeThemeRef.current);
+    } else {
+      setTheme(newThemeSetting);
+    }
+    // 拡張機能に設定を保存
+    vscode.postMessage({
+      type: "saveSettings",
+      payload: { themeSetting: newThemeSetting },
+    } satisfies SaveSettingsMessage);
+  }, []);
+
   // Mermaid/PlantUMLブロックを検出
   const mermaidBlocks = useMermaidBlocks(markdown);
   const plantUmlBlocks = usePlantUmlBlocks(markdown);
@@ -139,8 +179,16 @@ export default function App() {
   return (
     <>
       <div className={styles.root} data-theme={theme}>
+        <header className={styles.toolbar}>
+          <EditorToolbar
+            readonly={readonly}
+            onReadonlyChange={setReadonly}
+            themeSetting={themeSetting}
+            onThemeSettingChange={handleThemeSettingChange}
+          />
+        </header>
         <main className={styles.main}>
-          <MilkdownEditor value={markdown} onChange={setMarkdown} theme={theme} />
+          <MilkdownEditor value={markdown} onChange={setMarkdown} theme={theme} readonly={readonly} />
         </main>
         {hasDiagramBlocks && (
           <aside className={styles.diagramPanel}>

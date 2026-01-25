@@ -1,7 +1,7 @@
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
-import "@milkdown/crepe/theme/frame-dark.css";
+import "./MilkdownTheme.css";
 import { replaceAll } from "@milkdown/utils";
 import { FC, useLayoutEffect, useRef } from "react";
 
@@ -9,13 +9,18 @@ interface MilkdownEditorProps {
   value: string;
   onChange: (markdown: string) => void;
   theme: "light" | "dark";
+  readonly?: boolean;
 }
 
-export const MilkdownEditor: FC<MilkdownEditorProps> = ({ value, onChange, theme }) => {
+export const MilkdownEditor: FC<MilkdownEditorProps> = ({ value, onChange, theme, readonly = false }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
   const isEditorReadyRef = useRef(false);
   const lastKnownValueRef = useRef(value);
+  const readonlyRef = useRef(readonly);
+
+  // refを最新の値で更新
+  readonlyRef.current = readonly;
 
   useLayoutEffect(() => {
     if (!divRef.current) return;
@@ -39,6 +44,8 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({ value, onChange, theme
       if (isMounted) {
         crepeRef.current = crepe;
         isEditorReadyRef.current = true;
+        // 初期化後にreadonlyを適用
+        crepe.setReadonly(readonlyRef.current);
       }
     };
 
@@ -75,6 +82,13 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({ value, onChange, theme
       console.error("Failed to update editor content:", error);
     }
   }, [value]);
+
+  // readonly状態の変更を監視
+  useLayoutEffect(() => {
+    if (isEditorReadyRef.current && crepeRef.current) {
+      crepeRef.current.setReadonly(readonly);
+    }
+  }, [readonly]);
 
   return (
     <div

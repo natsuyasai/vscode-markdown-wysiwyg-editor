@@ -5,10 +5,12 @@ import {
   PlantUmlResultMessage,
   SaveImageResultMessage,
   ThemeKind,
+  ThemeSetting,
   UpdateMessage,
+  UpdateSettingsMessage,
   UpdateTheameMessage,
 } from "../message/messageTypeToWebview";
-import { Message, RenderPlantUmlMessage, SaveImageMessage } from "../message/messageTypeToExtention";
+import { Message, RenderPlantUmlMessage, SaveImageMessage, SaveSettingsMessage } from "../message/messageTypeToExtention";
 import { getUri } from "../util/getUri";
 import { getNonce } from "../util/util";
 import { saveImageLocally } from "./imageStorage";
@@ -87,8 +89,28 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
       } satisfies DocumentInfoMessage);
     }
 
+    function getThemeSetting(): ThemeSetting {
+      const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
+      return config.get<ThemeSetting>("theme", "auto");
+    }
+
+    function sendSettings() {
+      webviewPanel.webview.postMessage({
+        type: "updateSettings",
+        payload: { themeSetting: getThemeSetting() },
+      } satisfies UpdateSettingsMessage);
+    }
+
     vscode.window.onDidChangeActiveColorTheme(() => {
       updateTheme();
+    });
+
+    const configChangeSubscription = vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("markdownWysiwygEditor.theme")) {
+        sendSettings();
+        // テーマ設定がauto以外からautoに変わった場合などを考慮してupdateThemeも呼ぶ
+        updateTheme();
+      }
     });
 
     function updateWebview() {
@@ -112,6 +134,7 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
           case "init":
             updateTheme();
             sendDocumentInfo();
+            sendSettings();
             updateWebview();
             return;
           case "update":
@@ -152,6 +175,13 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
             } satisfies PlantUmlResultMessage);
             return;
           }
+          case "saveSettings": {
+            const saveSettingsMessage = e as SaveSettingsMessage;
+            const { themeSetting } = saveSettingsMessage.payload;
+            const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
+            await config.update("theme", themeSetting, vscode.ConfigurationTarget.Global);
+            return;
+          }
         }
       }
     );
@@ -160,6 +190,7 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.onDidDispose(() => {
       changeDocumentSubscription.dispose();
       webviewReceiveMessageSubscription.dispose();
+      configChangeSubscription.dispose();
     });
   }
 

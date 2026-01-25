@@ -2,11 +2,13 @@ export type MessageType =
   | "init"
   | "update"
   | "updateTheme"
+  | "updateSettings"
   | "saveImageResult"
   | "documentInfo"
   | "plantUmlResult";
 
 export type ThemeKind = "light" | "dark";
+export type ThemeSetting = "auto" | "light" | "dark";
 
 export interface Message {
   type: MessageType;
@@ -50,5 +52,12 @@ export interface PlantUmlResultMessage extends Message {
     requestId: string;
     svg?: string;
     error?: string;
+  };
+}
+
+export interface UpdateSettingsMessage extends Message {
+  type: "updateSettings";
+  payload: {
+    themeSetting: ThemeSetting;
   };
 }
