@@ -15,18 +15,67 @@ export function renderMermaidPreview(
   theme: ThemeKind,
   applyPreview: (result: HTMLElement | null) => void
 ): void {
+  // darkテーマでは"dark"を使用
   const mermaidTheme = theme === "dark" ? "dark" : "default";
+
+  // テーマに応じた色を設定
+  const themeColors =
+    theme === "dark"
+      ? {
+          primaryTextColor: "#e0e0e0",
+          textColor: "#e0e0e0",
+          primaryColor: "#3d3d3d",
+          primaryBorderColor: "#6a6a6a",
+          lineColor: "#a0a0a0",
+          secondaryColor: "#4a4a4a",
+          tertiaryColor: "#2d2d2d",
+          background: "#1e1e1e",
+          mainBkg: "#3d3d3d",
+          nodeBorder: "#6a6a6a",
+          clusterBkg: "#2d2d2d",
+          titleColor: "#e0e0e0",
+          // シーケンス図用
+          actorBkg: "#3d3d3d",
+          actorBorder: "#6a6a6a",
+          actorTextColor: "#e0e0e0",
+          actorLineColor: "#a0a0a0",
+          signalColor: "#a0a0a0",
+          signalTextColor: "#e0e0e0",
+          labelTextColor: "#e0e0e0",
+          labelBoxBkgColor: "#3d3d3d",
+          labelBoxBorderColor: "#6a6a6a",
+          loopTextColor: "#e0e0e0",
+          noteBkgColor: "#4a4a4a",
+          noteTextColor: "#e0e0e0",
+          noteBorderColor: "#6a6a6a",
+          activationBkgColor: "#4a4a4a",
+          activationBorderColor: "#6a6a6a",
+          sequenceNumberColor: "#e0e0e0",
+        }
+      : {
+          primaryTextColor: "#333333",
+          textColor: "#333333",
+          primaryColor: "#ECECFF",
+          primaryBorderColor: "#9370DB",
+          lineColor: "#333333",
+        };
 
   mermaid.initialize({
     startOnLoad: false,
     theme: mermaidTheme,
     securityLevel: "loose",
-    themeVariables: {
-      // テキストが確実に見えるように明示的に色を設定
-      primaryTextColor: theme === "dark" ? "#ffffff" : "#333333",
-      nodeTextColor: theme === "dark" ? "#ffffff" : "#333333",
-      textColor: theme === "dark" ? "#ffffff" : "#333333",
+    // foreignObjectの代わりにSVGテキスト要素を使用
+    // これによりWebView環境でもテキストが正しく表示される
+    htmlLabels: false,
+    flowchart: {
+      htmlLabels: false,
     },
+    sequence: {
+      actorFontFamily: "inherit",
+      messageFontFamily: "inherit",
+      noteFontFamily: "inherit",
+    },
+    themeVariables: themeColors,
   });
 
   // Mermaid v10+では一時的なコンテナをDOMに追加する必要がある
@@ -41,8 +90,17 @@ export function renderMermaidPreview(
       // 一時コンテナを削除
       tempContainer.remove();
 
+      // ダークテーマの場合、SVGの文字列を直接置換
+      let processedSvg = svg;
+      if (theme === "dark") {
+        // シーケンス図のアクターボックスの色を置換
+        processedSvg = processedSvg.replace(/fill="#eaeaea"/g, 'fill="#3d3d3d"');
+        processedSvg = processedSvg.replace(/fill="#EAEAEA"/g, 'fill="#3d3d3d"');
+        processedSvg = processedSvg.replace(/stroke="#666"/g, 'stroke="#6a6a6a"');
+      }
+
       const container = document.createElement("div");
-      container.innerHTML = svg;
+      container.innerHTML = processedSvg;
       container.style.cssText = "padding: 16px; background: var(--crepe-color-surface);";
 
       // インタラクティブな要素のバインド（存在する場合）
