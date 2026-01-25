@@ -1,1 +1,0 @@
-export { PlantUmlRenderer } from "./PlantUmlRenderer";

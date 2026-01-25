@@ -1,9 +1,15 @@
+import { Message, PlantUmlResultMessage } from "@message/messageTypeToWebview";
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
-import "./MilkdownTheme.css";
 import { replaceAll } from "@milkdown/utils";
-import { FC, useLayoutEffect, useRef } from "react";
+import { FC, useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import {
+  handlePlantUmlResult,
+  renderMermaidPreview,
+  renderPlantUmlPreview,
+} from "./diagramPreview";
+import "./MilkdownTheme.css";
 
 interface MilkdownEditorProps {
   value: string;
@@ -18,18 +24,64 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({ value, onChange, theme
   const isEditorReadyRef = useRef(false);
   const lastKnownValueRef = useRef(value);
   const readonlyRef = useRef(readonly);
+  const themeRef = useRef(theme);
 
   // refを最新の値で更新
   readonlyRef.current = readonly;
+  themeRef.current = theme;
+
+  // PlantUML結果のメッセージハンドラ
+  const handlePlantUmlMessage = useCallback((event: MessageEvent<Message>) => {
+    const message = event.data;
+    if (message.type === "plantUmlResult") {
+      const result = message as PlantUmlResultMessage;
+      handlePlantUmlResult(
+        result.payload.requestId,
+        result.payload.svg,
+        result.payload.error
+      );
+    }
+  }, []);
+
+  // PlantUMLメッセージリスナーを登録
+  useEffect(() => {
+    window.addEventListener("message", handlePlantUmlMessage);
+    return () => {
+      window.removeEventListener("message", handlePlantUmlMessage);
+    };
+  }, [handlePlantUmlMessage]);
 
   useLayoutEffect(() => {
     if (!divRef.current) return;
 
     let isMounted = true;
+    let previewIdCounter = 0;
 
     const crepe = new Crepe({
       root: divRef.current,
       defaultValue: lastKnownValueRef.current,
+      featureConfigs: {
+        [Crepe.Feature.CodeMirror]: {
+          renderPreview: (language, content, applyPreview) => {
+            if (language === "mermaid") {
+              const id = `inline-${Date.now()}-${previewIdCounter++}`;
+              renderMermaidPreview(content, id, themeRef.current, applyPreview);
+              return undefined; // 非同期処理中
+            }
+            if (language === "plantuml") {
+              const requestId = `inline-${Date.now()}-${previewIdCounter++}`;
+              renderPlantUmlPreview(content, requestId, applyPreview);
+              return undefined; // 非同期処理中
+            }
+            return null; // その他の言語はプレビューなし
+          },
+          previewToggleButton: (previewOnly: boolean) =>
+            previewOnly ? "Show Source" : "Show Preview",
+          previewLabel: "Preview",
+          previewLoading: "Loading...",
+          previewOnlyByDefault: true,
+        },
+      },
     });
 
     crepe.on((listener) => {

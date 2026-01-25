@@ -3,14 +3,10 @@ import { Message, ThemeKind, UpdateMessage, UpdateSettingsMessage } from "@messa
 import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./App.module.scss";
 import { EditorToolbar } from "./components/EditorToolbar";
-import { MermaidRenderer } from "./components/MermaidRenderer";
 import { MilkdownEditor } from "./components/MilkdownEditor";
-import { PlantUmlRenderer } from "./components/PlantUmlRenderer";
 import { useEventListener } from "./hooks/useEventListener";
 import { useImageHandler } from "./hooks/useImageHandler";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
-import { useMermaidBlocks } from "./hooks/useMermaidBlocks";
-import { usePlantUmlBlocks } from "./hooks/usePlantUmlBlocks";
 import { debounce } from "./utilities/debounce";
 import { vscode } from "./utilities/vscode";
 
@@ -171,11 +167,6 @@ export default function App() {
     } satisfies SaveSettingsMessage);
   }, []);
 
-  // Mermaid/PlantUMLブロックを検出
-  const mermaidBlocks = useMermaidBlocks(markdown);
-  const plantUmlBlocks = usePlantUmlBlocks(markdown);
-  const hasDiagramBlocks = mermaidBlocks.length > 0 || plantUmlBlocks.length > 0;
-
   return (
     <>
       <div className={styles.root} data-theme={theme}>
@@ -190,23 +181,6 @@ export default function App() {
         <main className={styles.main}>
           <MilkdownEditor value={markdown} onChange={setMarkdown} theme={theme} readonly={readonly} />
         </main>
-        {hasDiagramBlocks && (
-          <aside className={styles.diagramPanel}>
-            <div className={styles.diagramPanelTitle}>Diagram Preview</div>
-            {mermaidBlocks.map((block) => (
-              <div key={block.id} className={styles.diagramBlock}>
-                <span className={styles.diagramLabel}>Mermaid</span>
-                <MermaidRenderer code={block.code} id={block.id} theme={theme} />
-              </div>
-            ))}
-            {plantUmlBlocks.map((block) => (
-              <div key={block.id} className={styles.diagramBlock}>
-                <span className={styles.diagramLabel}>PlantUML</span>
-                <PlantUmlRenderer code={block.code} id={block.id} />
-              </div>
-            ))}
-          </aside>
-        )}
       </div>
     </>
   );
