@@ -21,17 +21,14 @@
     "postinstall": "node scripts/copyicon.cjs"
   },
   "dependencies": {
-    "@tanstack/react-table": "^8.21.3",
-    "@tanstack/react-virtual": "^3.13.12",
+    "@milkdown/crepe": "^7.18.0",
+    "@milkdown/kit": "^7.18.0",
+    "@milkdown/react": "^7.18.0",
+    "@milkdown/utils": "^7.18.0",
     "@vscode-elements/react-elements": "^2.3.1",
     "@vscode/codicons": "^0.0.43",
-    "@wysimark/react": "^3.0.20",
-    "csv-parse": "^6.1.0",
-    "csv-stringify": "^6.6.0",
     "mermaid": "^11.12.2",
     "react": "^19.2.1",
-    "react-dnd": "^16.0.1",
-    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.2.1",
     "zustand": "^5.0.9"
   },

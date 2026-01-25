@@ -7,7 +7,11 @@
       "Bash(npm install:*)",
       "Bash(npm run compile:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run test:unit:*)"
+      "Bash(npm run test:unit:*)",
+      "WebFetch(domain:milkdown.dev)",
+      "Bash(npm uninstall:*)",
+      "Bash(grep:*)",
+      "Bash(npm run test:*)"
     ]
   }
 }

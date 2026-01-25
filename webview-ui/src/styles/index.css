@@ -16,153 +16,28 @@ body {
 }
 
 /* ========================================
-   Wysimark Editor Theme Overrides
+   Milkdown Editor Theme Overrides
    ======================================== */
 
-/* Light theme variables */
-body[data-theme="light"] {
-  --wysimark-bg: #ffffff;
-  --wysimark-fg: #1e1e1e;
-  --wysimark-border: #e0e0e0;
-  --wysimark-code-bg: #f5f5f5;
-  --wysimark-blockquote-border: #0078d4;
-  --wysimark-link: #0066cc;
-  --wysimark-toolbar-bg: #f3f3f3;
+/* Light theme - use frame theme */
+[data-theme="light"] .milkdown {
+  --crepe-color-background: #ffffff;
+  --crepe-color-foreground: #1e1e1e;
 }
 
-/* Dark theme variables */
-body[data-theme="dark"] {
-  --wysimark-bg: #1e1e1e;
-  --wysimark-fg: #d4d4d4;
-  --wysimark-border: #3c3c3c;
-  --wysimark-code-bg: #2d2d2d;
-  --wysimark-blockquote-border: #4fc1ff;
-  --wysimark-link: #4fc1ff;
-  --wysimark-toolbar-bg: #252526;
+/* Dark theme - use frame-dark theme */
+[data-theme="dark"] .milkdown {
+  --crepe-color-background: #1e1e1e;
+  --crepe-color-foreground: #d4d4d4;
 }
 
-/* Global editor container - target all elements inside #root */
-body[data-theme="light"] #root,
-body[data-theme="light"] #root > *,
-body[data-theme="light"] #root div,
-body[data-theme="light"] #root main {
-  background-color: var(--wysimark-bg) !important;
-  color: var(--wysimark-fg) !important;
-}
-
-body[data-theme="dark"] #root,
-body[data-theme="dark"] #root > *,
-body[data-theme="dark"] #root div,
-body[data-theme="dark"] #root main {
-  background-color: var(--wysimark-bg) !important;
-  color: var(--wysimark-fg) !important;
-}
-
-/* Target all contenteditable elements */
-body[data-theme="light"] [contenteditable],
-body[data-theme="light"] [contenteditable="true"],
-body[data-theme="light"] [role="textbox"] {
-  background-color: var(--wysimark-bg) !important;
-  color: var(--wysimark-fg) !important;
-}
-
-body[data-theme="dark"] [contenteditable],
-body[data-theme="dark"] [contenteditable="true"],
-body[data-theme="dark"] [role="textbox"] {
-  background-color: var(--wysimark-bg) !important;
-  color: var(--wysimark-fg) !important;
-}
-
-/* Target all text elements inside contenteditable */
-body[data-theme="light"] [contenteditable] *,
-body[data-theme="light"] [contenteditable="true"] *,
-body[data-theme="light"] [role="textbox"] * {
-  color: var(--wysimark-fg) !important;
-}
-
-body[data-theme="dark"] [contenteditable] *,
-body[data-theme="dark"] [contenteditable="true"] *,
-body[data-theme="dark"] [role="textbox"] * {
-  color: var(--wysimark-fg) !important;
-}
-
-/* Specific text elements */
-body[data-theme="light"] p,
-body[data-theme="light"] span:not([class*="icon"]),
-body[data-theme="light"] h1, body[data-theme="light"] h2, body[data-theme="light"] h3,
-body[data-theme="light"] h4, body[data-theme="light"] h5, body[data-theme="light"] h6,
-body[data-theme="light"] li {
-  color: var(--wysimark-fg) !important;
-}
-
-body[data-theme="dark"] p,
-body[data-theme="dark"] span:not([class*="icon"]),
-body[data-theme="dark"] h1, body[data-theme="dark"] h2, body[data-theme="dark"] h3,
-body[data-theme="dark"] h4, body[data-theme="dark"] h5, body[data-theme="dark"] h6,
-body[data-theme="dark"] li {
-  color: var(--wysimark-fg) !important;
-}
-
-/* Links */
-body[data-theme="light"] a {
-  color: var(--wysimark-link) !important;
-}
-
-body[data-theme="dark"] a {
-  color: var(--wysimark-link) !important;
-}
-
-/* Code blocks */
-body[data-theme="light"] pre,
-body[data-theme="light"] code {
-  background-color: var(--wysimark-code-bg) !important;
-  color: var(--wysimark-fg) !important;
-}
-
-body[data-theme="dark"] pre,
-body[data-theme="dark"] code {
-  background-color: var(--wysimark-code-bg) !important;
-  color: var(--wysimark-fg) !important;
-}
-
-/* Blockquotes */
-body[data-theme="light"] blockquote {
-  border-left-color: var(--wysimark-blockquote-border) !important;
-  background-color: rgba(0, 0, 0, 0.03) !important;
-}
-
-body[data-theme="dark"] blockquote {
-  border-left-color: var(--wysimark-blockquote-border) !important;
-  background-color: rgba(255, 255, 255, 0.03) !important;
-}
-
-/* Tables */
-body[data-theme="light"] table,
-body[data-theme="light"] th,
-body[data-theme="light"] td {
-  border-color: var(--wysimark-border) !important;
-}
-
-body[data-theme="dark"] table,
-body[data-theme="dark"] th,
-body[data-theme="dark"] td {
-  border-color: var(--wysimark-border) !important;
-}
-
-/* Toolbar and buttons - exclude from dark background */
-body[data-theme="dark"] button,
-body[data-theme="dark"] [role="toolbar"],
-body[data-theme="dark"] [role="button"] {
-  background-color: var(--wysimark-toolbar-bg) !important;
-}
-
-/* Ensure diagram panel uses correct theme */
+/* Diagram panel styling */
 body[data-theme="light"] aside {
   background-color: #f3f3f3 !important;
-  border-color: var(--wysimark-border) !important;
+  border-color: #e0e0e0 !important;
 }
 
 body[data-theme="dark"] aside {
   background-color: #252526 !important;
-  border-color: var(--wysimark-border) !important;
+  border-color: #3c3c3c !important;
 }

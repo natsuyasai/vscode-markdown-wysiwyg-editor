@@ -1,9 +1,9 @@
 import { InitMessage } from "@message/messageTypeToExtention";
 import { Message, ThemeKind, UpdateMessage } from "@message/messageTypeToWebview";
-import { Editable, useEditor } from "@wysimark/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./App.module.scss";
 import { MermaidRenderer } from "./components/MermaidRenderer";
+import { MilkdownEditor } from "./components/MilkdownEditor";
 import { PlantUmlRenderer } from "./components/PlantUmlRenderer";
 import { useEventListener } from "./hooks/useEventListener";
 import { useImageHandler } from "./hooks/useImageHandler";
@@ -13,9 +13,42 @@ import { usePlantUmlBlocks } from "./hooks/usePlantUmlBlocks";
 import { debounce } from "./utilities/debounce";
 import { vscode } from "./utilities/vscode";
 
+type LineEnding = "\r\n" | "\n";
+
+/**
+ * テキストから改行コードを検出する
+ * CRLFが含まれていればCRLF、それ以外はLFを返す
+ */
+function detectLineEnding(text: string): LineEnding {
+  return text.includes("\r\n") ? "\r\n" : "\n";
+}
+
+/**
+ * WYSIWYGエディタから出力されたMarkdownをクリーンアップする
+ * - <br />、<br>タグを改行に変換
+ * - &nbsp; を通常のスペースに変換
+ * - Unicode ノーブレークスペース（\u00A0）を通常のスペースに変換
+ * - 改行コードを元ファイルの形式に統一
+ */
+function cleanupMarkdown(text: string, lineEnding: LineEnding): string {
+  return (
+    text
+      // <br />、<br>、<br/>タグを改行に変換
+      .replace(/<br\s*\/?>/gi, "\n")
+      // HTMLエンティティの&nbsp;を通常のスペースに変換
+      .replace(/&nbsp;/g, " ")
+      // Unicode ノーブレークスペース（\u00A0）を通常のスペースに変換
+      .replace(/\u00A0/g, " ")
+      // 改行コードを元ファイルの形式に統一（まずLFに統一してから変換）
+      .replace(/\r\n/g, "\n")
+      .replace(/\n/g, lineEnding)
+  );
+}
+
 export default function App() {
   const [markdown, setMarkdown] = useState("");
   const [theme, setTheme] = useState<ThemeKind>("light");
+  const originalLineEndingRef = useRef<LineEnding>("\n");
 
   const handleMessagesFromExtension = useCallback((event: MessageEvent<Message>) => {
     const message = event.data satisfies Message;
@@ -25,6 +58,10 @@ export default function App() {
       case "update":
         {
           const updateMessage = message as UpdateMessage;
+          // 初回読み込み時に元ファイルの改行コードを検出して保存
+          if (message.type === "init") {
+            originalLineEndingRef.current = detectLineEnding(updateMessage.payload);
+          }
           debounce(() => {
             updateMarkdownFromExtension(updateMessage.payload);
           })();
@@ -58,7 +95,7 @@ export default function App() {
   const handleApply = useCallback(() => {
     vscode.postMessage({
       type: "save",
-      payload: markdown,
+      payload: cleanupMarkdown(markdown, originalLineEndingRef.current),
     });
   }, [markdown]);
 
@@ -99,12 +136,11 @@ export default function App() {
   const plantUmlBlocks = usePlantUmlBlocks(markdown);
   const hasDiagramBlocks = mermaidBlocks.length > 0 || plantUmlBlocks.length > 0;
 
-  const editor = useEditor({});
   return (
     <>
       <div className={styles.root} data-theme={theme}>
         <main className={styles.main}>
-          <Editable editor={editor} value={markdown} onChange={setMarkdown} />
+          <MilkdownEditor value={markdown} onChange={setMarkdown} theme={theme} />
         </main>
         {hasDiagramBlocks && (
           <aside className={styles.diagramPanel}>
