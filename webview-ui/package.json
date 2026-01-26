@@ -17,8 +17,7 @@
     "build-storybook": "storybook build",
     "check-types": "tsc --build",
     "lint": "eslint ./ && npm run markuplint",
-    "markuplint": "markuplint \"./src/**/*.{jsx,tsx}\"",
-    "postinstall": "node scripts/copyicon.cjs"
+    "markuplint": "markuplint \"./src/**/*.{jsx,tsx}\""
   },
   "dependencies": {
     "@milkdown/crepe": "^7.18.0",
