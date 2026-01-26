@@ -22,13 +22,13 @@ body {
 /* Light theme - use frame theme */
 [data-theme="light"] .milkdown {
   --crepe-color-background: #ffffff;
-  --crepe-color-foreground: #1e1e1e;
+  --crepe-color-on-background: #1e1e1e;
 }
 
 /* Dark theme - use frame-dark theme */
 [data-theme="dark"] .milkdown {
   --crepe-color-background: #1e1e1e;
-  --crepe-color-foreground: #d4d4d4;
+  --crepe-color-on-background: #d4d4d4;
 }
 
 /* Diagram panel styling */

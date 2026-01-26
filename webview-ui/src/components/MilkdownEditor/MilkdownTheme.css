@@ -7,16 +7,16 @@
   --crepe-color-on-surface: #1c1c1c;
   --crepe-color-on-surface-variant: #4d4d4d;
   --crepe-color-outline: #a8a8a8;
-  --crepe-color-primary: #333333;
+  --crepe-color-primary: #0066cc;
   --crepe-color-secondary: #cfcfcf;
   --crepe-color-on-secondary: #000000;
   --crepe-color-inverse: #f0f0f0;
   --crepe-color-on-inverse: #1a1a1a;
-  --crepe-color-inline-code: #ba1a1a;
+  --crepe-color-inline-code: #c41a16;
   --crepe-color-error: #ba1a1a;
   --crepe-color-hover: #e0e0e0;
-  --crepe-color-selected: #d5d5d5;
-  --crepe-color-inline-area: #cacaca;
+  --crepe-color-selected: #cce5ff;
+  --crepe-color-inline-area: #e8e8e8;
 
   --crepe-shadow-1:
     0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
@@ -38,16 +38,16 @@
   --crepe-color-on-surface: #d1d1d1;
   --crepe-color-on-surface-variant: #a9a9a9;
   --crepe-color-outline: #757575;
-  --crepe-color-primary: #b5b5b5;
+  --crepe-color-primary: #6bb3ff;
   --crepe-color-secondary: #4d4d4d;
   --crepe-color-on-secondary: #d6d6d6;
   --crepe-color-inverse: #e5e5e5;
   --crepe-color-on-inverse: #2a2a2a;
-  --crepe-color-inline-code: #ff6666;
+  --crepe-color-inline-code: #f48771;
   --crepe-color-error: #ff6666;
   --crepe-color-hover: #232323;
-  --crepe-color-selected: #2f2f2f;
-  --crepe-color-inline-area: #2b2b2b;
+  --crepe-color-selected: #264f78;
+  --crepe-color-inline-area: #3a3a3a;
 
   --crepe-shadow-1:
     0px 1px 2px 0px rgba(255, 255, 255, 0.3),
@@ -60,4 +60,10 @@
 /* Dark theme - CodeMirror active line gutter */
 [data-theme="dark"] .milkdown .cm-activeLineGutter {
   background-color: #2a2a2a;
+}
+
+/* Override VSCode default blockquote styles */
+.milkdown .ProseMirror blockquote {
+  background: transparent;
+  border-color: transparent;
 }
