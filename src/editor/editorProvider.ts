@@ -10,7 +10,12 @@ import {
   UpdateSettingsMessage,
   UpdateTheameMessage,
 } from "../message/messageTypeToWebview";
-import { Message, RenderPlantUmlMessage, SaveImageMessage, SaveSettingsMessage } from "../message/messageTypeToExtention";
+import {
+  Message,
+  RenderPlantUmlMessage,
+  SaveImageMessage,
+  SaveSettingsMessage,
+} from "../message/messageTypeToExtention";
 import { getUri } from "../util/getUri";
 import { getNonce } from "../util/util";
 import { saveImageLocally } from "./imageStorage";
@@ -41,7 +46,7 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
       new EditorProvider(context),
       {
         webviewOptions: {
-          enableFindWidget: false,
+          enableFindWidget: true,
           retainContextWhenHidden: false,
         },
         supportsMultipleEditorsPerDocument: false, // 同一ドキュメントに対して複数のエディタをサポートするかどうか
