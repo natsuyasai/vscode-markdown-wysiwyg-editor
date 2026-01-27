@@ -1,4 +1,9 @@
-import { InitMessage, OpenFileMessage, SaveSettingsMessage, ThemeSetting } from "@message/messageTypeToExtention";
+import {
+  InitMessage,
+  OpenFileMessage,
+  SaveSettingsMessage,
+  ThemeSetting,
+} from "@message/messageTypeToExtention";
 import {
   DocumentInfoMessage,
   Message,
@@ -160,16 +165,10 @@ export default function App() {
           if (!targetElement) {
             const headings = document.querySelectorAll("h1, h2, h3, h4, h5, h6");
             for (const heading of headings) {
-              const headingId = heading.id?.toLowerCase();
               const headingText = heading.textContent?.toLowerCase().replace(/\s+/g, "-") ?? "";
 
-              // IDが一致するか、テキスト内容を正規化したものが一致するか
-              if (headingId === normalizedId || headingText === normalizedId) {
-                targetElement = heading as HTMLElement;
-                break;
-              }
-              // 連番付きID（例: section-1）の場合、ベース部分が一致するか
-              if (headingId?.startsWith(normalizedId + "-") || headingId?.match(new RegExp(`^${normalizedId}-\\d+$`))) {
+              // テキスト内容を正規化したものが一致するか
+              if (headingText === targetId) {
                 targetElement = heading as HTMLElement;
                 break;
               }
@@ -242,7 +241,9 @@ export default function App() {
   const handleImageInserted = useCallback((markdownImage: string) => {
     setMarkdown((prev) => {
       // 末尾に改行と画像参照を追加
-      const newContent = prev.endsWith("\n") ? `${prev}${markdownImage}\n` : `${prev}\n${markdownImage}\n`;
+      const newContent = prev.endsWith("\n")
+        ? `${prev}${markdownImage}\n`
+        : `${prev}\n${markdownImage}\n`;
       return newContent;
     });
   }, []);
@@ -280,7 +281,12 @@ export default function App() {
           />
         </header>
         <main className={styles.main}>
-          <MilkdownEditor value={markdown} onChange={setMarkdown} theme={theme} readonly={readonly} />
+          <MilkdownEditor
+            value={markdown}
+            onChange={setMarkdown}
+            theme={theme}
+            readonly={readonly}
+          />
         </main>
       </div>
     </>
