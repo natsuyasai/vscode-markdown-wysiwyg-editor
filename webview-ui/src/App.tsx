@@ -1,5 +1,11 @@
-import { InitMessage, SaveSettingsMessage, ThemeSetting } from "@message/messageTypeToExtention";
-import { Message, ThemeKind, UpdateMessage, UpdateSettingsMessage } from "@message/messageTypeToWebview";
+import { InitMessage, OpenFileMessage, SaveSettingsMessage, ThemeSetting } from "@message/messageTypeToExtention";
+import {
+  DocumentInfoMessage,
+  Message,
+  ThemeKind,
+  UpdateMessage,
+  UpdateSettingsMessage,
+} from "@message/messageTypeToWebview";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./App.module.scss";
 import { EditorToolbar } from "./components/EditorToolbar";
@@ -8,6 +14,11 @@ import { useEventListener } from "./hooks/useEventListener";
 import { useImageHandler } from "./hooks/useImageHandler";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { debounce } from "./utilities/debounce";
+import {
+  LOCAL_FILE_SCHEME,
+  parseLocalFileUri,
+  revertAllPathsFromWebviewUri,
+} from "./utilities/imagePathConverter";
 import { vscode } from "./utilities/vscode";
 
 type LineEnding = "\r\n" | "\n";
@@ -49,6 +60,8 @@ export default function App() {
   const [readonly, setReadonly] = useState(false);
   const originalLineEndingRef = useRef<LineEnding>("\n");
   const vscodeThemeRef = useRef<ThemeKind>("light");
+  const baseUriRef = useRef<string>("");
+  const documentDirRef = useRef<string>("");
 
   const handleMessagesFromExtension = useCallback((event: MessageEvent<Message>) => {
     const message = event.data satisfies Message;
@@ -93,6 +106,14 @@ export default function App() {
           }
         }
         break;
+      case "documentInfo":
+        {
+          const docInfoMessage = event.data as DocumentInfoMessage;
+          // WebView URIのベースパスとドキュメントディレクトリを保存（保存時の逆変換に使用）
+          baseUriRef.current = docInfoMessage.payload.baseUri;
+          documentDirRef.current = docInfoMessage.payload.dirPath;
+        }
+        break;
       default:
         console.log(`Unknown command: ${message.type as string}`);
         break;
@@ -112,10 +133,90 @@ export default function App() {
     document.body.setAttribute("data-theme", theme);
   }, [theme]);
 
+  // リンククリック時の処理（カスタムスキームを検出してファイルを開く、アンカーリンクでスクロール）
+  useEffect(() => {
+    const handleLinkClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const anchor = target.closest("a");
+      if (!anchor) return;
+
+      const href = anchor.getAttribute("href");
+      if (!href) return;
+
+      // アンカーリンク（#で始まる）の場合は対応する要素にスクロール
+      if (href.startsWith("#")) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const targetId = href.slice(1); // #を除去
+        if (targetId) {
+          // IDを正規化（小文字、空白をハイフンに変換）
+          const normalizedId = targetId.toLowerCase().replace(/\s+/g, "-");
+
+          // 1. 完全一致でIDを検索
+          let targetElement = document.getElementById(normalizedId);
+
+          // 2. 見つからない場合は、見出し要素をテキスト内容で検索
+          if (!targetElement) {
+            const headings = document.querySelectorAll("h1, h2, h3, h4, h5, h6");
+            for (const heading of headings) {
+              const headingId = heading.id?.toLowerCase();
+              const headingText = heading.textContent?.toLowerCase().replace(/\s+/g, "-") ?? "";
+
+              // IDが一致するか、テキスト内容を正規化したものが一致するか
+              if (headingId === normalizedId || headingText === normalizedId) {
+                targetElement = heading as HTMLElement;
+                break;
+              }
+              // 連番付きID（例: section-1）の場合、ベース部分が一致するか
+              if (headingId?.startsWith(normalizedId + "-") || headingId?.match(new RegExp(`^${normalizedId}-\\d+$`))) {
+                targetElement = heading as HTMLElement;
+                break;
+              }
+            }
+          }
+
+          if (targetElement) {
+            targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
+        return;
+      }
+
+      // カスタムスキームのリンクをクリックした場合
+      if (href.startsWith(`${LOCAL_FILE_SCHEME}:`)) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const parsed = parseLocalFileUri(href);
+        if (parsed) {
+          vscode.postMessage({
+            type: "openFile",
+            payload: {
+              filePath: parsed.filePath,
+              anchor: parsed.anchor,
+            },
+          } satisfies OpenFileMessage);
+        }
+      }
+    };
+
+    document.addEventListener("click", handleLinkClick, true);
+    return () => {
+      document.removeEventListener("click", handleLinkClick, true);
+    };
+  }, []);
+
   const handleApply = useCallback(() => {
+    // WebView URIとカスタムスキームを相対パスに戻してから保存
+    const revertedMarkdown = revertAllPathsFromWebviewUri(
+      markdown,
+      baseUriRef.current,
+      documentDirRef.current
+    );
     vscode.postMessage({
       type: "save",
-      payload: cleanupMarkdown(markdown, originalLineEndingRef.current),
+      payload: cleanupMarkdown(revertedMarkdown, originalLineEndingRef.current),
     });
   }, [markdown]);
 
