@@ -505,3 +505,51 @@ export const ComprehensiveDark: Story = {
   render: () => <MilkdownEditorWrapper initialValue={comprehensiveMarkdown} theme="dark" />,
   name: "総合サンプル - Dark",
 };
+
+// HTMLタグを含むMarkdown
+const htmlMarkdown = `# HTMLタグのテスト
+
+## インラインHTML
+
+これは<strong>太字</strong>のテキストです。
+
+これは<em>イタリック</em>のテキストです。
+
+これは<u>下線</u>のテキストです。
+
+これは<s>取り消し線</s>のテキストです。
+
+## ブロックHTML
+
+<div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
+これはdivブロックの中のテキストです。
+</div>
+
+<p style="text-align: center;">中央揃えの段落</p>
+
+## 折りたたみ要素
+
+<details>
+<summary>クリックで展開</summary>
+これは折りたたまれたコンテンツです。
+</details>
+
+## 水平線
+
+<hr>
+
+上と下のセクション
+
+## コメント
+<!-- これはコメントです -->
+`;
+
+export const HtmlTagsLight: Story = {
+  render: () => <MilkdownEditorWrapper initialValue={htmlMarkdown} theme="light" />,
+  name: "HTMLタグ - Light",
+};
+
+export const HtmlTagsDark: Story = {
+  render: () => <MilkdownEditorWrapper initialValue={htmlMarkdown} theme="dark" />,
+  name: "HTMLタグ - Dark",
+};

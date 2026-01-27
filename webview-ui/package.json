@@ -29,6 +29,8 @@
     "mermaid": "^11.12.2",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "rehype-raw": "^7.0.0",
+    "remark-rehype": "^11.1.2",
     "zustand": "^5.0.9"
   },
   "devDependencies": {

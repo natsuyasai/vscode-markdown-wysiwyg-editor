@@ -9,6 +9,7 @@ import {
   renderMermaidPreview,
   renderPlantUmlPreview,
 } from "./diagramPreview";
+import { htmlBlockSchema, htmlSchema } from "./htmlPlugin";
 import "./MilkdownTheme.css";
 
 interface MilkdownEditorProps {
@@ -92,6 +93,9 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({ value, onChange, theme
     });
 
     const initializeEditor = async () => {
+      // HTMLサポート: デフォルトのhtmlスキーマを上書き
+      crepe.editor.use(htmlSchema).use(htmlBlockSchema);
+
       await crepe.create();
       if (isMounted) {
         crepeRef.current = crepe;
