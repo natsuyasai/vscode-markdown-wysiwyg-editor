@@ -12,12 +12,14 @@ import {
 } from "../message/messageTypeToWebview";
 import {
   Message,
+  OpenFileMessage,
   RenderPlantUmlMessage,
   SaveImageMessage,
   SaveSettingsMessage,
 } from "../message/messageTypeToExtention";
 import { getUri } from "../util/getUri";
 import { getNonce } from "../util/util";
+import { convertAllPathsToWebviewUri } from "../util/imagePathConverter";
 import { saveImageLocally } from "./imageStorage";
 import { getPlantUmlServer } from "../plantuml/plantUmlServer";
 import * as path from "path";
@@ -73,9 +75,17 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): void {
+    // ドキュメントのディレクトリを取得
+    const documentDir = vscode.Uri.file(path.dirname(document.uri.fsPath));
+
     // Setup initial content for the webview
     webviewPanel.webview.options = {
       enableScripts: true,
+      // ローカル画像ファイルへのアクセスを許可
+      localResourceRoots: [
+        this.context.extensionUri,
+        documentDir,
+      ],
     };
     webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
@@ -88,9 +98,11 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
 
     function sendDocumentInfo() {
       const dirPath = path.dirname(document.uri.fsPath);
+      // WebView URI形式のベースURIを作成（WebView側で逆変換に使用）
+      const baseUri = webviewPanel.webview.asWebviewUri(documentDir).toString();
       webviewPanel.webview.postMessage({
         type: "documentInfo",
-        payload: { dirPath },
+        payload: { dirPath, baseUri },
       } satisfies DocumentInfoMessage);
     }
 
@@ -119,9 +131,16 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     });
 
     function updateWebview() {
+      const dirPath = path.dirname(document.uri.fsPath);
+      // ローカル画像パスとリンクパスをWebView用URIに変換
+      const convertedMarkdown = convertAllPathsToWebviewUri(
+        document.getText(),
+        dirPath,
+        webviewPanel.webview
+      );
       webviewPanel.webview.postMessage({
         type: "update",
-        payload: document.getText(),
+        payload: convertedMarkdown,
       } satisfies UpdateMessage);
     }
     // Update the webview when the document changes
@@ -185,6 +204,14 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
             const { themeSetting } = saveSettingsMessage.payload;
             const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
             await config.update("theme", themeSetting, vscode.ConfigurationTarget.Global);
+            return;
+          }
+          case "openFile": {
+            const openFileMessage = e as OpenFileMessage;
+            const { filePath } = openFileMessage.payload;
+            const fileUri = vscode.Uri.file(filePath);
+            // ファイルを開く
+            await vscode.commands.executeCommand("vscode.open", fileUri);
             return;
           }
         }

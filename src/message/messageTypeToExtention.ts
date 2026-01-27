@@ -1,4 +1,4 @@
-export type MessageType = "init" | "update" | "reload" | "save" | "saveImage" | "renderPlantUml" | "saveSettings";
+export type MessageType = "init" | "update" | "reload" | "save" | "saveImage" | "renderPlantUml" | "saveSettings" | "openFile";
 
 export interface Message {
   type: MessageType;
@@ -47,5 +47,13 @@ export interface SaveSettingsMessage extends Message {
   type: "saveSettings";
   payload: {
     themeSetting: ThemeSetting;
+  };
+}
+
+export interface OpenFileMessage extends Message {
+  type: "openFile";
+  payload: {
+    filePath: string; // 開くファイルの絶対パス
+    anchor?: string; // アンカー（#section等）
   };
 }

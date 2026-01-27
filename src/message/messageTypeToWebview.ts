@@ -43,6 +43,7 @@ export interface DocumentInfoMessage extends Message {
   type: "documentInfo";
   payload: {
     dirPath: string; // ドキュメントのディレクトリパス
+    baseUri: string; // WebView URI形式のベースURI（画像パスの逆変換に使用）
   };
 }
 
