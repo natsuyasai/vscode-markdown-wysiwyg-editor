@@ -19,7 +19,12 @@ interface MilkdownEditorProps {
   readonly?: boolean;
 }
 
-export const MilkdownEditor: FC<MilkdownEditorProps> = ({ value, onChange, theme, readonly = false }) => {
+export const MilkdownEditor: FC<MilkdownEditorProps> = ({
+  value,
+  onChange,
+  theme,
+  readonly = false,
+}) => {
   const divRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
   const isEditorReadyRef = useRef(false);
@@ -36,11 +41,7 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({ value, onChange, theme
     const message = event.data;
     if (message.type === "plantUmlResult") {
       const result = message as PlantUmlResultMessage;
-      handlePlantUmlResult(
-        result.payload.requestId,
-        result.payload.svg,
-        result.payload.error
-      );
+      handlePlantUmlResult(result.payload.requestId, result.payload.svg, result.payload.error);
     }
   }, []);
 
@@ -153,7 +154,6 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({ value, onChange, theme
       style={{
         width: "100%",
         height: "100%",
-        overflow: "auto",
       }}
     />
   );
