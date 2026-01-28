@@ -101,7 +101,15 @@ export function renderMermaidPreview(
 
       const container = document.createElement("div");
       container.innerHTML = processedSvg;
-      container.style.cssText = "padding: 16px; background: var(--crepe-color-surface);";
+      container.style.cssText =
+        "padding: 16px; background: var(--crepe-color-surface); width: 100%; min-width: 100%; overflow-x: auto; box-sizing: border-box;";
+
+      // SVGに適切なスタイルを適用
+      const svgElement = container.querySelector("svg");
+      if (svgElement) {
+        svgElement.style.display = "block";
+        svgElement.style.minWidth = "fit-content";
+      }
 
       // インタラクティブな要素のバインド（存在する場合）
       if (bindFunctions) {

@@ -79,6 +79,48 @@
 }
 
 /* ========================================
+   Mermaid Diagram Styles
+   ======================================== */
+
+/* Mermaid preview container */
+.milkdown .milkdown-code-block .preview-panel > div {
+  width: 100%;
+  min-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+/* Mermaid SVG responsive sizing */
+.milkdown .milkdown-code-block .preview-panel svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Gantt chart specific - allow wider rendering */
+.milkdown .milkdown-code-block .preview-panel svg[id^="mermaid"][aria-roledescription="gantt"] {
+  max-width: none;
+  min-width: 100%;
+}
+
+/* Sequence diagram - ensure proper width */
+.milkdown .milkdown-code-block .preview-panel svg[id^="mermaid"][aria-roledescription="sequence"] {
+  max-width: none;
+  min-width: fit-content;
+}
+
+/* Flowchart and other diagrams */
+.milkdown .milkdown-code-block .preview-panel svg[id^="mermaid"] {
+  min-width: fit-content;
+}
+
+/* Ensure preview panel takes full width */
+.milkdown .milkdown-code-block .preview-panel {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* ========================================
    CodeMirror Syntax Highlighting Themes
    ======================================== */
 
