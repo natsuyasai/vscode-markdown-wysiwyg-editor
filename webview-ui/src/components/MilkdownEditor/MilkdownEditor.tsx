@@ -1,11 +1,10 @@
-import { SaveImageMessage } from "@message/messageTypeToExtention";
 import { Message, PlantUmlResultMessage, SaveImageResultMessage } from "@message/messageTypeToWebview";
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 import { replaceAll } from "@milkdown/utils";
 import { FC, useCallback, useEffect, useLayoutEffect, useRef } from "react";
-import { vscode } from "../../utilities/vscode";
+import { useImageUpload } from "../../hooks/useImageUpload";
 import {
   handlePlantUmlResult,
   renderMermaidPreview,
@@ -13,78 +12,6 @@ import {
 } from "./diagramPreview";
 import { htmlBlockSchema, htmlSchema } from "./htmlPlugin";
 import "./MilkdownTheme.css";
-
-// 画像アップロードのコールバック管理
-const imageUploadCallbacks = new Map<string, (result: string | null) => void>();
-
-/**
- * 画像アップロード結果を処理する
- */
-function handleImageUploadResult(message: SaveImageResultMessage): void {
-  const entries = Array.from(imageUploadCallbacks.entries());
-  if (entries.length > 0) {
-    const [requestId, callback] = entries[0];
-    if (message.payload.success && message.payload.localPath) {
-      callback(message.payload.localPath);
-    } else {
-      console.error("Failed to upload image:", message.payload.error);
-      callback(null);
-    }
-    imageUploadCallbacks.delete(requestId);
-  }
-}
-
-/**
- * 相対パスをWebView URIに変換する
- * 読み込み時にExtensionが行うconvertImagePathsToWebviewUriと同等の処理
- */
-function toWebviewUri(relativePath: string, baseUri: string): string {
-  if (!baseUri) {
-    return relativePath;
-  }
-  const normalizedBaseUri = baseUri.endsWith("/") ? baseUri : `${baseUri}/`;
-  return `${normalizedBaseUri}${relativePath}`;
-}
-
-/**
- * 画像をアップロードする（Extension経由でローカル保存し、WebView URIを返す）
- */
-function createUploadImage(baseUriRef: React.RefObject<string>) {
-  return async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        const base64Data = reader.result as string;
-        const requestId = `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-        imageUploadCallbacks.set(requestId, (relativePath) => {
-          if (relativePath) {
-            // 相対パスをWebView URIに変換（読み込み時と同じ形式にする）
-            resolve(toWebviewUri(relativePath, baseUriRef.current ?? ""));
-          } else {
-            reject(new Error("Failed to save image"));
-          }
-        });
-
-        vscode.postMessage({
-          type: "saveImage",
-          payload: {
-            imageData: base64Data,
-            fileName: file.name || `image_${Date.now()}`,
-            mimeType: file.type || "image/png",
-          },
-        } satisfies SaveImageMessage);
-      };
-
-      reader.onerror = () => {
-        reject(new Error("Failed to read image file"));
-      };
-
-      reader.readAsDataURL(file);
-    });
-  };
-}
 
 interface MilkdownEditorProps {
   value: string;
@@ -107,25 +34,28 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   const lastKnownValueRef = useRef(value);
   const readonlyRef = useRef(readonly);
   const themeRef = useRef(theme);
-  const baseUriRef = useRef(baseUri);
-
-  baseUriRef.current = baseUri;
 
   // refを最新の値で更新
   readonlyRef.current = readonly;
   themeRef.current = theme;
 
+  // 画像アップロード機能
+  const { handleImageUploadResult, createUploadImage } = useImageUpload(baseUri);
+
   // PlantUML結果と画像アップロード結果のメッセージハンドラ
-  const handleExtensionMessage = useCallback((event: MessageEvent<Message>) => {
-    const message = event.data;
-    if (message.type === "plantUmlResult") {
-      const result = message as PlantUmlResultMessage;
-      handlePlantUmlResult(result.payload.requestId, result.payload.svg, result.payload.error);
-    } else if (message.type === "saveImageResult") {
-      const result = message as SaveImageResultMessage;
-      handleImageUploadResult(result);
-    }
-  }, []);
+  const handleExtensionMessage = useCallback(
+    (event: MessageEvent<Message>) => {
+      const message = event.data;
+      if (message.type === "plantUmlResult") {
+        const result = message as PlantUmlResultMessage;
+        handlePlantUmlResult(result.payload.requestId, result.payload.svg, result.payload.error);
+      } else if (message.type === "saveImageResult") {
+        const result = message as SaveImageResultMessage;
+        handleImageUploadResult(result);
+      }
+    },
+    [handleImageUploadResult]
+  );
 
   // メッセージリスナーを登録
   useEffect(() => {
@@ -166,7 +96,7 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
           previewOnlyByDefault: true,
         },
         [Crepe.Feature.ImageBlock]: {
-          onUpload: createUploadImage(baseUriRef),
+          onUpload: createUploadImage(),
         },
       },
     });
@@ -202,7 +132,7 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
       };
       destroyEditor().catch(console.error);
     };
-  }, [onChange]);
+  }, [onChange, createUploadImage]);
 
   // 外部からの値変更時にエディタを更新
   useLayoutEffect(() => {

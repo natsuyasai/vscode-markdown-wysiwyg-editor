@@ -2,31 +2,18 @@
 import * as vscode from "vscode";
 import {
   DocumentInfoMessage,
-  ExportResultMessage,
-  PlantUmlResultMessage,
-  SaveImageResultMessage,
   ThemeKind,
   ThemeSetting,
   UpdateMessage,
   UpdateSettingsMessage,
   UpdateTheameMessage,
 } from "../message/messageTypeToWebview";
-import {
-  Message,
-  OpenFileMessage,
-  RenderPlantUmlMessage,
-  SaveImageMessage,
-  SaveSettingsMessage,
-} from "../message/messageTypeToExtention";
+import { Message } from "../message/messageTypeToExtention";
 import { getUri } from "../util/getUri";
 import { getNonce } from "../util/util";
 import { convertAllPathsToWebviewUri } from "../util/imagePathConverter";
-import { saveImageLocally } from "./imageStorage";
-import { getPlantUmlServer } from "../plantuml/plantUmlServer";
-import { exportToHtml, generateHtmlForPdf } from "../export/htmlExporter";
+import { handleMessage } from "./MessageHandler";
 import * as path from "path";
-import * as fs from "fs";
-import * as os from "os";
 
 export class EditorProvider implements vscode.CustomTextEditorProvider {
   /**
@@ -155,165 +142,23 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     });
 
     // Receive message from the webview.
+    /* eslint-disable @typescript-eslint/no-misused-promises */
     const webviewReceiveMessageSubscription = webviewPanel.webview.onDidReceiveMessage(
       async (e: Message) => {
-        // console.log(`${e.type}:${e.payload}`);
-        switch (e.type) {
-          case "init":
-            updateTheme();
-            sendDocumentInfo();
-            sendSettings();
-            updateWebview();
-            return;
-          case "update":
-            if (e.payload !== undefined) {
-              this.updateTextDocument(document, e.payload as string);
-            }
-            return;
-          case "save":
-            if (e.payload !== undefined) {
-              this.updateTextDocument(document, e.payload as string);
-            }
-            return;
-          case "reload":
-            updateWebview();
-            return;
-          case "saveImage": {
-            const saveImageMessage = e as SaveImageMessage;
-            const { imageData, fileName, mimeType } = saveImageMessage.payload;
-            const result = await saveImageLocally(document, imageData, fileName, mimeType);
-            webviewPanel.webview.postMessage({
-              type: "saveImageResult",
-              payload: result,
-            } satisfies SaveImageResultMessage);
-            return;
-          }
-          case "renderPlantUml": {
-            const renderMessage = e as RenderPlantUmlMessage;
-            const { code, requestId } = renderMessage.payload;
-            const server = getPlantUmlServer(this.context.extensionPath);
-            const result = await server.render(code);
-            webviewPanel.webview.postMessage({
-              type: "plantUmlResult",
-              payload: {
-                requestId,
-                svg: result.svg,
-                error: result.error,
-              },
-            } satisfies PlantUmlResultMessage);
-            return;
-          }
-          case "saveSettings": {
-            const saveSettingsMessage = e as SaveSettingsMessage;
-            const { themeSetting } = saveSettingsMessage.payload;
-            const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
-            await config.update("theme", themeSetting, vscode.ConfigurationTarget.Global);
-            return;
-          }
-          case "openFile": {
-            const openFileMessage = e as OpenFileMessage;
-            const { filePath } = openFileMessage.payload;
-            const fileUri = vscode.Uri.file(filePath);
-            // ファイルを開く
-            await vscode.commands.executeCommand("vscode.open", fileUri);
-            return;
-          }
-          case "exportHtml": {
-            try {
-              const basePath = path.dirname(document.uri.fsPath);
-              const defaultFileName = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath)) + ".html";
-
-              const saveUri = await vscode.window.showSaveDialog({
-                defaultUri: vscode.Uri.file(path.join(basePath, defaultFileName)),
-                filters: {
-                  "HTML files": ["html"],
-                },
-              });
-
-              if (saveUri) {
-                const theme = EditorProvider.getThemeKind();
-                const title = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
-
-                exportToHtml(
-                  document.getText(),
-                  basePath,
-                  saveUri.fsPath,
-                  { theme, title, embedImages: true }
-                );
-
-                webviewPanel.webview.postMessage({
-                  type: "exportResult",
-                  payload: {
-                    success: true,
-                    message: "HTMLファイルをエクスポートしました",
-                    filePath: saveUri.fsPath,
-                  },
-                } satisfies ExportResultMessage);
-
-                vscode.window.showInformationMessage(`HTMLファイルをエクスポートしました: ${saveUri.fsPath}`);
-              }
-            } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : "Unknown error";
-              webviewPanel.webview.postMessage({
-                type: "exportResult",
-                payload: {
-                  success: false,
-                  message: `エクスポートに失敗しました: ${errorMessage}`,
-                },
-              } satisfies ExportResultMessage);
-              vscode.window.showErrorMessage(`HTMLエクスポートに失敗しました: ${errorMessage}`);
-            }
-            return;
-          }
-          case "exportPdf": {
-            try {
-              const basePath = path.dirname(document.uri.fsPath);
-              const theme = EditorProvider.getThemeKind();
-              const title = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
-
-              // 一時HTMLファイルを生成
-              const htmlContent = generateHtmlForPdf(
-                document.getText(),
-                basePath,
-                { theme, title, embedImages: true }
-              );
-
-              const tempDir = os.tmpdir();
-              const tempHtmlPath = path.join(tempDir, `${title}_export.html`);
-              fs.writeFileSync(tempHtmlPath, htmlContent, "utf-8");
-
-              // ブラウザで開く
-              const tempUri = vscode.Uri.file(tempHtmlPath);
-              await vscode.env.openExternal(tempUri);
-
-              webviewPanel.webview.postMessage({
-                type: "exportResult",
-                payload: {
-                  success: true,
-                  message: "ブラウザでHTMLを開きました。印刷機能からPDFとして保存してください。",
-                  filePath: tempHtmlPath,
-                },
-              } satisfies ExportResultMessage);
-
-              vscode.window.showInformationMessage(
-                "ブラウザでHTMLを開きました。ブラウザの印刷機能（Ctrl+P / Cmd+P）からPDFとして保存してください。"
-              );
-            } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : "Unknown error";
-              webviewPanel.webview.postMessage({
-                type: "exportResult",
-                payload: {
-                  success: false,
-                  message: `PDFエクスポートに失敗しました: ${errorMessage}`,
-                },
-              } satisfies ExportResultMessage);
-              vscode.window.showErrorMessage(`PDFエクスポートに失敗しました: ${errorMessage}`);
-            }
-            return;
-          }
-        }
+        await handleMessage(e, {
+          document,
+          webviewPanel,
+          extensionPath: this.context.extensionPath,
+          updateTextDocument: (doc, text) => this.updateTextDocument(doc, text),
+          updateWebview,
+          updateTheme,
+          sendDocumentInfo,
+          sendSettings,
+          getThemeKind: () => EditorProvider.getThemeKind(),
+        });
       }
     );
+    /* eslint-enable @typescript-eslint/no-misused-promises */
 
     // Make sure we get rid of the listener when our editor is closed.
     webviewPanel.onDidDispose(() => {

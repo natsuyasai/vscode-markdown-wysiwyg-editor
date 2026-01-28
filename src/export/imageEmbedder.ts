@@ -1,35 +1,19 @@
 import * as fs from "fs";
 import * as path from "path";
-
-const SUPPORTED_IMAGE_EXTENSIONS = new Set([
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".gif",
-  ".webp",
-  ".svg",
-]);
-
-const MIME_TYPES: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".svg": "image/svg+xml",
-};
+import {
+  DEFAULT_MIME_TYPE,
+  EXTERNAL_URL_PREFIXES,
+  IMAGE_MIME_TYPES,
+  SUPPORTED_IMAGE_EXTENSIONS,
+} from "../constants/fileExtensions";
 
 function getMimeType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
-  return MIME_TYPES[ext] || "application/octet-stream";
+  return IMAGE_MIME_TYPES[ext] || DEFAULT_MIME_TYPE;
 }
 
 function isLocalPath(imagePath: string): boolean {
-  return (
-    !imagePath.startsWith("http://") &&
-    !imagePath.startsWith("https://") &&
-    !imagePath.startsWith("data:")
-  );
+  return !EXTERNAL_URL_PREFIXES.some((prefix) => imagePath.startsWith(prefix));
 }
 
 function isSupportedImage(imagePath: string): boolean {
