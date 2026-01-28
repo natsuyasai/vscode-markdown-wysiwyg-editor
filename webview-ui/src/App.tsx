@@ -318,6 +318,7 @@ export default function App() {
               onChange={setMarkdown}
               theme={theme}
               readonly={readonly}
+              baseUri={baseUriRef.current}
             />
           </main>
         </ContextMenu>

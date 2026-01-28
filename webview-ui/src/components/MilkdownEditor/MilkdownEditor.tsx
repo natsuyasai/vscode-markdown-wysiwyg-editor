@@ -21,7 +21,6 @@ const imageUploadCallbacks = new Map<string, (result: string | null) => void>();
  * 画像アップロード結果を処理する
  */
 function handleImageUploadResult(message: SaveImageResultMessage): void {
-  // 最新のコールバックを取得（IDが不明なため、最初のものを使用）
   const entries = Array.from(imageUploadCallbacks.entries());
   if (entries.length > 0) {
     const [requestId, callback] = entries[0];
@@ -36,42 +35,55 @@ function handleImageUploadResult(message: SaveImageResultMessage): void {
 }
 
 /**
- * 画像をアップロードする（Extension経由でローカル保存）
+ * 相対パスをWebView URIに変換する
+ * 読み込み時にExtensionが行うconvertImagePathsToWebviewUriと同等の処理
  */
-async function uploadImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+function toWebviewUri(relativePath: string, baseUri: string): string {
+  if (!baseUri) {
+    return relativePath;
+  }
+  const normalizedBaseUri = baseUri.endsWith("/") ? baseUri : `${baseUri}/`;
+  return `${normalizedBaseUri}${relativePath}`;
+}
 
-    reader.onload = () => {
-      const base64Data = reader.result as string;
-      const requestId = `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+/**
+ * 画像をアップロードする（Extension経由でローカル保存し、WebView URIを返す）
+ */
+function createUploadImage(baseUriRef: React.RefObject<string>) {
+  return async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
 
-      // コールバックを登録
-      imageUploadCallbacks.set(requestId, (result) => {
-        if (result) {
-          resolve(result);
-        } else {
-          reject(new Error("Failed to save image"));
-        }
-      });
+      reader.onload = () => {
+        const base64Data = reader.result as string;
+        const requestId = `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-      // Extensionに画像保存をリクエスト
-      vscode.postMessage({
-        type: "saveImage",
-        payload: {
-          imageData: base64Data,
-          fileName: file.name || `image_${Date.now()}`,
-          mimeType: file.type || "image/png",
-        },
-      } satisfies SaveImageMessage);
-    };
+        imageUploadCallbacks.set(requestId, (relativePath) => {
+          if (relativePath) {
+            // 相対パスをWebView URIに変換（読み込み時と同じ形式にする）
+            resolve(toWebviewUri(relativePath, baseUriRef.current ?? ""));
+          } else {
+            reject(new Error("Failed to save image"));
+          }
+        });
 
-    reader.onerror = () => {
-      reject(new Error("Failed to read image file"));
-    };
+        vscode.postMessage({
+          type: "saveImage",
+          payload: {
+            imageData: base64Data,
+            fileName: file.name || `image_${Date.now()}`,
+            mimeType: file.type || "image/png",
+          },
+        } satisfies SaveImageMessage);
+      };
 
-    reader.readAsDataURL(file);
-  });
+      reader.onerror = () => {
+        reject(new Error("Failed to read image file"));
+      };
+
+      reader.readAsDataURL(file);
+    });
+  };
 }
 
 interface MilkdownEditorProps {
@@ -79,6 +91,7 @@ interface MilkdownEditorProps {
   onChange: (markdown: string) => void;
   theme: "light" | "dark";
   readonly?: boolean;
+  baseUri?: string;
 }
 
 export const MilkdownEditor: FC<MilkdownEditorProps> = ({
@@ -86,6 +99,7 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   onChange,
   theme,
   readonly = false,
+  baseUri = "",
 }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
@@ -93,6 +107,9 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   const lastKnownValueRef = useRef(value);
   const readonlyRef = useRef(readonly);
   const themeRef = useRef(theme);
+  const baseUriRef = useRef(baseUri);
+
+  baseUriRef.current = baseUri;
 
   // refを最新の値で更新
   readonlyRef.current = readonly;
@@ -149,7 +166,7 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
           previewOnlyByDefault: true,
         },
         [Crepe.Feature.ImageBlock]: {
-          onUpload: uploadImage,
+          onUpload: createUploadImage(baseUriRef),
         },
       },
     });
