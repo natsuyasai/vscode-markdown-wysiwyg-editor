@@ -58,7 +58,11 @@
         },
         "markdownWysiwygEditor.theme": {
           "type": "string",
-          "enum": ["auto", "light", "dark"],
+          "enum": [
+            "auto",
+            "light",
+            "dark"
+          ],
           "default": "auto",
           "description": "Editor theme. 'auto' follows VS Code's color theme."
         }
@@ -84,6 +88,7 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "devDependencies": {
+    "@types/marked": "^5.0.2",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
     "@types/pako": "^2.0.4",
@@ -99,6 +104,7 @@
     "typescript-eslint": "^8.48.1"
   },
   "dependencies": {
+    "marked": "^4.3.0",
     "pako": "^2.1.0"
   }
 }

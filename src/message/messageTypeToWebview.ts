@@ -5,7 +5,8 @@ export type MessageType =
   | "updateSettings"
   | "saveImageResult"
   | "documentInfo"
-  | "plantUmlResult";
+  | "plantUmlResult"
+  | "exportResult";
 
 export type ThemeKind = "light" | "dark";
 export type ThemeSetting = "auto" | "light" | "dark";
@@ -60,5 +61,14 @@ export interface UpdateSettingsMessage extends Message {
   type: "updateSettings";
   payload: {
     themeSetting: ThemeSetting;
+  };
+}
+
+export interface ExportResultMessage extends Message {
+  type: "exportResult";
+  payload: {
+    success: boolean;
+    message: string;
+    filePath?: string;
   };
 }

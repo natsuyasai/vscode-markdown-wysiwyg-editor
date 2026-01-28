@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 import {
   DocumentInfoMessage,
+  ExportResultMessage,
   PlantUmlResultMessage,
   SaveImageResultMessage,
   ThemeKind,
@@ -22,7 +23,10 @@ import { getNonce } from "../util/util";
 import { convertAllPathsToWebviewUri } from "../util/imagePathConverter";
 import { saveImageLocally } from "./imageStorage";
 import { getPlantUmlServer } from "../plantuml/plantUmlServer";
+import { exportToHtml, generateHtmlForPdf } from "../export/htmlExporter";
 import * as path from "path";
+import * as fs from "fs";
+import * as os from "os";
 
 export class EditorProvider implements vscode.CustomTextEditorProvider {
   /**
@@ -212,6 +216,99 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
             const fileUri = vscode.Uri.file(filePath);
             // ファイルを開く
             await vscode.commands.executeCommand("vscode.open", fileUri);
+            return;
+          }
+          case "exportHtml": {
+            try {
+              const basePath = path.dirname(document.uri.fsPath);
+              const defaultFileName = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath)) + ".html";
+
+              const saveUri = await vscode.window.showSaveDialog({
+                defaultUri: vscode.Uri.file(path.join(basePath, defaultFileName)),
+                filters: {
+                  "HTML files": ["html"],
+                },
+              });
+
+              if (saveUri) {
+                const theme = EditorProvider.getThemeKind();
+                const title = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
+
+                exportToHtml(
+                  document.getText(),
+                  basePath,
+                  saveUri.fsPath,
+                  { theme, title, embedImages: true }
+                );
+
+                webviewPanel.webview.postMessage({
+                  type: "exportResult",
+                  payload: {
+                    success: true,
+                    message: "HTMLファイルをエクスポートしました",
+                    filePath: saveUri.fsPath,
+                  },
+                } satisfies ExportResultMessage);
+
+                vscode.window.showInformationMessage(`HTMLファイルをエクスポートしました: ${saveUri.fsPath}`);
+              }
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : "Unknown error";
+              webviewPanel.webview.postMessage({
+                type: "exportResult",
+                payload: {
+                  success: false,
+                  message: `エクスポートに失敗しました: ${errorMessage}`,
+                },
+              } satisfies ExportResultMessage);
+              vscode.window.showErrorMessage(`HTMLエクスポートに失敗しました: ${errorMessage}`);
+            }
+            return;
+          }
+          case "exportPdf": {
+            try {
+              const basePath = path.dirname(document.uri.fsPath);
+              const theme = EditorProvider.getThemeKind();
+              const title = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
+
+              // 一時HTMLファイルを生成
+              const htmlContent = generateHtmlForPdf(
+                document.getText(),
+                basePath,
+                { theme, title, embedImages: true }
+              );
+
+              const tempDir = os.tmpdir();
+              const tempHtmlPath = path.join(tempDir, `${title}_export.html`);
+              fs.writeFileSync(tempHtmlPath, htmlContent, "utf-8");
+
+              // ブラウザで開く
+              const tempUri = vscode.Uri.file(tempHtmlPath);
+              await vscode.env.openExternal(tempUri);
+
+              webviewPanel.webview.postMessage({
+                type: "exportResult",
+                payload: {
+                  success: true,
+                  message: "ブラウザでHTMLを開きました。印刷機能からPDFとして保存してください。",
+                  filePath: tempHtmlPath,
+                },
+              } satisfies ExportResultMessage);
+
+              vscode.window.showInformationMessage(
+                "ブラウザでHTMLを開きました。ブラウザの印刷機能（Ctrl+P / Cmd+P）からPDFとして保存してください。"
+              );
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : "Unknown error";
+              webviewPanel.webview.postMessage({
+                type: "exportResult",
+                payload: {
+                  success: false,
+                  message: `PDFエクスポートに失敗しました: ${errorMessage}`,
+                },
+              } satisfies ExportResultMessage);
+              vscode.window.showErrorMessage(`PDFエクスポートに失敗しました: ${errorMessage}`);
+            }
             return;
           }
         }

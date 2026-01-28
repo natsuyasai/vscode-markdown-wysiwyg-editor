@@ -1,4 +1,4 @@
-export type MessageType = "init" | "update" | "reload" | "save" | "saveImage" | "renderPlantUml" | "saveSettings" | "openFile";
+export type MessageType = "init" | "update" | "reload" | "save" | "saveImage" | "renderPlantUml" | "saveSettings" | "openFile" | "exportHtml" | "exportPdf";
 
 export interface Message {
   type: MessageType;
@@ -56,4 +56,12 @@ export interface OpenFileMessage extends Message {
     filePath: string; // 開くファイルの絶対パス
     anchor?: string; // アンカー（#section等）
   };
+}
+
+export interface ExportHtmlMessage extends Message {
+  type: "exportHtml";
+}
+
+export interface ExportPdfMessage extends Message {
+  type: "exportPdf";
 }

@@ -1,4 +1,6 @@
 import {
+  ExportHtmlMessage,
+  ExportPdfMessage,
   InitMessage,
   OpenFileMessage,
   SaveSettingsMessage,
@@ -11,8 +13,9 @@ import {
   UpdateMessage,
   UpdateSettingsMessage,
 } from "@message/messageTypeToWebview";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./App.module.scss";
+import { ContextMenu, ContextMenuItem } from "./components/ContextMenu";
 import { EditorToolbar } from "./components/EditorToolbar";
 import { MilkdownEditor } from "./components/MilkdownEditor";
 import { useEventListener } from "./hooks/useEventListener";
@@ -269,6 +272,34 @@ export default function App() {
     } satisfies SaveSettingsMessage);
   }, []);
 
+  // エクスポートハンドラ
+  const handleExportHtml = useCallback(() => {
+    vscode.postMessage({
+      type: "exportHtml",
+    } satisfies ExportHtmlMessage);
+  }, []);
+
+  const handleExportPdf = useCallback(() => {
+    vscode.postMessage({
+      type: "exportPdf",
+    } satisfies ExportPdfMessage);
+  }, []);
+
+  // コンテキストメニュー項目
+  const contextMenuItems: ContextMenuItem[] = useMemo(
+    () => [
+      {
+        label: "HTMLとしてエクスポート",
+        onClick: handleExportHtml,
+      },
+      {
+        label: "PDFとしてエクスポート",
+        onClick: handleExportPdf,
+      },
+    ],
+    [handleExportHtml, handleExportPdf]
+  );
+
   return (
     <>
       <div className={styles.root} data-theme={theme}>
@@ -280,14 +311,16 @@ export default function App() {
             onThemeSettingChange={handleThemeSettingChange}
           />
         </header>
-        <main className={styles.main}>
-          <MilkdownEditor
-            value={markdown}
-            onChange={setMarkdown}
-            theme={theme}
-            readonly={readonly}
-          />
-        </main>
+        <ContextMenu items={contextMenuItems}>
+          <main className={styles.main}>
+            <MilkdownEditor
+              value={markdown}
+              onChange={setMarkdown}
+              theme={theme}
+              readonly={readonly}
+            />
+          </main>
+        </ContextMenu>
       </div>
     </>
   );

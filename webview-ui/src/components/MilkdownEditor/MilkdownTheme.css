@@ -67,3 +67,193 @@
   background: transparent;
   border-color: transparent;
 }
+
+/* ========================================
+   CodeMirror Syntax Highlighting Themes
+   ======================================== */
+
+/* Light theme - CodeMirror syntax highlighting */
+[data-theme="light"] .milkdown .cm-editor {
+  background-color: #f7f7f7;
+}
+
+[data-theme="light"] .milkdown .cm-content {
+  caret-color: #000000;
+}
+
+[data-theme="light"] .milkdown .cm-cursor {
+  border-left-color: #000000;
+}
+
+[data-theme="light"] .milkdown .cm-selectionBackground,
+[data-theme="light"] .milkdown .cm-content ::selection {
+  background-color: #add6ff !important;
+}
+
+[data-theme="light"] .milkdown .cm-activeLine {
+  background-color: #e8e8e8;
+}
+
+[data-theme="light"] .milkdown .cm-gutters {
+  background-color: #f7f7f7;
+  color: #6e7781;
+  border-right: 1px solid #e1e4e8;
+}
+
+[data-theme="light"] .milkdown .cm-lineNumbers .cm-gutterElement {
+  color: #6e7781;
+}
+
+/* Light theme syntax colors */
+[data-theme="light"] .milkdown .cm-line {
+  color: #24292e;
+}
+
+[data-theme="light"] .milkdown .ͼ1 .cm-line {
+  color: #24292e;
+}
+
+[data-theme="light"] .milkdown .ͼb {
+  color: #d73a49; /* keyword */
+}
+
+[data-theme="light"] .milkdown .ͼc {
+  color: #005cc5; /* number */
+}
+
+[data-theme="light"] .milkdown .ͼd {
+  color: #032f62; /* string */
+}
+
+[data-theme="light"] .milkdown .ͼe {
+  color: #6a737d; /* comment */
+}
+
+[data-theme="light"] .milkdown .ͼf {
+  color: #6f42c1; /* variableName */
+}
+
+[data-theme="light"] .milkdown .ͼg {
+  color: #e36209; /* typeName */
+}
+
+[data-theme="light"] .milkdown .ͼi {
+  color: #22863a; /* definition */
+}
+
+[data-theme="light"] .milkdown .ͼj {
+  color: #d73a49; /* operator */
+}
+
+[data-theme="light"] .milkdown .ͼl {
+  color: #6f42c1; /* function */
+}
+
+[data-theme="light"] .milkdown .ͼm {
+  color: #005cc5; /* propertyName */
+}
+
+[data-theme="light"] .milkdown .ͼn {
+  color: #22863a; /* tagName */
+}
+
+[data-theme="light"] .milkdown .ͼo {
+  color: #6f42c1; /* attributeName */
+}
+
+[data-theme="light"] .milkdown .ͼp {
+  color: #032f62; /* attributeValue */
+}
+
+/* Dark theme - CodeMirror syntax highlighting */
+[data-theme="dark"] .milkdown .cm-editor {
+  background-color: #121212;
+}
+
+[data-theme="dark"] .milkdown .cm-content {
+  caret-color: #ffffff;
+}
+
+[data-theme="dark"] .milkdown .cm-cursor {
+  border-left-color: #ffffff;
+}
+
+[data-theme="dark"] .milkdown .cm-selectionBackground,
+[data-theme="dark"] .milkdown .cm-content ::selection {
+  background-color: #264f78 !important;
+}
+
+[data-theme="dark"] .milkdown .cm-activeLine {
+  background-color: #2a2a2a;
+}
+
+[data-theme="dark"] .milkdown .cm-gutters {
+  background-color: #121212;
+  color: #6e7681;
+  border-right: 1px solid #3c3c3c;
+}
+
+[data-theme="dark"] .milkdown .cm-lineNumbers .cm-gutterElement {
+  color: #6e7681;
+}
+
+/* Dark theme syntax colors */
+[data-theme="dark"] .milkdown .cm-line {
+  color: #d4d4d4;
+}
+
+[data-theme="dark"] .milkdown .ͼ1 .cm-line {
+  color: #d4d4d4;
+}
+
+[data-theme="dark"] .milkdown .ͼb {
+  color: #569cd6; /* keyword */
+}
+
+[data-theme="dark"] .milkdown .ͼc {
+  color: #b5cea8; /* number */
+}
+
+[data-theme="dark"] .milkdown .ͼd {
+  color: #ce9178; /* string */
+}
+
+[data-theme="dark"] .milkdown .ͼe {
+  color: #6a9955; /* comment */
+}
+
+[data-theme="dark"] .milkdown .ͼf {
+  color: #9cdcfe; /* variableName */
+}
+
+[data-theme="dark"] .milkdown .ͼg {
+  color: #4ec9b0; /* typeName */
+}
+
+[data-theme="dark"] .milkdown .ͼi {
+  color: #dcdcaa; /* definition */
+}
+
+[data-theme="dark"] .milkdown .ͼj {
+  color: #d4d4d4; /* operator */
+}
+
+[data-theme="dark"] .milkdown .ͼl {
+  color: #dcdcaa; /* function */
+}
+
+[data-theme="dark"] .milkdown .ͼm {
+  color: #9cdcfe; /* propertyName */
+}
+
+[data-theme="dark"] .milkdown .ͼn {
+  color: #569cd6; /* tagName */
+}
+
+[data-theme="dark"] .milkdown .ͼo {
+  color: #9cdcfe; /* attributeName */
+}
+
+[data-theme="dark"] .milkdown .ͼp {
+  color: #ce9178; /* attributeValue */
+}
