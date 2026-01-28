@@ -85,8 +85,7 @@
   border-left-color: #000000;
 }
 
-[data-theme="light"] .milkdown .cm-selectionBackground,
-[data-theme="light"] .milkdown .cm-content ::selection {
+[data-theme="light"] .milkdown .cm-selectionBackground {
   background-color: #add6ff !important;
 }
 
@@ -178,8 +177,7 @@
   border-left-color: #ffffff;
 }
 
-[data-theme="dark"] .milkdown .cm-selectionBackground,
-[data-theme="dark"] .milkdown .cm-content ::selection {
+[data-theme="dark"] .milkdown .cm-selectionBackground {
   background-color: #264f78 !important;
 }
 
