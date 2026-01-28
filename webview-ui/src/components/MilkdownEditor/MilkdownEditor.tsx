@@ -1,9 +1,11 @@
-import { Message, PlantUmlResultMessage } from "@message/messageTypeToWebview";
+import { SaveImageMessage } from "@message/messageTypeToExtention";
+import { Message, PlantUmlResultMessage, SaveImageResultMessage } from "@message/messageTypeToWebview";
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 import { replaceAll } from "@milkdown/utils";
 import { FC, useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { vscode } from "../../utilities/vscode";
 import {
   handlePlantUmlResult,
   renderMermaidPreview,
@@ -11,6 +13,66 @@ import {
 } from "./diagramPreview";
 import { htmlBlockSchema, htmlSchema } from "./htmlPlugin";
 import "./MilkdownTheme.css";
+
+// 画像アップロードのコールバック管理
+const imageUploadCallbacks = new Map<string, (result: string | null) => void>();
+
+/**
+ * 画像アップロード結果を処理する
+ */
+function handleImageUploadResult(message: SaveImageResultMessage): void {
+  // 最新のコールバックを取得（IDが不明なため、最初のものを使用）
+  const entries = Array.from(imageUploadCallbacks.entries());
+  if (entries.length > 0) {
+    const [requestId, callback] = entries[0];
+    if (message.payload.success && message.payload.localPath) {
+      callback(message.payload.localPath);
+    } else {
+      console.error("Failed to upload image:", message.payload.error);
+      callback(null);
+    }
+    imageUploadCallbacks.delete(requestId);
+  }
+}
+
+/**
+ * 画像をアップロードする（Extension経由でローカル保存）
+ */
+async function uploadImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const base64Data = reader.result as string;
+      const requestId = `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+      // コールバックを登録
+      imageUploadCallbacks.set(requestId, (result) => {
+        if (result) {
+          resolve(result);
+        } else {
+          reject(new Error("Failed to save image"));
+        }
+      });
+
+      // Extensionに画像保存をリクエスト
+      vscode.postMessage({
+        type: "saveImage",
+        payload: {
+          imageData: base64Data,
+          fileName: file.name || `image_${Date.now()}`,
+          mimeType: file.type || "image/png",
+        },
+      } satisfies SaveImageMessage);
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Failed to read image file"));
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
 
 interface MilkdownEditorProps {
   value: string;
@@ -36,22 +98,25 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   readonlyRef.current = readonly;
   themeRef.current = theme;
 
-  // PlantUML結果のメッセージハンドラ
-  const handlePlantUmlMessage = useCallback((event: MessageEvent<Message>) => {
+  // PlantUML結果と画像アップロード結果のメッセージハンドラ
+  const handleExtensionMessage = useCallback((event: MessageEvent<Message>) => {
     const message = event.data;
     if (message.type === "plantUmlResult") {
       const result = message as PlantUmlResultMessage;
       handlePlantUmlResult(result.payload.requestId, result.payload.svg, result.payload.error);
+    } else if (message.type === "saveImageResult") {
+      const result = message as SaveImageResultMessage;
+      handleImageUploadResult(result);
     }
   }, []);
 
-  // PlantUMLメッセージリスナーを登録
+  // メッセージリスナーを登録
   useEffect(() => {
-    window.addEventListener("message", handlePlantUmlMessage);
+    window.addEventListener("message", handleExtensionMessage);
     return () => {
-      window.removeEventListener("message", handlePlantUmlMessage);
+      window.removeEventListener("message", handleExtensionMessage);
     };
-  }, [handlePlantUmlMessage]);
+  }, [handleExtensionMessage]);
 
   useLayoutEffect(() => {
     if (!divRef.current) return;
@@ -82,6 +147,9 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
           previewLabel: "Preview",
           previewLoading: "Loading...",
           previewOnlyByDefault: true,
+        },
+        [Crepe.Feature.ImageBlock]: {
+          onUpload: uploadImage,
         },
       },
     });
