@@ -1,38 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { revertAllPathsFromWebviewUri } from "../utilities/imagePathConverter";
+import { cleanupMarkdown, detectLineEnding, type LineEnding } from "../utilities/markdownCleanup";
 import { vscode } from "../utilities/vscode";
-
-type LineEnding = "\r\n" | "\n";
-
-/**
- * テキストから改行コードを検出する
- * CRLFが含まれていればCRLF、それ以外はLFを返す
- */
-function detectLineEnding(text: string): LineEnding {
-  return text.includes("\r\n") ? "\r\n" : "\n";
-}
-
-/**
- * WYSIWYGエディタから出力されたMarkdownをクリーンアップする
- * - <br />、<br>タグを改行に変換
- * - &nbsp; を通常のスペースに変換
- * - Unicode ノーブレークスペース（\u00A0）を通常のスペースに変換
- * - 改行コードを元ファイルの形式に統一
- */
-function cleanupMarkdown(text: string, lineEnding: LineEnding): string {
-  return (
-    text
-      // <br />、<br>、<br/>タグを改行に変換
-      .replace(/<br\s*\/?>/gi, "\n")
-      // HTMLエンティティの&nbsp;を通常のスペースに変換
-      .replace(/&nbsp;/g, " ")
-      // Unicode ノーブレークスペース（\u00A0）を通常のスペースに変換
-      .replace(/\u00A0/g, " ")
-      // 改行コードを元ファイルの形式に統一（まずLFに統一してから変換）
-      .replace(/\r\n/g, "\n")
-      .replace(/\n/g, lineEnding)
-  );
-}
 
 interface UseMarkdownSyncResult {
   markdown: string;

@@ -2,6 +2,7 @@ import { Message, PlantUmlResultMessage, SaveImageResultMessage } from "@message
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
+import { remarkStringifyOptionsCtx } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/utils";
 import { FC, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { useImageUpload } from "../../hooks/useImageUpload";
@@ -12,6 +13,7 @@ import {
 } from "./diagramPreview";
 import { htmlBlockSchema, htmlSchema } from "./htmlPlugin";
 import "./MilkdownTheme.css";
+import { createRemarkStringifyOptions } from "./remarkConfig";
 
 interface MilkdownEditorProps {
   value: string;
@@ -111,6 +113,14 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
     const initializeEditor = async () => {
       // HTMLサポート: デフォルトのhtmlスキーマを上書き
       crepe.editor.use(htmlSchema).use(htmlBlockSchema);
+
+      // remark-stringifyのオプションをカスタマイズ（箇条書きマーカー、改行方式など）
+      crepe.editor.config((ctx) => {
+        ctx.update(remarkStringifyOptionsCtx, (prev) => ({
+          ...prev,
+          ...createRemarkStringifyOptions(),
+        }));
+      });
 
       await crepe.create();
       if (isMounted) {
