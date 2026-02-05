@@ -11,8 +11,7 @@ import { vscode } from "../../utilities/vscode";
 const plantUmlCallbacks = new Map<string, (result: HTMLElement | null) => void>();
 
 /** ダイアグラムコンテナのスタイル */
-const DIAGRAM_CONTAINER_STYLE =
-  "padding: 16px; background: var(--crepe-color-surface);";
+const DIAGRAM_CONTAINER_STYLE = "padding: 16px; background: var(--crepe-color-surface);";
 
 /** エラー表示のスタイル */
 const ERROR_STYLE = "color: var(--crepe-color-error, red); padding: 8px;";
@@ -30,10 +29,7 @@ function createErrorElement(type: string, message: string): HTMLDivElement {
 /**
  * ダイアグラムコンテナを作成する
  */
-function createDiagramContainer(
-  svgContent: string,
-  additionalStyle = ""
-): HTMLDivElement {
+function createDiagramContainer(svgContent: string, additionalStyle = ""): HTMLDivElement {
   const container = document.createElement("div");
   container.innerHTML = svgContent;
   container.style.cssText = DIAGRAM_CONTAINER_STYLE + additionalStyle;

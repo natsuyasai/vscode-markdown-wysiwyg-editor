@@ -144,17 +144,12 @@ function hello() {
 `;
 
 // MarkdownViewerラッパー
-function MarkdownViewerWrapper({
-  value,
-  theme,
-}: {
-  value: string;
-  theme: "light" | "dark";
-}) {
+function MarkdownViewerWrapper({ value, theme }: { value: string; theme: "light" | "dark" }) {
   return (
     <div
       data-theme={theme}
-      style={{ height: "100%", background: theme === "dark" ? "#1a1a1a" : "#ffffff" }}>
+      style={{ height: "100%", background: theme === "dark" ? "#1a1a1a" : "#ffffff" }}
+    >
       <MarkdownViewer value={value} theme={theme} />
     </div>
   );

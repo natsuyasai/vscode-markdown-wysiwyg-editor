@@ -81,9 +81,7 @@ describe("useImageHandler", () => {
     });
 
     it("enabledがfalseの場合はペーストイベントを処理しないこと", () => {
-      renderHook(() =>
-        useImageHandler({ onImageInserted: mockOnImageInserted, enabled: false })
-      );
+      renderHook(() => useImageHandler({ onImageInserted: mockOnImageInserted, enabled: false }));
 
       const mockItem = {
         type: "image/png",
@@ -196,9 +194,7 @@ describe("useImageHandler", () => {
     });
 
     it("enabledがfalseの場合はdragoverイベントを処理しないこと", () => {
-      renderHook(() =>
-        useImageHandler({ onImageInserted: mockOnImageInserted, enabled: false })
-      );
+      renderHook(() => useImageHandler({ onImageInserted: mockOnImageInserted, enabled: false }));
 
       const dragEvent = createDragEvent("dragover", ["Files"]);
       const preventDefaultSpy = vi.spyOn(dragEvent, "preventDefault");

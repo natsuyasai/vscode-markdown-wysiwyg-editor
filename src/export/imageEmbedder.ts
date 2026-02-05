@@ -44,10 +44,7 @@ function resolveImagePath(imagePath: string, basePath: string): string {
   return path.resolve(basePath, imagePath);
 }
 
-export function embedImagesInMarkdown(
-  markdown: string,
-  basePath: string
-): string {
+export function embedImagesInMarkdown(markdown: string, basePath: string): string {
   // Markdown image pattern: ![alt](path) or ![alt](path "title")
   const markdownImageRegex = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 
@@ -75,10 +72,7 @@ export function embedImagesInMarkdown(
   return result;
 }
 
-export function embedImagesInHtml(
-  html: string,
-  basePath: string
-): string {
+export function embedImagesInHtml(html: string, basePath: string): string {
   // HTML img tag pattern: <img ... src="path" ...>
   const htmlImageRegex = /<img\s+([^>]*?)src=["']([^"']+)["']([^>]*)>/gi;
 

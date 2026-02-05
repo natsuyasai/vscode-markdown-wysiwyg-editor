@@ -1,4 +1,14 @@
-export type MessageType = "init" | "update" | "reload" | "save" | "saveImage" | "renderPlantUml" | "saveSettings" | "openFile" | "exportHtml" | "exportPdf";
+export type MessageType =
+  | "init"
+  | "update"
+  | "reload"
+  | "save"
+  | "saveImage"
+  | "renderPlantUml"
+  | "saveSettings"
+  | "openFile"
+  | "exportHtml"
+  | "exportPdf";
 
 export interface Message {
   type: MessageType;

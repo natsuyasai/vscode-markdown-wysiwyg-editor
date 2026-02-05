@@ -58,15 +58,18 @@ export function revertLinkPathsFromLocalFileUri(markdown: string, documentDir: s
     "g"
   );
 
-  return markdown.replace(regex, (match: string, text: string, encodedPath: string, anchor?: string): string => {
-    // パスをデコード
-    const absolutePath = decodeURIComponent(encodedPath);
+  return markdown.replace(
+    regex,
+    (match: string, text: string, encodedPath: string, anchor?: string): string => {
+      // パスをデコード
+      const absolutePath = decodeURIComponent(encodedPath);
 
-    // 絶対パスから相対パスを計算
-    const relativePath = getRelativePath(documentDir, absolutePath);
+      // 絶対パスから相対パスを計算
+      const relativePath = getRelativePath(documentDir, absolutePath);
 
-    return `[${text}](${relativePath}${anchor ?? ""})`;
-  });
+      return `[${text}](${relativePath}${anchor ?? ""})`;
+    }
+  );
 }
 
 /**

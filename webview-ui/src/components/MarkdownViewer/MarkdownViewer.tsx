@@ -138,9 +138,7 @@ const PlantUmlDiagram: FC<{ code: string }> = ({ code }) => {
     return <div className="markdown-viewer-loading">Loading PlantUML diagram...</div>;
   }
 
-  return (
-    <div className="markdown-viewer-diagram" dangerouslySetInnerHTML={{ __html: svg }} />
-  );
+  return <div className="markdown-viewer-diagram" dangerouslySetInnerHTML={{ __html: svg }} />;
 };
 
 /**

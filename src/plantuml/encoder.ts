@@ -3,8 +3,7 @@ import * as pako from "pako";
 /**
  * PlantUML用のBase64エンコーディング（URL安全）
  */
-const ENCODE_TABLE =
-  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
+const ENCODE_TABLE = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
 
 function encode6bit(value: number): string {
   if (value < 0 || value >= 64) {

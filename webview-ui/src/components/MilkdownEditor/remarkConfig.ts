@@ -22,14 +22,20 @@ const hardBreakHandler: Handle = (_node, _parent, state, info) => {
  */
 function patternMatchesScope(
   stack: string[],
-  pattern: { inConstruct?: string | string[]; notInConstruct?: string | string[] }
+  pattern: {
+    inConstruct?: string | string[] | null | undefined;
+    notInConstruct?: string | string[] | null | undefined;
+  }
 ): boolean {
-  return listInScope(stack, pattern.inConstruct, true) && !listInScope(stack, pattern.notInConstruct, false);
+  return (
+    listInScope(stack, pattern.inConstruct, true) &&
+    !listInScope(stack, pattern.notInConstruct, false)
+  );
 }
 
 function listInScope(
   stack: string[],
-  list: string | string[] | undefined,
+  list: string | string[] | null | undefined,
   none: boolean
 ): boolean {
   if (typeof list === "string") {

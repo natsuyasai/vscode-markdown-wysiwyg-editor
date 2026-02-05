@@ -73,10 +73,7 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.webview.options = {
       enableScripts: true,
       // ローカル画像ファイルへのアクセスを許可
-      localResourceRoots: [
-        this.context.extensionUri,
-        documentDir,
-      ],
+      localResourceRoots: [this.context.extensionUri, documentDir],
     };
     webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 

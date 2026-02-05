@@ -27,12 +27,7 @@ export const IMAGE_MIME_TYPES: Record<string, string> = {
 export const DEFAULT_MIME_TYPE = "application/octet-stream";
 
 /** URLプロトコルのプレフィックス（外部リソース判定用） */
-export const EXTERNAL_URL_PREFIXES = [
-  "http://",
-  "https://",
-  "data:",
-  "vscode-webview:",
-] as const;
+export const EXTERNAL_URL_PREFIXES = ["http://", "https://", "data:", "vscode-webview:"] as const;
 
 /** Markdown拡張子 */
 export const MARKDOWN_EXTENSION = ".md";

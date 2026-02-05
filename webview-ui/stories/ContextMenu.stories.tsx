@@ -85,7 +85,8 @@ export const Default: Story = {
           borderRadius: "8px",
           textAlign: "center",
           cursor: "context-menu",
-        }}>
+        }}
+      >
         右クリックでコンテキストメニューを表示
       </div>
     ),
@@ -105,7 +106,8 @@ export const WithIcons: Story = {
           borderRadius: "8px",
           textAlign: "center",
           cursor: "context-menu",
-        }}>
+        }}
+      >
         アイコン付きメニュー（右クリック）
       </div>
     ),
@@ -125,7 +127,8 @@ export const WithDisabledItems: Story = {
           borderRadius: "8px",
           textAlign: "center",
           cursor: "context-menu",
-        }}>
+        }}
+      >
         無効な項目を含むメニュー（右クリック）
       </div>
     ),
@@ -145,7 +148,8 @@ export const ManyItems: Story = {
           borderRadius: "8px",
           textAlign: "center",
           cursor: "context-menu",
-        }}>
+        }}
+      >
         多数の項目（右クリック）
       </div>
     ),
@@ -166,7 +170,8 @@ export const LightTheme: Story = {
           borderRadius: "8px",
           textAlign: "center",
           cursor: "context-menu",
-        }}>
+        }}
+      >
         ライトテーマ（右クリック）
       </div>
     ),
@@ -194,7 +199,8 @@ export const DarkTheme: Story = {
           textAlign: "center",
           cursor: "context-menu",
           color: "#ffffff",
-        }}>
+        }}
+      >
         ダークテーマ（右クリック）
       </div>
     ),
@@ -208,7 +214,8 @@ export const DarkTheme: Story = {
           minHeight: "400px",
           minWidth: "400px",
           backgroundColor: "#1e1e1e",
-        }}>
+        }}
+      >
         <Story />
       </div>
     ),
@@ -227,7 +234,8 @@ export const WithNestedContent: Story = {
           border: "2px dashed #e91e63",
           borderRadius: "8px",
           cursor: "context-menu",
-        }}>
+        }}
+      >
         <h3 style={{ margin: "0 0 10px 0" }}>ネストされたコンテンツ</h3>
         <p style={{ margin: "0 0 10px 0" }}>この領域のどこでも右クリックできます。</p>
         <button style={{ padding: "8px 16px", cursor: "pointer" }}>ボタンも含む</button>

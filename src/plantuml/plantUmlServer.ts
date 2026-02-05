@@ -135,9 +135,7 @@ export class PlantUmlServer {
         if (!this.isStarted) {
           clearTimeout(timeout);
           reject(
-            new Error(
-              `PlantUML server exited with code ${String(code)}. Error: ${errorOutput}`
-            )
+            new Error(`PlantUML server exited with code ${String(code)}. Error: ${errorOutput}`)
           );
         }
         this.isStarted = false;

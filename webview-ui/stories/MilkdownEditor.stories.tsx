@@ -374,7 +374,8 @@ function MilkdownEditorWrapper({
   return (
     <div
       data-theme={theme}
-      style={{ height: "100%", background: theme === "dark" ? "#1e1e1e" : "#ffffff" }}>
+      style={{ height: "100%", background: theme === "dark" ? "#1e1e1e" : "#ffffff" }}
+    >
       <MilkdownEditor value={value} onChange={setValue} theme={theme} readonly={readonly} />
     </div>
   );

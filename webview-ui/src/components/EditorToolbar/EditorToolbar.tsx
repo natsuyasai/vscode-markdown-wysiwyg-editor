@@ -38,11 +38,7 @@ export const EditorToolbar: FC<EditorToolbarProps> = ({
       <div className={styles.separator} />
       <label className={styles.themeSelector}>
         <span className={styles.themeLabel}>Theme:</span>
-        <select
-          className={styles.themeSelect}
-          value={themeSetting}
-          onChange={handleThemeChange}
-        >
+        <select className={styles.themeSelect} value={themeSetting} onChange={handleThemeChange}>
           <option value="auto">Auto</option>
           <option value="light">Light</option>
           <option value="dark">Dark</option>

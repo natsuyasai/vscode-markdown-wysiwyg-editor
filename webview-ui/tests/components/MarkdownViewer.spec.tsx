@@ -67,10 +67,7 @@ describe("MarkdownViewer", () => {
 
     it("スタイル属性を持つHTMLをレンダリングすること", () => {
       const { container } = render(
-        <MarkdownViewer
-          value='<p style="color: red;">Styled text</p>'
-          theme="light"
-        />
+        <MarkdownViewer value='<p style="color: red;">Styled text</p>' theme="light" />
       );
 
       const styledP = container.querySelector('p[style*="color"]');
@@ -221,10 +218,7 @@ const x = 1;
   describe("リンク", () => {
     it("vscode-local-fileスキームのリンクが保持されること", () => {
       const { container } = render(
-        <MarkdownViewer
-          value="[Link](vscode-local-file:%2Fhome%2Fuser%2Ffile.md)"
-          theme="light"
-        />
+        <MarkdownViewer value="[Link](vscode-local-file:%2Fhome%2Fuser%2Ffile.md)" theme="light" />
       );
 
       const link = container.querySelector("a");
@@ -242,10 +236,7 @@ const x = 1;
 
       const link = container.querySelector("a");
       expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute(
-        "href",
-        "vscode-local-file:%2Fhome%2Fuser%2Ffile.md#section"
-      );
+      expect(link).toHaveAttribute("href", "vscode-local-file:%2Fhome%2Fuser%2Ffile.md#section");
     });
 
     it("通常のHTTPリンクが保持されること", () => {
@@ -259,9 +250,7 @@ const x = 1;
     });
 
     it("アンカーリンクが保持されること", () => {
-      const { container } = render(
-        <MarkdownViewer value="[Section](#section)" theme="light" />
-      );
+      const { container } = render(<MarkdownViewer value="[Section](#section)" theme="light" />);
 
       const link = container.querySelector("a");
       expect(link).toBeInTheDocument();
