@@ -115,80 +115,21 @@ function isBlockHtml(html: string): boolean {
   return html.includes("\n");
 }
 
-// Void要素（自己終了タグ）のリスト
-const VOID_ELEMENTS = new Set([
-  "area",
-  "base",
-  "br",
-  "col",
-  "embed",
-  "hr",
-  "img",
-  "input",
-  "link",
-  "meta",
-  "param",
-  "source",
-  "track",
-  "wbr",
-]);
-
-// HTMLを安全にDOM要素に変換する
+// HTMLをプレーンテキストとして表示するDOM要素を作成する
+// 編集モードでは、HTMLタグをそのまま文字列として表示
 function createHtmlElement(html: string, forceBlock: boolean): HTMLElement {
-  const trimmed = html.trim();
-
-  // void要素（br, hr, imgなど）を特別に処理
-  const voidMatch = trimmed.match(/^<([a-zA-Z]+)(\s|\/|>)/);
-  if (voidMatch && VOID_ELEMENTS.has(voidMatch[1].toLowerCase())) {
-    const tagName = voidMatch[1].toLowerCase();
-
-    // brタグの場合は直接br要素を返す
-    if (tagName === "br") {
-      const br = document.createElement("br");
-      br.setAttribute("data-type", "html");
-      br.setAttribute("data-value", html);
-      return br;
-    }
-
-    // hrタグの場合は直接hr要素を返す
-    if (tagName === "hr") {
-      const hr = document.createElement("hr");
-      hr.setAttribute("data-type", "html");
-      hr.setAttribute("data-value", html);
-      return hr;
-    }
-
-    // その他のvoid要素はtemplateでパース
-    const template = document.createElement("template");
-    template.innerHTML = html;
-    const element = template.content.firstElementChild;
-    if (element) {
-      element.setAttribute("data-type", "html");
-      element.setAttribute("data-value", html);
-      return element as HTMLElement;
-    }
-  }
-
   const isBlock = forceBlock || isBlockHtml(html);
-  const container = isBlock
-    ? document.createElement("div")
-    : document.createElement("span");
+  const container = isBlock ? document.createElement("div") : document.createElement("span");
 
   container.setAttribute("data-type", "html");
   container.setAttribute("data-value", html);
+
   if (isBlock) {
     container.style.display = "block";
   }
 
-  // templateを使用して安全にHTMLをパース
-  const template = document.createElement("template");
-  template.innerHTML = html;
-
-  // パースされた内容をコンテナに追加
-  const content = template.content;
-  while (content.firstChild) {
-    container.appendChild(content.firstChild);
-  }
+  // HTMLタグをプレーンテキストとして表示
+  container.textContent = html;
 
   return container;
 }

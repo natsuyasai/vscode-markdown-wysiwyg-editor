@@ -2,6 +2,7 @@ import { useState } from "react";
 import styles from "./App.module.scss";
 import { ContextMenu } from "./components/ContextMenu";
 import { EditorToolbar } from "./components/EditorToolbar";
+import { MarkdownViewer } from "./components/MarkdownViewer";
 import { MilkdownEditor } from "./components/MilkdownEditor";
 import { useExport } from "./hooks/useExport";
 import { useExtensionMessages } from "./hooks/useExtensionMessages";
@@ -83,13 +84,17 @@ export default function App() {
         </header>
         <ContextMenu items={contextMenuItems}>
           <main className={styles.main}>
-            <MilkdownEditor
-              value={markdown}
-              onChange={setMarkdown}
-              theme={theme}
-              readonly={readonly}
-              baseUri={baseUriRef.current}
-            />
+            {readonly ? (
+              <MarkdownViewer value={markdown} theme={theme} baseUri={baseUriRef.current} />
+            ) : (
+              <MilkdownEditor
+                value={markdown}
+                onChange={setMarkdown}
+                theme={theme}
+                readonly={false}
+                baseUri={baseUriRef.current}
+              />
+            )}
           </main>
         </ContextMenu>
       </div>
