@@ -17,6 +17,29 @@ const hardBreakHandler: Handle = (_node, _parent, state, info) => {
 };
 
 /**
+ * カスタムtextハンドラ
+ * Milkdownデフォルトのtextハンドラを改善し、テーブルセル内での安全性を確保する。
+ * - trailing spacesの`&#20;`エンコーディングを回避（Milkdownの本来の目的）
+ * - テーブルセル内など改行が不正となる文脈では`state.safe()`を使用して安全に処理する
+ */
+const textHandler: Handle = (node, _parent, state, info) => {
+  const value = (node as { value: string }).value;
+
+  // テーブルセル内の場合はstate.safe()を使用して改行文字等を適切にエスケープする
+  if (state.stack.includes("tableCell")) {
+    return state.safe(value, { ...info, encode: [] });
+  }
+
+  // テーブル外で、改行を含まずtrailing spacesのみのテキストはそのまま返す
+  // （Milkdownの&#20;エンコーディング回避のため）
+  if (/^[^*_\\\n\r]*[ \t]+$/.test(value)) {
+    return value;
+  }
+
+  return state.safe(value, { ...info, encode: [] });
+};
+
+/**
  * unsafeパターンがスコープに一致するか判定する
  * mdast-util-to-markdownのpatternInScopeと同等のロジック
  */
@@ -63,6 +86,7 @@ export function createRemarkStringifyOptions(): Options {
     listItemIndent: "one",
     handlers: {
       break: hardBreakHandler,
+      text: textHandler,
     },
   };
 }

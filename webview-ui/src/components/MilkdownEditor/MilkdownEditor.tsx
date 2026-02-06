@@ -120,9 +120,14 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
 
       // remark-stringifyのオプションをカスタマイズ（箇条書きマーカー、改行方式など）
       crepe.editor.config((ctx) => {
+        const customOptions = createRemarkStringifyOptions();
         ctx.update(remarkStringifyOptionsCtx, (prev) => ({
           ...prev,
-          ...createRemarkStringifyOptions(),
+          ...customOptions,
+          handlers: {
+            ...prev.handlers,
+            ...customOptions.handlers,
+          },
         }));
       });
 
