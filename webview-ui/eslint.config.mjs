@@ -9,6 +9,7 @@ import pluginReact from "eslint-plugin-react";
 import pluginReactHooks from "eslint-plugin-react-hooks";
 import storybook from "eslint-plugin-storybook";
 import tseslint from "typescript-eslint";
+import globals from "globals";
 
 const ignores = {
   name: "eslint-ignores",
@@ -35,6 +36,9 @@ const typescriptConfig = {
     parserOptions: {
       projectService: true,
       tsconfigRootDir: import.meta.dirname,
+    },
+    globals: {
+      ...globals.browser
     },
   },
   plugins: {

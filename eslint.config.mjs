@@ -2,6 +2,8 @@
 import typescriptEslintParser from "@typescript-eslint/parser";
 import tseslint from "typescript-eslint";
 import eslint from "@eslint/js";
+import ts from "typescript";
+import globals from "globals";
 
 const ignores = {
   name: "eslint-ignores",
@@ -19,6 +21,10 @@ export default [
       parserOptions: {
         project: true,
         sourceType: "commonjs",
+        tsconfigRootDir: ts.sys.getCurrentDirectory(),
+      },
+      globals: {
+        ...globals.node
       },
     }
   },
