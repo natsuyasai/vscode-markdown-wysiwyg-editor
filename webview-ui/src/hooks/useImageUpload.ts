@@ -37,9 +37,9 @@ export function useImageUpload(baseUri: string): UseImageUploadResult {
   baseUriRef.current = baseUri;
 
   const handleImageUploadResult = useCallback((message: SaveImageResultMessage) => {
-    const entries = Array.from(imageUploadCallbacks.entries());
-    if (entries.length > 0) {
-      const [requestId, callback] = entries[0];
+    const { requestId } = message.payload;
+    const callback = imageUploadCallbacks.get(requestId);
+    if (callback) {
       if (message.payload.success && message.payload.localPath) {
         callback(message.payload.localPath);
       } else {
@@ -71,6 +71,7 @@ export function useImageUpload(baseUri: string): UseImageUploadResult {
           vscode.postMessage({
             type: "saveImage",
             payload: {
+              requestId,
               imageData: base64Data,
               fileName: file.name || `image_${Date.now()}`,
               mimeType: file.type || "image/png",

@@ -33,6 +33,7 @@ export interface UpdateTheameMessage extends Message {
 export interface SaveImageResultMessage extends Message {
   type: "saveImageResult";
   payload: {
+    requestId: string; // リクエスト識別子（リクエストとのマッチングに使用）
     success: boolean;
     localPath?: string; // 相対パス
     markdownImage?: string; // ![alt](path)形式

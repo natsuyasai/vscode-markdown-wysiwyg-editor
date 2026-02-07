@@ -116,13 +116,15 @@ describe("useImageHandler", () => {
   });
 
   describe("メッセージ受信", () => {
-    it("saveImageResultメッセージで成功時にonImageInsertedが呼ばれること", () => {
+    it("自分が送信していないrequestIdのsaveImageResultは無視すること", () => {
       renderHook(() => useImageHandler({ onImageInserted: mockOnImageInserted }));
 
+      // 直接 saveImageResult を送信（自分では saveImage を送っていない）
       const messageEvent = new MessageEvent("message", {
         data: {
           type: "saveImageResult",
           payload: {
+            requestId: "some-other-handler-request",
             success: true,
             markdownImage: "![image](./images/test.png)",
           },
@@ -133,7 +135,7 @@ describe("useImageHandler", () => {
         window.dispatchEvent(messageEvent);
       });
 
-      expect(mockOnImageInserted).toHaveBeenCalledWith("![image](./images/test.png)");
+      expect(mockOnImageInserted).not.toHaveBeenCalled();
     });
 
     it("saveImageResultメッセージでエラー時はonImageInsertedが呼ばれないこと", () => {
@@ -145,6 +147,7 @@ describe("useImageHandler", () => {
         data: {
           type: "saveImageResult",
           payload: {
+            requestId: "unknown-request-id",
             success: false,
             error: "Failed to save image",
           },
@@ -155,8 +158,9 @@ describe("useImageHandler", () => {
         window.dispatchEvent(messageEvent);
       });
 
+      // requestIdが一致しないため無視される
       expect(mockOnImageInserted).not.toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to save image:", "Failed to save image");
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
 
       consoleErrorSpy.mockRestore();
     });

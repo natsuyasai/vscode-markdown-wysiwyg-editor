@@ -113,6 +113,18 @@ function getRelativePath(fromDir: string, toPath: string): string {
 }
 
 /**
+ * blob URL形式の画像参照を除去する（セーフティネット）
+ * blob:vscode-webview:// のようなURLはローカルファイルとして保存できないため、
+ * 保存時に除去して不正なURLがファイルに残らないようにする
+ * @param markdown Markdownテキスト
+ * @returns blob URLの画像参照が除去されたMarkdownテキスト
+ */
+export function removeBlobImageReferences(markdown: string): string {
+  // ![alt](blob:...) パターンを除去（行ごと削除して空行にならないよう配慮）
+  return markdown.replace(/!\[[^\]]*\]\(blob:[^)]+\)\n?/g, "");
+}
+
+/**
  * 画像パスとリンクパスの両方を相対パスに戻す
  * @param markdown Markdownテキスト
  * @param baseUri WebView URI形式のベースURI
@@ -128,6 +140,8 @@ export function revertAllPathsFromWebviewUri(
   let result = revertImagePathsFromWebviewUri(markdown, baseUri);
   // 次にリンクパスを戻す
   result = revertLinkPathsFromLocalFileUri(result, documentDir);
+  // セーフティネット: blob URLが残っている場合は除去
+  result = removeBlobImageReferences(result);
   return result;
 }
 

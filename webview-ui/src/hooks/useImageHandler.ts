@@ -12,7 +12,7 @@ interface UseImageHandlerOptions {
  * 画像のペースト/ドロップを処理し、Extension経由でローカル保存する
  */
 export function useImageHandler({ onImageInserted, enabled = true }: UseImageHandlerOptions) {
-  const pendingImageRef = useRef<string | null>(null);
+  const pendingRequestIdsRef = useRef<Set<string>>(new Set());
 
   // Extension からの画像保存結果を処理
   const handleImageResult = useCallback(
@@ -20,12 +20,17 @@ export function useImageHandler({ onImageInserted, enabled = true }: UseImageHan
       const message = event.data;
       if (message.type === "saveImageResult") {
         const result = message as SaveImageResultMessage;
+        const { requestId } = result.payload;
+        // 自分が送信したリクエストのみ処理
+        if (!pendingRequestIdsRef.current.has(requestId)) {
+          return;
+        }
+        pendingRequestIdsRef.current.delete(requestId);
         if (result.payload.success && result.payload.markdownImage) {
           onImageInserted(result.payload.markdownImage);
         } else if (result.payload.error) {
           console.error("Failed to save image:", result.payload.error);
         }
-        pendingImageRef.current = null;
       }
     },
     [onImageInserted]
@@ -103,12 +108,14 @@ export function useImageHandler({ onImageInserted, enabled = true }: UseImageHan
     reader.onload = () => {
       const base64Data = reader.result as string;
       const fileName = file.name || `image_${Date.now()}`;
+      const requestId = `image-handler-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-      pendingImageRef.current = base64Data;
+      pendingRequestIdsRef.current.add(requestId);
 
       vscode.postMessage({
         type: "saveImage",
         payload: {
+          requestId,
           imageData: base64Data,
           fileName: fileName,
           mimeType: file.type,
@@ -140,6 +147,6 @@ export function useImageHandler({ onImageInserted, enabled = true }: UseImageHan
   }, [enabled, handlePaste, handleDrop, handleDragOver]);
 
   return {
-    isPending: pendingImageRef.current !== null,
+    isPending: pendingRequestIdsRef.current.size > 0,
   };
 }

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   LOCAL_FILE_SCHEME,
   parseLocalFileUri,
+  removeBlobImageReferences,
   revertAllPathsFromWebviewUri,
   revertHtmlImagePathsFromWebviewUri,
   revertImagePathsFromWebviewUri,
@@ -200,6 +201,32 @@ describe("parseLocalFileUri", () => {
   });
 });
 
+describe("removeBlobImageReferences", () => {
+  it("blob URLの画像参照を除去する", () => {
+    const markdown = "# Title\n![image](blob:vscode-webview://abc123/uuid)\nSome text";
+    const result = removeBlobImageReferences(markdown);
+    expect(result).toBe("# Title\nSome text");
+  });
+
+  it("通常の画像参照は除去しない", () => {
+    const markdown = "![image](images/test.png)";
+    const result = removeBlobImageReferences(markdown);
+    expect(result).toBe(markdown);
+  });
+
+  it("WebView URI形式の画像参照は除去しない", () => {
+    const markdown = "![image](vscode-webview://abc123/path/image.png)";
+    const result = removeBlobImageReferences(markdown);
+    expect(result).toBe(markdown);
+  });
+
+  it("複数のblob URL画像参照を除去する", () => {
+    const markdown = "![img1](blob:vscode-webview://a/1)\n![img2](blob:vscode-webview://b/2)\n";
+    const result = removeBlobImageReferences(markdown);
+    expect(result).toBe("");
+  });
+});
+
 describe("revertAllPathsFromWebviewUri", () => {
   const baseUri = "vscode-webview://abc123/path/to/dir";
   const documentDir = "/path/to/dir";
@@ -209,5 +236,11 @@ describe("revertAllPathsFromWebviewUri", () => {
     const markdown = `![image](${baseUri}/image.png)\n[link](${LOCAL_FILE_SCHEME}:${encodedLinkPath})`;
     const result = revertAllPathsFromWebviewUri(markdown, baseUri, documentDir);
     expect(result).toBe("![image](image.png)\n[link](other.md)");
+  });
+
+  it("blob URLの画像参照が除去されること", () => {
+    const markdown = "![image](blob:vscode-webview://abc123/uuid)\n![normal](image.png)";
+    const result = revertAllPathsFromWebviewUri(markdown, baseUri, documentDir);
+    expect(result).toBe("![normal](image.png)");
   });
 });

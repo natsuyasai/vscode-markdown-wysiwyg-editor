@@ -37,6 +37,7 @@ export interface InitMessage extends Message {
 export interface SaveImageMessage extends Message {
   type: "saveImage";
   payload: {
+    requestId: string; // リクエスト識別子（結果のマッチングに使用）
     imageData: string; // Base64エンコードされた画像データ
     fileName: string; // ファイル名
     mimeType: string; // image/png, image/jpeg等

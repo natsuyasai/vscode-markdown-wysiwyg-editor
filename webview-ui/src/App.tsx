@@ -66,9 +66,11 @@ export default function App() {
     element: window as unknown as HTMLElement,
   });
 
-  // 画像ペースト/ドロップハンドラ
+  // 画像ペースト/ドロップハンドラ（プレビューモード時のみ有効）
+  // 編集モードではCrepeのImageBlock.onUploadが画像処理を担当する
   useImageHandler({
     onImageInserted: handleImageInserted,
+    enabled: readonly,
   });
 
   return (

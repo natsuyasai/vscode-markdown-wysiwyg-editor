@@ -81,11 +81,19 @@ describe("useImageUpload", () => {
       expect(vscode.postMessage).toHaveBeenCalled();
     });
 
+    // postMessageに送信されたrequestIdを取得
+    const sentMessage = vi.mocked(vscode.postMessage).mock.calls[0][0] as {
+      type: string;
+      payload: { requestId: string };
+    };
+    const requestId = sentMessage.payload.requestId;
+
     // handleImageUploadResultを呼び出す
     act(() => {
       result.current.handleImageUploadResult({
         type: "saveImageResult",
         payload: {
+          requestId,
           success: true,
           localPath: "images/test.png",
         },
@@ -109,10 +117,18 @@ describe("useImageUpload", () => {
       expect(vscode.postMessage).toHaveBeenCalled();
     });
 
+    // postMessageに送信されたrequestIdを取得
+    const sentMessage = vi.mocked(vscode.postMessage).mock.calls[0][0] as {
+      type: string;
+      payload: { requestId: string };
+    };
+    const requestId = sentMessage.payload.requestId;
+
     act(() => {
       result.current.handleImageUploadResult({
         type: "saveImageResult",
         payload: {
+          requestId,
           success: false,
           error: "Upload failed",
         },
@@ -140,6 +156,7 @@ describe("useImageUpload", () => {
       expect.objectContaining({
         type: "saveImage",
         payload: expect.objectContaining({
+          requestId: expect.any(String),
           imageData: "data:image/png;base64,dGVzdA==",
           fileName: "test.png",
           mimeType: "image/png",
@@ -147,11 +164,19 @@ describe("useImageUpload", () => {
       })
     );
 
+    // postMessageに送信されたrequestIdを取得
+    const sentMessage = vi.mocked(vscode.postMessage).mock.calls[0][0] as {
+      type: string;
+      payload: { requestId: string };
+    };
+    const requestId = sentMessage.payload.requestId;
+
     // テスト後にコールバックをクリーンアップ（handleImageUploadResultを呼ぶ）
     act(() => {
       result.current.handleImageUploadResult({
         type: "saveImageResult",
         payload: {
+          requestId,
           success: true,
           localPath: "dummy.png",
         },
@@ -173,10 +198,18 @@ describe("useImageUpload", () => {
       expect(vscode.postMessage).toHaveBeenCalled();
     });
 
+    // postMessageに送信されたrequestIdを取得
+    const sentMessage = vi.mocked(vscode.postMessage).mock.calls[0][0] as {
+      type: string;
+      payload: { requestId: string };
+    };
+    const requestId = sentMessage.payload.requestId;
+
     act(() => {
       result.current.handleImageUploadResult({
         type: "saveImageResult",
         payload: {
+          requestId,
           success: true,
           localPath: "images/test.png",
         },
@@ -221,5 +254,86 @@ describe("useImageUpload", () => {
     const secondRef = result.current.createUploadImage;
 
     expect(firstRef).toBe(secondRef);
+  });
+
+  it("requestIdが一致しない場合、コールバックが呼ばれないこと", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const { result } = renderHook(() => useImageUpload("https://example.com/webview"));
+
+    const uploadFn = result.current.createUploadImage();
+    const mockFile = new File(["test"], "test.png", { type: "image/png" });
+
+    const uploadPromise = uploadFn(mockFile);
+
+    await vi.waitFor(() => {
+      expect(vscode.postMessage).toHaveBeenCalled();
+    });
+
+    // 異なる requestId の結果を送信
+    act(() => {
+      result.current.handleImageUploadResult({
+        type: "saveImageResult",
+        payload: {
+          requestId: "unknown-request-id",
+          success: true,
+          localPath: "images/test.png",
+        },
+      });
+    });
+
+    // Promiseは解決されないまま（タイムアウト前にクリーンアップ）
+    // 正しいrequestIdで解決してクリーンアップ
+    const sentMessage = vi.mocked(vscode.postMessage).mock.calls[0][0] as {
+      type: string;
+      payload: { requestId: string };
+    };
+    const requestId = sentMessage.payload.requestId;
+
+    act(() => {
+      result.current.handleImageUploadResult({
+        type: "saveImageResult",
+        payload: {
+          requestId,
+          success: true,
+          localPath: "images/test.png",
+        },
+      });
+    });
+
+    await expect(uploadPromise).resolves.toBe("https://example.com/webview/images/test.png");
+  });
+
+  it("requestIdが一致する場合のみコールバックが呼ばれること", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const { result } = renderHook(() => useImageUpload("https://example.com/webview"));
+
+    const uploadFn = result.current.createUploadImage();
+    const mockFile = new File(["test"], "test.png", { type: "image/png" });
+
+    const uploadPromise = uploadFn(mockFile);
+
+    await vi.waitFor(() => {
+      expect(vscode.postMessage).toHaveBeenCalled();
+    });
+
+    // postMessage に送信された requestId を取得
+    const sentMessage = vi.mocked(vscode.postMessage).mock.calls[0][0] as {
+      type: string;
+      payload: { requestId: string };
+    };
+    const requestId = sentMessage.payload.requestId;
+
+    act(() => {
+      result.current.handleImageUploadResult({
+        type: "saveImageResult",
+        payload: {
+          requestId,
+          success: true,
+          localPath: "images/test.png",
+        },
+      });
+    });
+
+    await expect(uploadPromise).resolves.toBe("https://example.com/webview/images/test.png");
   });
 });

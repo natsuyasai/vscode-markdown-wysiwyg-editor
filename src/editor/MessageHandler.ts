@@ -95,11 +95,14 @@ async function handleSaveImage(
   document: vscode.TextDocument,
   webviewPanel: vscode.WebviewPanel
 ): Promise<void> {
-  const { imageData, fileName, mimeType } = message.payload;
+  const { requestId, imageData, fileName, mimeType } = message.payload;
   const result = await saveImageLocally(document, imageData, fileName, mimeType);
   webviewPanel.webview.postMessage({
     type: "saveImageResult",
-    payload: result,
+    payload: {
+      requestId, // リクエストIDをそのまま返す
+      ...result,
+    },
   } satisfies SaveImageResultMessage);
 }
 
