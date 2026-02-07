@@ -118,10 +118,8 @@ describe("cleanupMarkdown", () => {
     });
 
     it("テーブル行内の&nbsp;がスペースに変換されること", () => {
-      const input =
-        "| Header&nbsp;1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n";
-      const expected =
-        "| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n";
+      const input = "| Header&nbsp;1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n";
+      const expected = "| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n";
       const result = cleanupMarkdown(input, "\n");
       expect(result).toBe(expected);
     });
@@ -143,28 +141,22 @@ describe("cleanupMarkdown", () => {
     });
 
     it("テーブル行内の<br />タグがスペースに変換されること", () => {
-      const input =
-        "| Cell 1 | Cell<br />2 | Cell 3 |\n";
-      const expected =
-        "| Cell 1 | Cell 2 | Cell 3 |\n";
+      const input = "| Cell 1 | Cell<br />2 | Cell 3 |\n";
+      const expected = "| Cell 1 | Cell 2 | Cell 3 |\n";
       const result = cleanupMarkdown(input, "\n");
       expect(result).toBe(expected);
     });
 
     it("CRLF環境でもテーブルが保護されること", () => {
-      const input =
-        "| Header 1 | Header 2 |\r\n| --- | --- |\r\n| Cell<br>1 | Cell 2 |\r\n";
-      const expected =
-        "| Header 1 | Header 2 |\r\n| --- | --- |\r\n| Cell 1 | Cell 2 |\r\n";
+      const input = "| Header 1 | Header 2 |\r\n| --- | --- |\r\n| Cell<br>1 | Cell 2 |\r\n";
+      const expected = "| Header 1 | Header 2 |\r\n| --- | --- |\r\n| Cell 1 | Cell 2 |\r\n";
       const result = cleanupMarkdown(input, "\r\n");
       expect(result).toBe(expected);
     });
 
     it("テーブル行内のノーブレークスペースがスペースに変換されること", () => {
-      const input =
-        "| Cell\u00A01 | Cell 2 |\n";
-      const expected =
-        "| Cell 1 | Cell 2 |\n";
+      const input = "| Cell\u00A01 | Cell 2 |\n";
+      const expected = "| Cell 1 | Cell 2 |\n";
       const result = cleanupMarkdown(input, "\n");
       expect(result).toBe(expected);
     });
