@@ -140,14 +140,20 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
       }
     };
 
-    initializeEditor().catch(console.error);
+    const initPromise = initializeEditor();
 
     return () => {
       isMounted = false;
       isEditorReadyRef.current = false;
       crepeRef.current = null;
       const destroyEditor = async () => {
-        await crepe.destroy();
+        // 初期化完了を待ってからdestroyする（初期化中のアンマウント対策）
+        await initPromise.catch(() => {});
+        try {
+          await crepe.destroy();
+        } catch {
+          // エディタコンテキストが既にクリーンアップ済みの場合を許容
+        }
       };
       destroyEditor().catch(console.error);
     };
