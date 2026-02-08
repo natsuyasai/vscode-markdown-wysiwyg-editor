@@ -1,14 +1,11 @@
 import mermaid from "mermaid";
-import {
-  getMermaidThemeColors,
-  MERMAID_THEME,
-  SVG_COLOR_REPLACEMENTS,
-  type ThemeKind,
-} from "../../constants/themeColors";
+import { SVG_COLOR_REPLACEMENTS, type ThemeKind } from "../../constants/themeColors";
+import { initializeMermaid } from "../../utilities/mermaidInitializer";
+import { PlantUmlCallbackManager } from "../../utilities/plantUmlCallbackManager";
 import { vscode } from "../../utilities/vscode";
 
 // PlantUML結果のコールバック管理
-const plantUmlCallbacks = new Map<string, (result: HTMLElement | null) => void>();
+const plantUmlCallbackManager = new PlantUmlCallbackManager<(result: HTMLElement | null) => void>();
 
 /** ダイアグラムコンテナのスタイル */
 const DIAGRAM_CONTAINER_STYLE = "padding: 16px; background: var(--crepe-color-surface);";
@@ -45,26 +42,7 @@ export function renderMermaidPreview(
   theme: ThemeKind,
   applyPreview: (result: HTMLElement | null) => void
 ): void {
-  const mermaidTheme = MERMAID_THEME[theme];
-  const themeColors = getMermaidThemeColors(theme);
-
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: mermaidTheme,
-    securityLevel: "loose",
-    // foreignObjectの代わりにSVGテキスト要素を使用
-    // これによりWebView環境でもテキストが正しく表示される
-    htmlLabels: false,
-    flowchart: {
-      htmlLabels: false,
-    },
-    sequence: {
-      actorFontFamily: "inherit",
-      messageFontFamily: "inherit",
-      noteFontFamily: "inherit",
-    },
-    themeVariables: themeColors,
-  });
+  initializeMermaid(theme);
 
   // Mermaid v10+では一時的なコンテナをDOMに追加する必要がある
   const tempContainer = document.createElement("div");
@@ -119,7 +97,7 @@ export function registerPlantUmlCallback(
   requestId: string,
   callback: (result: HTMLElement | null) => void
 ): void {
-  plantUmlCallbacks.set(requestId, callback);
+  plantUmlCallbackManager.register(requestId, callback);
 }
 
 /**
@@ -144,13 +122,12 @@ export function renderPlantUmlPreview(
  * PlantUML結果を処理する（メッセージハンドラから呼び出す）
  */
 export function handlePlantUmlResult(requestId: string, svg?: string, error?: string): void {
-  const callback = plantUmlCallbacks.get(requestId);
+  const callback = plantUmlCallbackManager.resolve(requestId);
   if (callback) {
     if (svg) {
       callback(createDiagramContainer(svg));
     } else {
       callback(createErrorElement("PlantUML", error ?? "Unknown error"));
     }
-    plantUmlCallbacks.delete(requestId);
   }
 }

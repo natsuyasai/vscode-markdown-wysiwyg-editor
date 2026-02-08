@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within, waitFor } from "storybook/test";
 import { MarkdownViewer } from "@/components/MarkdownViewer";
 
 const meta: Meta<typeof MarkdownViewer> = {
@@ -158,6 +159,29 @@ function MarkdownViewerWrapper({ value, theme }: { value: string; theme: "light"
 export const HtmlTagsLight: Story = {
   render: () => <MarkdownViewerWrapper value={htmlMarkdown} theme="light" />,
   name: "HTMLタグ描画 - Light",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // 見出しが描画されていることを確認
+    await waitFor(async () => {
+      await expect(canvas.getByText("HTMLタグのテスト")).toBeInTheDocument();
+    });
+
+    // strong要素（太字）がレンダリングされていることを確認
+    const boldText = canvas.getByText("太字");
+    await expect(boldText.tagName.toLowerCase()).toBe("strong");
+
+    // em要素（イタリック）がレンダリングされていることを確認
+    const italicText = canvas.getByText("イタリック");
+    await expect(italicText.tagName.toLowerCase()).toBe("em");
+
+    // 折りたたみ要素（details/summary）が存在することを確認
+    await expect(canvas.getByText("クリックで展開")).toBeInTheDocument();
+
+    // ブロック内のテキストが表示されていることを確認
+    await expect(canvas.getByText("これはdivブロックの中のテキストです。")).toBeInTheDocument();
+    await expect(canvas.getByText("中央揃えの段落")).toBeInTheDocument();
+  },
 };
 
 export const HtmlTagsDark: Story = {
@@ -168,6 +192,30 @@ export const HtmlTagsDark: Story = {
 export const MermaidLight: Story = {
   render: () => <MarkdownViewerWrapper value={mermaidMarkdown} theme="light" />,
   name: "Mermaid - Light Theme",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // 見出しが描画されていることを確認
+    await waitFor(async () => {
+      await expect(canvas.getByText("Mermaid Diagram Test")).toBeInTheDocument();
+    });
+
+    // ダイアグラム以外のテキストが存在することを確認
+    await expect(
+      canvas.getByText("This is a test document with a Mermaid diagram.")
+    ).toBeInTheDocument();
+    await expect(canvas.getByText("Another Section")).toBeInTheDocument();
+    await expect(canvas.getByText("Some text after the diagram.")).toBeInTheDocument();
+
+    // MermaidのSVGが非同期でレンダリングされることを確認
+    await waitFor(
+      async () => {
+        const svgElements = canvasElement.querySelectorAll("svg");
+        await expect(svgElements.length).toBeGreaterThan(0);
+      },
+      { timeout: 5000 }
+    );
+  },
 };
 
 export const MermaidDark: Story = {
@@ -178,6 +226,17 @@ export const MermaidDark: Story = {
 export const PlantUmlLight: Story = {
   render: () => <MarkdownViewerWrapper value={plantUmlMarkdown} theme="light" />,
   name: "PlantUML - Light Theme",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // 見出しとテキストが描画されていることを確認
+    await waitFor(async () => {
+      await expect(canvas.getByText("PlantUML Diagram Test")).toBeInTheDocument();
+    });
+
+    await expect(canvas.getByText("Another Section")).toBeInTheDocument();
+    await expect(canvas.getByText("Some text after the diagram.")).toBeInTheDocument();
+  },
 };
 
 export const PlantUmlDark: Story = {
@@ -188,6 +247,45 @@ export const PlantUmlDark: Story = {
 export const ComprehensiveLight: Story = {
   render: () => <MarkdownViewerWrapper value={comprehensiveMarkdown} theme="light" />,
   name: "総合サンプル - Light",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // 見出しが描画されていることを確認
+    await waitFor(async () => {
+      await expect(canvas.getByText("Markdown総合サンプル (閲覧モード)")).toBeInTheDocument();
+    });
+
+    // H2見出しの確認
+    await expect(canvas.getByText("見出しとテキスト")).toBeInTheDocument();
+    await expect(canvas.getByText("リスト")).toBeInTheDocument();
+    await expect(canvas.getByText("コードと引用")).toBeInTheDocument();
+
+    // H3見出しの確認
+    await expect(canvas.getByText("サブセクション")).toBeInTheDocument();
+
+    // テキスト装飾の確認
+    const boldText = canvas.getByText("太字");
+    await expect(boldText.tagName.toLowerCase()).toBe("strong");
+
+    const italicText = canvas.getByText("イタリック");
+    await expect(italicText.tagName.toLowerCase()).toBe("em");
+
+    // リスト項目の確認
+    await expect(canvas.getByText("項目1")).toBeInTheDocument();
+    await expect(canvas.getByText("項目2")).toBeInTheDocument();
+    await expect(canvas.getByText("ネストした項目")).toBeInTheDocument();
+
+    // 引用の確認
+    const blockquote = canvasElement.querySelector("blockquote");
+    await expect(blockquote).not.toBeNull();
+
+    // テーブルの確認
+    const table = canvasElement.querySelector("table");
+    await expect(table).not.toBeNull();
+
+    // インラインコードの確認
+    await expect(canvas.getByText("const x = 42;")).toBeInTheDocument();
+  },
 };
 
 export const ComprehensiveDark: Story = {

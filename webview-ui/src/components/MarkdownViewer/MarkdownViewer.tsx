@@ -4,13 +4,10 @@ import { FC, useCallback, useEffect, useId, useRef, useState } from "react";
 import Markdown, { Components, defaultUrlTransform } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
-import {
-  getMermaidThemeColors,
-  MERMAID_THEME,
-  SVG_COLOR_REPLACEMENTS,
-  type ThemeKind,
-} from "../../constants/themeColors";
+import { SVG_COLOR_REPLACEMENTS, type ThemeKind } from "../../constants/themeColors";
 import { LOCAL_FILE_SCHEME } from "../../utilities/imagePathConverter";
+import { initializeMermaid } from "../../utilities/mermaidInitializer";
+import { PlantUmlCallbackManager } from "../../utilities/plantUmlCallbackManager";
 import { vscode } from "../../utilities/vscode";
 import "./MarkdownViewer.css";
 
@@ -24,14 +21,15 @@ interface MarkdownViewerProps {
 }
 
 // PlantUML結果のコールバック管理
-const plantUmlCallbacks = new Map<string, (svg: string | null, error?: string) => void>();
+const plantUmlCallbackManager = new PlantUmlCallbackManager<
+  (svg: string | null, error?: string) => void
+>();
 
 // PlantUML結果を処理する
 function handlePlantUmlResult(requestId: string, svg?: string, error?: string): void {
-  const callback = plantUmlCallbacks.get(requestId);
+  const callback = plantUmlCallbackManager.resolve(requestId);
   if (callback) {
     callback(svg ?? null, error);
-    plantUmlCallbacks.delete(requestId);
   }
 }
 
@@ -44,24 +42,7 @@ const MermaidDiagram: FC<{ code: string; theme: ThemeKind }> = ({ code, theme })
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const mermaidTheme = MERMAID_THEME[theme];
-    const themeColors = getMermaidThemeColors(theme);
-
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: mermaidTheme,
-      securityLevel: "loose",
-      htmlLabels: false,
-      flowchart: {
-        htmlLabels: false,
-      },
-      sequence: {
-        actorFontFamily: "inherit",
-        messageFontFamily: "inherit",
-        noteFontFamily: "inherit",
-      },
-      themeVariables: themeColors,
-    });
+    initializeMermaid(theme);
 
     const tempContainer = document.createElement("div");
     tempContainer.id = `mermaid-container-${uniqueId}`;
@@ -108,7 +89,7 @@ const PlantUmlDiagram: FC<{ code: string }> = ({ code }) => {
     const requestId = `plantuml-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     requestIdRef.current = requestId;
 
-    plantUmlCallbacks.set(requestId, (svgResult, errorResult) => {
+    plantUmlCallbackManager.register(requestId, (svgResult, errorResult) => {
       if (svgResult) {
         setSvg(svgResult);
         setError(null);
@@ -125,7 +106,7 @@ const PlantUmlDiagram: FC<{ code: string }> = ({ code }) => {
 
     return () => {
       if (requestIdRef.current) {
-        plantUmlCallbacks.delete(requestIdRef.current);
+        plantUmlCallbackManager.unregister(requestIdRef.current);
       }
     };
   }, [code]);

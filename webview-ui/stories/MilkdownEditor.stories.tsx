@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { expect, within, waitFor } from "storybook/test";
 import { MilkdownEditor } from "@/components/MilkdownEditor";
 
 const meta: Meta<typeof MilkdownEditor> = {
@@ -413,6 +414,20 @@ export const MultipleDiagramsDark: Story = {
 
 export const ReadonlyMode: Story = {
   render: () => <MilkdownEditorWrapper initialValue={mermaidMarkdown} theme="light" readonly />,
+  play: async ({ canvasElement }) => {
+    // エディタが初期化されるのを待つ
+    await waitFor(
+      async () => {
+        const editor = canvasElement.querySelector("[contenteditable]");
+        await expect(editor).not.toBeNull();
+      },
+      { timeout: 10000 }
+    );
+
+    // readonlyモードではcontenteditable="false"であることを確認
+    const editor = canvasElement.querySelector("[contenteditable]");
+    await expect(editor?.getAttribute("contenteditable")).toBe("false");
+  },
 };
 
 // ===== Markdown仕様に沿った各種表示のストーリー =====
@@ -420,6 +435,34 @@ export const ReadonlyMode: Story = {
 export const HeadingsLight: Story = {
   render: () => <MilkdownEditorWrapper initialValue={headingsMarkdown} theme="light" />,
   name: "見出し (H1-H6) - Light",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // エディタが初期化され、見出しがレンダリングされるのを待つ
+    await waitFor(
+      async () => {
+        await expect(canvas.getByText("見出し1 (H1)")).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
+
+    // 各レベルの見出しが表示されていること
+    await expect(canvas.getByText("見出し2 (H2)")).toBeInTheDocument();
+    await expect(canvas.getByText("見出し3 (H3)")).toBeInTheDocument();
+    await expect(canvas.getByText("見出し4 (H4)")).toBeInTheDocument();
+    await expect(canvas.getByText("見出し5 (H5)")).toBeInTheDocument();
+    await expect(canvas.getByText("見出し6 (H6)")).toBeInTheDocument();
+
+    // 通常のテキストも表示されていること
+    await expect(
+      canvas.getByText("通常のテキストです。見出しの下に表示されます。")
+    ).toBeInTheDocument();
+
+    // H1要素がh1タグでレンダリングされていること
+    const h1 = canvasElement.querySelector("h1");
+    await expect(h1).not.toBeNull();
+    await expect(h1?.textContent).toContain("見出し1");
+  },
 };
 
 export const HeadingsDark: Story = {
@@ -440,6 +483,36 @@ export const TextEmphasisDark: Story = {
 export const ListsLight: Story = {
   render: () => <MilkdownEditorWrapper initialValue={listsMarkdown} theme="light" />,
   name: "リスト - Light",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // エディタが初期化されるのを待つ
+    await waitFor(
+      async () => {
+        await expect(canvas.getByText("りんご")).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
+
+    // 箇条書きリストの項目が表示されていること
+    await expect(canvas.getByText("みかん")).toBeInTheDocument();
+    await expect(canvas.getByText("ぶどう")).toBeInTheDocument();
+    await expect(canvas.getByText("バナナ")).toBeInTheDocument();
+
+    // ネストしたリスト項目
+    await expect(canvas.getByText("巨峰")).toBeInTheDocument();
+    await expect(canvas.getByText("マスカット")).toBeInTheDocument();
+
+    // 番号付きリストの項目
+    await expect(canvas.getByText("最初の項目")).toBeInTheDocument();
+
+    // ul要素とol要素が存在すること
+    const ulElements = canvasElement.querySelectorAll("ul");
+    await expect(ulElements.length).toBeGreaterThan(0);
+
+    const olElements = canvasElement.querySelectorAll("ol");
+    await expect(olElements.length).toBeGreaterThan(0);
+  },
 };
 
 export const ListsDark: Story = {
@@ -480,6 +553,25 @@ export const BlockquotesDark: Story = {
 export const TablesLight: Story = {
   render: () => <MilkdownEditorWrapper initialValue={tablesMarkdown} theme="light" />,
   name: "テーブル - Light",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // エディタが初期化されるのを待つ
+    await waitFor(
+      async () => {
+        await expect(canvas.getByText("田中")).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
+
+    // テーブルの内容が表示されていること
+    await expect(canvas.getByText("山田")).toBeInTheDocument();
+    await expect(canvas.getByText("佐藤")).toBeInTheDocument();
+
+    // テーブル要素が存在すること
+    const tableElements = canvasElement.querySelectorAll("table");
+    await expect(tableElements.length).toBeGreaterThan(0);
+  },
 };
 
 export const TablesDark: Story = {
@@ -500,6 +592,35 @@ export const HorizontalRulesDark: Story = {
 export const ComprehensiveLight: Story = {
   render: () => <MilkdownEditorWrapper initialValue={comprehensiveMarkdown} theme="light" />,
   name: "総合サンプル - Light",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // エディタが初期化されるのを待つ
+    await waitFor(
+      async () => {
+        await expect(canvas.getByText("Markdown総合サンプル")).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
+
+    // 各セクションの見出しが表示されていること
+    await expect(canvas.getByText("見出しとテキスト")).toBeInTheDocument();
+
+    // テキスト装飾が含まれていること
+    const strongElements = canvasElement.querySelectorAll("strong");
+    await expect(strongElements.length).toBeGreaterThan(0);
+
+    // リスト項目の確認
+    await expect(canvas.getByText("項目1")).toBeInTheDocument();
+
+    // テーブルが存在すること
+    const tableElements = canvasElement.querySelectorAll("table");
+    await expect(tableElements.length).toBeGreaterThan(0);
+
+    // 引用が存在すること
+    const blockquoteElements = canvasElement.querySelectorAll("blockquote");
+    await expect(blockquoteElements.length).toBeGreaterThan(0);
+  },
 };
 
 export const ComprehensiveDark: Story = {
