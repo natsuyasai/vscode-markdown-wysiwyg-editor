@@ -83,9 +83,10 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "check-types": "tsc --noEmit",
-    "lint": "eslint src",
-    "test": "vscode-test",
-    "format": "prettier --write \"src/**/*.ts\""
+    "lint": "eslint src & cd webview-ui && npm run lint",
+    "test": "vscode-test & cd webview-ui && npm run test",
+    "format": "prettier --write \"src/**/*.ts\" & cd webview-ui && npm run format",
+    "package-extension": "vsce package"
   },
   "devDependencies": {
     "@types/marked": "^5.0.2",
