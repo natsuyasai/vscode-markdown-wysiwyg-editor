@@ -40,7 +40,7 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
       {
         webviewOptions: {
           enableFindWidget: true,
-          retainContextWhenHidden: false,
+          retainContextWhenHidden: true,
         },
         supportsMultipleEditorsPerDocument: false, // 同一ドキュメントに対して複数のエディタをサポートするかどうか
       }
