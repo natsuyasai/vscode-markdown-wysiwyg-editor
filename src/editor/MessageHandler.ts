@@ -23,7 +23,8 @@ interface MessageHandlerContext {
   document: vscode.TextDocument;
   webviewPanel: vscode.WebviewPanel;
   extensionPath: string;
-  updateTextDocument: (document: vscode.TextDocument, text: string) => void;
+  applyTextEdit: (document: vscode.TextDocument, text: string) => Promise<void>;
+  saveDocument: (document: vscode.TextDocument) => Promise<vscode.Uri | undefined>;
   updateWebview: () => void;
   updateTheme: () => void;
   sendDocumentInfo: () => void;
@@ -50,13 +51,14 @@ export async function handleMessage(
 
     case "update":
       if (message.payload !== undefined) {
-        context.updateTextDocument(document, message.payload as string);
+        await context.applyTextEdit(document, message.payload as string);
       }
       return;
 
     case "save":
       if (message.payload !== undefined) {
-        context.updateTextDocument(document, message.payload as string);
+        await context.applyTextEdit(document, message.payload as string);
+        await context.saveDocument(document);
       }
       return;
 

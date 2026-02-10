@@ -28,7 +28,7 @@ export default function App() {
   // Markdown同期
   const {
     markdown,
-    setMarkdown,
+    handleChange,
     baseUriRef,
     documentDirRef,
     updateMarkdownFromExtension,
@@ -91,7 +91,7 @@ export default function App() {
             ) : (
               <MilkdownEditor
                 value={markdown}
-                onChange={setMarkdown}
+                onChange={handleChange}
                 theme={theme}
                 readonly={false}
                 baseUri={baseUriRef.current}

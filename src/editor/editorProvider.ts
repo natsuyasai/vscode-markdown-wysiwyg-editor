@@ -131,22 +131,33 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
         payload: convertedMarkdown,
       } satisfies UpdateMessage);
     }
+
+    // WebViewからの更新時にonDidChangeTextDocumentのループを防止するフラグ
+    let isUpdatingFromWebview = false;
+
     // Update the webview when the document changes
     const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
-      if (e.document.uri.toString() === document.uri.toString()) {
+      if (e.document.uri.toString() === document.uri.toString() && !isUpdatingFromWebview) {
         updateWebview();
       }
     });
 
     // Receive message from the webview.
-    /* eslint-disable @typescript-eslint/no-misused-promises */
     const webviewReceiveMessageSubscription = webviewPanel.webview.onDidReceiveMessage(
       async (e: Message) => {
         await handleMessage(e, {
           document,
           webviewPanel,
           extensionPath: this.context.extensionPath,
-          updateTextDocument: (doc, text) => this.updateTextDocument(doc, text),
+          applyTextEdit: async (doc, text) => {
+            isUpdatingFromWebview = true;
+            try {
+              await this.applyTextEdit(doc, text);
+            } finally {
+              isUpdatingFromWebview = false;
+            }
+          },
+          saveDocument: (doc) => this.saveDocument(doc),
           updateWebview,
           updateTheme,
           sendDocumentInfo,
@@ -155,7 +166,6 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
         });
       }
     );
-    /* eslint-enable @typescript-eslint/no-misused-promises */
 
     // Make sure we get rid of the listener when our editor is closed.
     webviewPanel.onDidDispose(() => {
@@ -215,14 +225,13 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     `;
   }
 
-  private updateTextDocument(document: vscode.TextDocument, csvText: string) {
+  private async applyTextEdit(document: vscode.TextDocument, text: string) {
     const edit = new vscode.WorkspaceEdit();
+    edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), text);
+    return vscode.workspace.applyEdit(edit);
+  }
 
-    // Just replace the entire document every time for this example extension.
-    // A more complete extension should compute minimal edits instead.
-    edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), csvText);
-    vscode.workspace.applyEdit(edit);
-
+  private async saveDocument(document: vscode.TextDocument) {
     return vscode.workspace.save(document.uri);
   }
 }

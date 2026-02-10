@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { debounce } from "../utilities/debounce";
 import { revertAllPathsFromWebviewUri } from "../utilities/imagePathConverter";
 import { cleanupMarkdown, detectLineEnding, type LineEnding } from "../utilities/markdownCleanup";
 import { vscode } from "../utilities/vscode";
@@ -6,6 +7,7 @@ import { vscode } from "../utilities/vscode";
 interface UseMarkdownSyncResult {
   markdown: string;
   setMarkdown: React.Dispatch<React.SetStateAction<string>>;
+  handleChange: (newMarkdown: string) => void;
   originalLineEndingRef: React.RefObject<LineEnding>;
   baseUriRef: React.RefObject<string>;
   documentDirRef: React.RefObject<string>;
@@ -22,13 +24,48 @@ export function useMarkdownSync(): UseMarkdownSyncResult {
   const originalLineEndingRef = useRef<LineEnding>("\n");
   const baseUriRef = useRef<string>("");
   const documentDirRef = useRef<string>("");
+  const isFromExtensionRef = useRef(false);
+
+  // デバウンスした"update"メッセージ送信（ダーティ状態にする）
+  const debouncedSendUpdate = useMemo(
+    () =>
+      debounce((md: string) => {
+        const reverted = revertAllPathsFromWebviewUri(
+          md,
+          baseUriRef.current,
+          documentDirRef.current
+        );
+        vscode.postMessage({
+          type: "update",
+          payload: cleanupMarkdown(reverted, originalLineEndingRef.current),
+        });
+      }, 500),
+    []
+  );
 
   const updateMarkdownFromExtension = useCallback((text: string, isInit = false) => {
+    isFromExtensionRef.current = true;
     if (isInit) {
       originalLineEndingRef.current = detectLineEnding(text);
     }
     setMarkdown(text);
+    // 次のマイクロタスクでフラグをリセット
+    setTimeout(() => {
+      isFromExtensionRef.current = false;
+    }, 0);
   }, []);
+
+  // エディタのonChangeハンドラ（編集時にデバウンスで"update"を送信）
+  const handleChange = useCallback(
+    (newMarkdown: string) => {
+      setMarkdown(newMarkdown);
+      if (isFromExtensionRef.current) {
+        return;
+      }
+      debouncedSendUpdate(newMarkdown);
+    },
+    [debouncedSendUpdate]
+  );
 
   const handleApply = useCallback(() => {
     // WebView URIとカスタムスキームを相対パスに戻してから保存
@@ -57,6 +94,7 @@ export function useMarkdownSync(): UseMarkdownSyncResult {
   return {
     markdown,
     setMarkdown,
+    handleChange,
     originalLineEndingRef,
     baseUriRef,
     documentDirRef,
