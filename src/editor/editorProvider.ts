@@ -128,7 +128,7 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
       );
       webviewPanel.webview.postMessage({
         type: "update",
-        payload: convertedMarkdown,
+        payload: convertedMarkdown.replace(/\r\n/g, "\n"),
       } satisfies UpdateMessage);
     }
     // Update the webview when the document changes
