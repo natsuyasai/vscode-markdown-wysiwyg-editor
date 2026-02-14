@@ -19,6 +19,11 @@ import { htmlBlockSchema, htmlSchema } from "./htmlPlugin";
 import "./MilkdownTheme.css";
 import { createRemarkStringifyOptions } from "./remarkConfig";
 
+/** CRLFをLFに正規化する（CodeMirror/ProseMirror間の位置ずれ防止） */
+function normalizeLineEndings(text: string): string {
+  return text.replace(/\r\n/g, "\n");
+}
+
 interface MilkdownEditorProps {
   value: string;
   onChange: (markdown: string) => void;
@@ -37,7 +42,7 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   const divRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
   const isEditorReadyRef = useRef(false);
-  const lastKnownValueRef = useRef(value);
+  const lastKnownValueRef = useRef(normalizeLineEndings(value));
   const readonlyRef = useRef(readonly);
   const themeRef = useRef(theme);
 
@@ -79,7 +84,7 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
 
     const crepe = new Crepe({
       root: divRef.current,
-      defaultValue: lastKnownValueRef.current,
+      defaultValue: normalizeLineEndings(lastKnownValueRef.current),
       featureConfigs: {
         [Crepe.Feature.CodeMirror]: {
           renderPreview: (language, content, applyPreview) => {
@@ -109,8 +114,9 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
 
     crepe.on((listener) => {
       listener.markdownUpdated((_, markdown) => {
-        lastKnownValueRef.current = markdown;
-        onChange(markdown);
+        const normalized = normalizeLineEndings(markdown);
+        lastKnownValueRef.current = normalized;
+        onChange(normalized);
       });
     });
 
@@ -167,14 +173,15 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
     }
 
     // 内部変更の場合はスキップ（最後に知っている値と同じ場合）
-    if (value === lastKnownValueRef.current) {
+    const normalizedValue = normalizeLineEndings(value);
+    if (normalizedValue === lastKnownValueRef.current) {
       return;
     }
 
     try {
       // flush=true でカーソル位置をリセットして安全に置換
-      crepeRef.current.editor.action(replaceAll(value, true));
-      lastKnownValueRef.current = value;
+      crepeRef.current.editor.action(replaceAll(normalizedValue, true));
+      lastKnownValueRef.current = normalizedValue;
     } catch (error) {
       console.error("Failed to update editor content:", error);
     }
