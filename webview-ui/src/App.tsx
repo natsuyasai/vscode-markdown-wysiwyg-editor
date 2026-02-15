@@ -4,6 +4,7 @@ import { ContextMenu } from "./components/ContextMenu";
 import { EditorToolbar } from "./components/EditorToolbar";
 import { MarkdownViewer } from "./components/MarkdownViewer";
 import { MilkdownEditor } from "./components/MilkdownEditor";
+import { useCustomCss } from "./hooks/useCustomCss";
 import { useExport } from "./hooks/useExport";
 import { useExtensionMessages } from "./hooks/useExtensionMessages";
 import { useImageHandler } from "./hooks/useImageHandler";
@@ -14,6 +15,7 @@ import { useTheme } from "./hooks/useTheme";
 
 export default function App() {
   const [readonly, setReadonly] = useState(false);
+  const [customCss, setCustomCss] = useState("");
 
   // テーマ管理
   const {
@@ -43,8 +45,12 @@ export default function App() {
     documentDirRef,
     setTheme,
     setThemeSetting,
+    setCustomCss,
     updateMarkdownFromExtension,
   });
+
+  // カスタムCSS適用
+  useCustomCss(customCss);
 
   // リンクハンドラ
   useLinkHandler();

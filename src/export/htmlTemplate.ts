@@ -1,9 +1,11 @@
 export function generateHtmlDocument(
   content: string,
   title: string,
-  theme: "light" | "dark"
+  theme: "light" | "dark",
+  customCss?: string
 ): string {
   const styles = getStyles(theme);
+  const customCssBlock = customCss ? `\n  <style>\n${customCss}\n  </style>` : "";
 
   return `<!DOCTYPE html>
 <html lang="ja">
@@ -13,7 +15,7 @@ export function generateHtmlDocument(
   <title>${escapeHtml(title)}</title>
   <style>
 ${styles}
-  </style>
+  </style>${customCssBlock}
 </head>
 <body class="${theme}">
   <article class="markdown-body">

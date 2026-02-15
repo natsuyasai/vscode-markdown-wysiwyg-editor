@@ -24,6 +24,7 @@ describe("useExtensionMessages", () => {
   let documentDirRef: React.RefObject<string>;
   let setTheme: Mock<React.Dispatch<React.SetStateAction<ThemeKind>>>;
   let setThemeSetting: Mock<React.Dispatch<React.SetStateAction<ThemeSetting>>>;
+  let setCustomCss: Mock<React.Dispatch<React.SetStateAction<string>>>;
   let updateMarkdownFromExtension: Mock<(text: string, isInit?: boolean) => void>;
   let messageHandler: ((event: MessageEvent) => void) | null = null;
 
@@ -40,6 +41,7 @@ describe("useExtensionMessages", () => {
       }
       return callback;
     });
+    setCustomCss = vi.fn<React.Dispatch<React.SetStateAction<string>>>();
     updateMarkdownFromExtension = vi.fn<(text: string, isInit?: boolean) => void>();
 
     // windowのaddEventListenerをスパイしてハンドラをキャプチャ
@@ -67,6 +69,7 @@ describe("useExtensionMessages", () => {
         documentDirRef,
         setTheme,
         setThemeSetting,
+        setCustomCss,
         updateMarkdownFromExtension,
       })
     );
@@ -84,6 +87,7 @@ describe("useExtensionMessages", () => {
         documentDirRef,
         setTheme,
         setThemeSetting,
+        setCustomCss,
         updateMarkdownFromExtension,
       })
     );
@@ -112,6 +116,7 @@ describe("useExtensionMessages", () => {
         documentDirRef,
         setTheme,
         setThemeSetting,
+        setCustomCss,
         updateMarkdownFromExtension,
       })
     );
@@ -140,6 +145,7 @@ describe("useExtensionMessages", () => {
         documentDirRef,
         setTheme,
         setThemeSetting,
+        setCustomCss,
         updateMarkdownFromExtension,
       })
     );
@@ -168,6 +174,7 @@ describe("useExtensionMessages", () => {
         documentDirRef,
         setTheme,
         setThemeSetting,
+        setCustomCss,
         updateMarkdownFromExtension,
       })
     );
@@ -196,6 +203,7 @@ describe("useExtensionMessages", () => {
         documentDirRef,
         setTheme,
         setThemeSetting,
+        setCustomCss,
         updateMarkdownFromExtension,
       })
     );
@@ -208,6 +216,7 @@ describe("useExtensionMessages", () => {
               type: "updateSettings",
               payload: {
                 themeSetting: "dark" as ThemeSetting,
+                customCss: "",
               },
             },
           })
@@ -229,6 +238,7 @@ describe("useExtensionMessages", () => {
         documentDirRef,
         setTheme,
         setThemeSetting,
+        setCustomCss,
         updateMarkdownFromExtension,
       })
     );
@@ -241,6 +251,7 @@ describe("useExtensionMessages", () => {
               type: "updateSettings",
               payload: {
                 themeSetting: "auto" as ThemeSetting,
+                customCss: "",
               },
             },
           })
@@ -259,6 +270,7 @@ describe("useExtensionMessages", () => {
         documentDirRef,
         setTheme,
         setThemeSetting,
+        setCustomCss,
         updateMarkdownFromExtension,
       })
     );
@@ -293,6 +305,7 @@ describe("useExtensionMessages", () => {
         documentDirRef,
         setTheme,
         setThemeSetting,
+        setCustomCss,
         updateMarkdownFromExtension,
       })
     );

@@ -65,6 +65,12 @@
           ],
           "default": "auto",
           "description": "Editor theme. 'auto' follows VS Code's color theme."
+        },
+        "markdownWysiwygEditor.customCssPaths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "カスタムCSSファイルのパスを指定します。エディタ、プレビュー、HTML/PDFエクスポートに適用されます。複数指定可能です。"
         }
       }
     }

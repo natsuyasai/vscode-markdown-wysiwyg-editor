@@ -17,6 +17,7 @@ interface UseExtensionMessagesParams {
   documentDirRef: React.RefObject<string>;
   setTheme: React.Dispatch<React.SetStateAction<ThemeKind>>;
   setThemeSetting: React.Dispatch<React.SetStateAction<ThemeSetting>>;
+  setCustomCss: React.Dispatch<React.SetStateAction<string>>;
   updateMarkdownFromExtension: (text: string, isInit?: boolean) => void;
 }
 
@@ -29,6 +30,7 @@ export function useExtensionMessages({
   documentDirRef,
   setTheme,
   setThemeSetting,
+  setCustomCss,
   updateMarkdownFromExtension,
 }: UseExtensionMessagesParams): void {
   const handleMessagesFromExtension = useCallback(
@@ -69,6 +71,7 @@ export function useExtensionMessages({
             } else {
               setTheme(newThemeSetting);
             }
+            setCustomCss(settingsMessage.payload.customCss);
           }
           break;
         case "documentInfo":
@@ -90,6 +93,7 @@ export function useExtensionMessages({
       documentDirRef,
       setTheme,
       setThemeSetting,
+      setCustomCss,
       updateMarkdownFromExtension,
     ]
   );

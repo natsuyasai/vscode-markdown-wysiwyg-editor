@@ -13,6 +13,7 @@ import { getUri } from "../util/getUri";
 import { getNonce } from "../util/util";
 import { convertAllPathsToWebviewUri } from "../util/imagePathConverter";
 import { handleMessage } from "./MessageHandler";
+import { loadCustomCss } from "../util/customCssLoader";
 import * as path from "path";
 
 export class EditorProvider implements vscode.CustomTextEditorProvider {
@@ -99,10 +100,20 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
       return config.get<ThemeSetting>("theme", "auto");
     }
 
+    function getCustomCssPaths(): string[] {
+      const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
+      return config.get<string[]>("customCssPaths", []);
+    }
+
     function sendSettings() {
+      const cssPaths = getCustomCssPaths();
+      const { css, errors } = loadCustomCss(cssPaths);
+      for (const error of errors) {
+        vscode.window.showWarningMessage(`Markdown WYSIWYG Editor: ${error}`);
+      }
       webviewPanel.webview.postMessage({
         type: "updateSettings",
-        payload: { themeSetting: getThemeSetting() },
+        payload: { themeSetting: getThemeSetting(), customCss: css },
       } satisfies UpdateSettingsMessage);
     }
 
@@ -111,10 +122,18 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     });
 
     const configChangeSubscription = vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("markdownWysiwygEditor.theme")) {
+      if (
+        e.affectsConfiguration("markdownWysiwygEditor.theme") ||
+        e.affectsConfiguration("markdownWysiwygEditor.customCssPaths")
+      ) {
+        if (e.affectsConfiguration("markdownWysiwygEditor.customCssPaths")) {
+          updateCssWatchers();
+        }
         sendSettings();
         // テーマ設定がauto以外からautoに変わった場合などを考慮してupdateThemeも呼ぶ
-        updateTheme();
+        if (e.affectsConfiguration("markdownWysiwygEditor.theme")) {
+          updateTheme();
+        }
       }
     });
 
@@ -157,11 +176,41 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     );
     /* eslint-enable @typescript-eslint/no-misused-promises */
 
+    // CSSファイルの変更を監視
+    const cssWatchers: vscode.FileSystemWatcher[] = [];
+    function updateCssWatchers() {
+      // 既存のウォッチャーを破棄
+      for (const watcher of cssWatchers) {
+        watcher.dispose();
+      }
+      cssWatchers.length = 0;
+
+      const cssPaths = getCustomCssPaths();
+      for (const cssPath of cssPaths) {
+        if (cssPath.trim() === "") continue;
+        const watcher = vscode.workspace.createFileSystemWatcher(cssPath);
+        watcher.onDidChange(() => {
+          sendSettings();
+        });
+        watcher.onDidCreate(() => {
+          sendSettings();
+        });
+        watcher.onDidDelete(() => {
+          sendSettings();
+        });
+        cssWatchers.push(watcher);
+      }
+    }
+    updateCssWatchers();
+
     // Make sure we get rid of the listener when our editor is closed.
     webviewPanel.onDidDispose(() => {
       changeDocumentSubscription.dispose();
       webviewReceiveMessageSubscription.dispose();
       configChangeSubscription.dispose();
+      for (const watcher of cssWatchers) {
+        watcher.dispose();
+      }
     });
   }
 

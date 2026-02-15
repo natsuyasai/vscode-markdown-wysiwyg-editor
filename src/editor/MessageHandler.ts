@@ -18,6 +18,7 @@ import {
 import { saveImageLocally } from "./imageStorage";
 import { getPlantUmlServer } from "../plantuml/plantUmlServer";
 import { exportToHtml, generateHtmlForPdf } from "../export/htmlExporter";
+import { loadCustomCss } from "../util/customCssLoader";
 
 interface MessageHandlerContext {
   document: vscode.TextDocument;
@@ -156,11 +157,15 @@ async function handleExportHtml(
     if (saveUri) {
       const theme = getThemeKind();
       const title = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
+      const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
+      const cssPaths = config.get<string[]>("customCssPaths", []);
+      const { css: customCss } = loadCustomCss(cssPaths);
 
       exportToHtml(document.getText(), basePath, saveUri.fsPath, {
         theme,
         title,
         embedImages: true,
+        customCss,
       });
 
       webviewPanel.webview.postMessage({
@@ -197,11 +202,16 @@ async function handleExportPdf(
     const theme = getThemeKind();
     const title = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
 
+    const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
+    const cssPaths = config.get<string[]>("customCssPaths", []);
+    const { css: customCss } = loadCustomCss(cssPaths);
+
     // 一時HTMLファイルを生成
     const htmlContent = generateHtmlForPdf(document.getText(), basePath, {
       theme,
       title,
       embedImages: true,
+      customCss,
     });
 
     const tempDir = os.tmpdir();

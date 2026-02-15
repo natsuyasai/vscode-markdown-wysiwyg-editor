@@ -62,6 +62,7 @@ export interface UpdateSettingsMessage extends Message {
   type: "updateSettings";
   payload: {
     themeSetting: ThemeSetting;
+    customCss: string;
   };
 }
 

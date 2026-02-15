@@ -8,6 +8,7 @@ export interface ExportOptions {
   theme: "light" | "dark";
   title?: string;
   embedImages?: boolean;
+  customCss?: string;
 }
 
 export function exportToHtml(
@@ -40,7 +41,7 @@ export function exportToHtml(
   const documentTitle = title || path.basename(outputPath, ".html");
 
   // Generate the complete HTML document
-  const fullHtml = generateHtmlDocument(processedHtml, documentTitle, theme);
+  const fullHtml = generateHtmlDocument(processedHtml, documentTitle, theme, options.customCss);
 
   // Write to file
   fs.writeFileSync(outputPath, fullHtml, "utf-8");
@@ -72,5 +73,5 @@ export function generateHtmlForPdf(
   }
 
   // Generate the complete HTML document
-  return generateHtmlDocument(processedHtml, title, theme);
+  return generateHtmlDocument(processedHtml, title, theme, options.customCss);
 }
