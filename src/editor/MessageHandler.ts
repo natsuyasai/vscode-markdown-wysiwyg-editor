@@ -141,6 +141,19 @@ async function handleOpenFile(message: OpenFileMessage): Promise<void> {
   await vscode.commands.executeCommand("vscode.open", fileUri);
 }
 
+/**
+ * ユーザーのテーマ設定を考慮してエクスポート用テーマを解決する。
+ * "auto"の場合はVSCodeのアクティブカラーテーマ、"light"/"dark"の場合はその値を返す。
+ */
+function resolveExportTheme(getThemeKind: () => ThemeKind): ThemeKind {
+  const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
+  const themeSetting = config.get<"auto" | "light" | "dark">("theme", "auto");
+  if (themeSetting === "auto") {
+    return getThemeKind();
+  }
+  return themeSetting;
+}
+
 async function handleExportHtml(
   document: vscode.TextDocument,
   webviewPanel: vscode.WebviewPanel,
@@ -159,7 +172,7 @@ async function handleExportHtml(
     });
 
     if (saveUri) {
-      const theme = getThemeKind();
+      const theme = resolveExportTheme(getThemeKind);
       const title = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
       const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
       const cssPaths = config.get<string[]>("customCssPaths", []);
@@ -214,7 +227,7 @@ async function handleExportBlogHtml(
     });
 
     if (saveUri) {
-      const theme = getThemeKind();
+      const theme = resolveExportTheme(getThemeKind);
       const title = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
       const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
       const cssPaths = config.get<string[]>("customCssPaths", []);
@@ -263,7 +276,7 @@ async function handleExportPdf(
 ): Promise<void> {
   try {
     const basePath = path.dirname(document.uri.fsPath);
-    const theme = getThemeKind();
+    const theme = resolveExportTheme(getThemeKind);
     const title = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
 
     const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
