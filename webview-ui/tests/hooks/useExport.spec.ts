@@ -45,12 +45,26 @@ describe("useExport", () => {
     });
   });
 
+  it("handleExportBlogHtmlがpostMessageを呼び出すこと", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const { result } = renderHook(() => useExport());
+
+    act(() => {
+      result.current.handleExportBlogHtml();
+    });
+
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      type: "exportBlogHtml",
+    });
+  });
+
   it("contextMenuItemsが正しいアイテムを含むこと", () => {
     const { result } = renderHook(() => useExport());
 
-    expect(result.current.contextMenuItems).toHaveLength(2);
+    expect(result.current.contextMenuItems).toHaveLength(3);
     expect(result.current.contextMenuItems[0].label).toBe("HTMLとしてエクスポート");
-    expect(result.current.contextMenuItems[1].label).toBe("PDFとしてエクスポート");
+    expect(result.current.contextMenuItems[1].label).toBe("ブログ用HTMLとしてエクスポート");
+    expect(result.current.contextMenuItems[2].label).toBe("PDFとしてエクスポート");
   });
 
   it("contextMenuItemsのonClickがハンドラを呼び出すこと", async () => {
@@ -69,6 +83,16 @@ describe("useExport", () => {
 
     act(() => {
       result.current.contextMenuItems[1].onClick();
+    });
+
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      type: "exportBlogHtml",
+    });
+
+    vi.clearAllMocks();
+
+    act(() => {
+      result.current.contextMenuItems[2].onClick();
     });
 
     expect(vscode.postMessage).toHaveBeenCalledWith({
@@ -92,6 +116,16 @@ describe("useExport", () => {
     const firstRef = result.current.handleExportPdf;
     rerender();
     const secondRef = result.current.handleExportPdf;
+
+    expect(firstRef).toBe(secondRef);
+  });
+
+  it("handleExportBlogHtmlが安定した参照を持つこと", () => {
+    const { result, rerender } = renderHook(() => useExport());
+
+    const firstRef = result.current.handleExportBlogHtml;
+    rerender();
+    const secondRef = result.current.handleExportBlogHtml;
 
     expect(firstRef).toBe(secondRef);
   });

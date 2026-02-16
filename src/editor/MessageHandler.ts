@@ -85,6 +85,10 @@ export async function handleMessage(
       await handleExportHtml(document, webviewPanel, context.getThemeKind);
       return;
 
+    case "exportBlogHtml":
+      await handleExportBlogHtml(document, webviewPanel, context.getThemeKind);
+      return;
+
     case "exportPdf":
       await handleExportPdf(document, webviewPanel, context.getThemeKind);
       return;
@@ -189,6 +193,66 @@ async function handleExportHtml(
       },
     } satisfies ExportResultMessage);
     vscode.window.showErrorMessage(`HTMLエクスポートに失敗しました: ${errorMessage}`);
+  }
+}
+
+async function handleExportBlogHtml(
+  document: vscode.TextDocument,
+  webviewPanel: vscode.WebviewPanel,
+  getThemeKind: () => ThemeKind
+): Promise<void> {
+  try {
+    const basePath = path.dirname(document.uri.fsPath);
+    const defaultFileName =
+      path.basename(document.uri.fsPath, path.extname(document.uri.fsPath)) + "_blog.html";
+
+    const saveUri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(path.join(basePath, defaultFileName)),
+      filters: {
+        "HTML files": ["html"],
+      },
+    });
+
+    if (saveUri) {
+      const theme = getThemeKind();
+      const title = path.basename(document.uri.fsPath, path.extname(document.uri.fsPath));
+      const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
+      const cssPaths = config.get<string[]>("customCssPaths", []);
+      const { css: customCss } = loadCustomCss(cssPaths);
+      const useShadowDom = config.get<boolean>("blogExport.useShadowDom", false);
+
+      exportToHtml(document.getText(), basePath, saveUri.fsPath, {
+        theme,
+        title,
+        embedImages: true,
+        customCss,
+        scopedCss: true,
+        useShadowDom,
+      });
+
+      webviewPanel.webview.postMessage({
+        type: "exportResult",
+        payload: {
+          success: true,
+          message: "ブログ用HTMLファイルをエクスポートしました",
+          filePath: saveUri.fsPath,
+        },
+      } satisfies ExportResultMessage);
+
+      vscode.window.showInformationMessage(
+        `ブログ用HTMLファイルをエクスポートしました: ${saveUri.fsPath}`
+      );
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    webviewPanel.webview.postMessage({
+      type: "exportResult",
+      payload: {
+        success: false,
+        message: `ブログ用HTMLエクスポートに失敗しました: ${errorMessage}`,
+      },
+    } satisfies ExportResultMessage);
+    vscode.window.showErrorMessage(`ブログ用HTMLエクスポートに失敗しました: ${errorMessage}`);
   }
 }
 

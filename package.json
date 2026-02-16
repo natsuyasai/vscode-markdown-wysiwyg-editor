@@ -68,9 +68,16 @@
         },
         "markdownWysiwygEditor.customCssPaths": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "カスタムCSSファイルのパスを指定します。エディタ、プレビュー、HTML/PDFエクスポートに適用されます。複数指定可能です。"
+        },
+        "markdownWysiwygEditor.blogExport.useShadowDom": {
+          "type": "boolean",
+          "default": false,
+          "description": "ブログ用HTMLエクスポート時にShadow DOMを使用してスタイルを完全に分離します。ブログプラットフォームがJavaScriptを許可している場合に有効です。"
         }
       }
     }

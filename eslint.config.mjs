@@ -43,4 +43,13 @@ export default [
       "@typescript-eslint/prefer-includes": "error"
     }
   },
+  {
+    files: ["src/test/**/*.test.ts"],
+    languageOptions: {
+      globals: {
+        suite: "readonly",
+        test: "readonly",
+      }
+    }
+  },
 ];

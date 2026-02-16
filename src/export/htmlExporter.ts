@@ -2,13 +2,15 @@ import * as fs from "fs";
 import * as path from "path";
 import { marked } from "marked";
 import { embedImagesInMarkdown, embedImagesInHtml } from "./imageEmbedder";
-import { generateHtmlDocument } from "./htmlTemplate";
+import { generateHtmlDocument, generateScopedHtmlDocument } from "./htmlTemplate";
 
 export interface ExportOptions {
   theme: "light" | "dark";
   title?: string;
   embedImages?: boolean;
   customCss?: string;
+  scopedCss?: boolean;
+  useShadowDom?: boolean;
 }
 
 export function exportToHtml(
@@ -41,7 +43,15 @@ export function exportToHtml(
   const documentTitle = title || path.basename(outputPath, ".html");
 
   // Generate the complete HTML document
-  const fullHtml = generateHtmlDocument(processedHtml, documentTitle, theme, options.customCss);
+  const fullHtml = options.scopedCss
+    ? generateScopedHtmlDocument(
+        processedHtml,
+        documentTitle,
+        theme,
+        options.useShadowDom ?? false,
+        options.customCss
+      )
+    : generateHtmlDocument(processedHtml, documentTitle, theme, options.customCss);
 
   // Write to file
   fs.writeFileSync(outputPath, fullHtml, "utf-8");

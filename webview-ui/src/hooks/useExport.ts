@@ -1,4 +1,8 @@
-import { ExportHtmlMessage, ExportPdfMessage } from "@message/messageTypeToExtention";
+import {
+  ExportBlogHtmlMessage,
+  ExportHtmlMessage,
+  ExportPdfMessage,
+} from "@message/messageTypeToExtention";
 import { useCallback, useMemo } from "react";
 import { ContextMenuItem } from "../components/ContextMenu";
 import { vscode } from "../utilities/vscode";
@@ -6,6 +10,7 @@ import { vscode } from "../utilities/vscode";
 interface UseExportResult {
   handleExportHtml: () => void;
   handleExportPdf: () => void;
+  handleExportBlogHtml: () => void;
   contextMenuItems: ContextMenuItem[];
 }
 
@@ -25,6 +30,12 @@ export function useExport(): UseExportResult {
     } satisfies ExportPdfMessage);
   }, []);
 
+  const handleExportBlogHtml = useCallback(() => {
+    vscode.postMessage({
+      type: "exportBlogHtml",
+    } satisfies ExportBlogHtmlMessage);
+  }, []);
+
   const contextMenuItems: ContextMenuItem[] = useMemo(
     () => [
       {
@@ -32,16 +43,21 @@ export function useExport(): UseExportResult {
         onClick: handleExportHtml,
       },
       {
+        label: "ブログ用HTMLとしてエクスポート",
+        onClick: handleExportBlogHtml,
+      },
+      {
         label: "PDFとしてエクスポート",
         onClick: handleExportPdf,
       },
     ],
-    [handleExportHtml, handleExportPdf]
+    [handleExportHtml, handleExportBlogHtml, handleExportPdf]
   );
 
   return {
     handleExportHtml,
     handleExportPdf,
+    handleExportBlogHtml,
     contextMenuItems,
   };
 }

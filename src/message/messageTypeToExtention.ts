@@ -8,7 +8,8 @@ export type MessageType =
   | "saveSettings"
   | "openFile"
   | "exportHtml"
-  | "exportPdf";
+  | "exportPdf"
+  | "exportBlogHtml";
 
 export interface Message {
   type: MessageType;
@@ -75,4 +76,8 @@ export interface ExportHtmlMessage extends Message {
 
 export interface ExportPdfMessage extends Message {
   type: "exportPdf";
+}
+
+export interface ExportBlogHtmlMessage extends Message {
+  type: "exportBlogHtml";
 }
