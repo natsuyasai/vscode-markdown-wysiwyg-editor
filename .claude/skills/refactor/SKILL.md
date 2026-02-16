@@ -64,7 +64,7 @@ Martin Fowlerが推奨するリファクタリングの進め方に従って、�
 
 ```bash
 # webview-ui のユニットテスト
-cd /home/yasai/work/vscode-markdown-wysiwyg-editor/webview-ui
+cd ./webview-ui
 npm run test:unit
 
 # 特定ファイルのみ

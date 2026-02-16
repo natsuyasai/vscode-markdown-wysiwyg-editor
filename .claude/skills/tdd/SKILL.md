@@ -47,7 +47,7 @@ t-wada（和田卓人）が推奨するTDDの進め方に従って実装を行�
 
 ```bash
 # 特定のテストファイルのみ実行（高速なフィードバック）
-cd /home/yasai/work/vscode-markdown-wysiwyg-editor/webview-ui
+cd ./webview-ui
 npx vitest run tests/path/to/test.spec.ts
 
 # ユニットテスト全体

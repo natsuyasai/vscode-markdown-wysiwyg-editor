@@ -15,9 +15,11 @@ CLAUDE.mdの「UI開発前にStorybook MCP呼び出し」を手順化したワ�
 UI/フロントエンド/React開発を開始する前に、Storybook MCPサーバーの利用可能性を確認する。
 
 **MCP利用可能な場合:**
+
 - MCPサーバーからの指示に従って開発を進める
 
 **MCP利用不可の場合（フォールバック）:**
+
 - 以下のStory-First開発手順に従う
 
 ### Step 2: Story-First開発
@@ -44,7 +46,9 @@ UI/フロントエンド/React開発を開始する前に、Storybook MCPサー�
 
 ```tsx
 export const LightTheme: Story = {
-  args: { /* props */ },
+  args: {
+    /* props */
+  },
   decorators: [
     (Story) => (
       <div data-theme="light">
@@ -56,7 +60,9 @@ export const LightTheme: Story = {
 };
 
 export const DarkTheme: Story = {
-  args: { /* props */ },
+  args: {
+    /* props */
+  },
   decorators: [
     (Story) => (
       <div data-theme="dark" style={{ backgroundColor: "#1e1e1e" }}>
@@ -92,7 +98,7 @@ play: async ({ canvasElement, args }) => {
 ### Step 5: テスト実行
 
 ```bash
-cd /home/yasai/work/vscode-markdown-wysiwyg-editor/webview-ui
+cd ./webview-ui
 
 # Storybookテスト
 npm run test:story

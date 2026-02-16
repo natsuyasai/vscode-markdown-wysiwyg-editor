@@ -35,8 +35,8 @@ CLAUDE.mdの「セキュリティルール遵守」を具体化したチェッ�
 - [ ] `npm audit` を実行して既知の脆弱性を確認
 
   ```bash
-  cd /home/yasai/work/vscode-markdown-wysiwyg-editor && npm audit
-  cd /home/yasai/work/vscode-markdown-wysiwyg-editor/webview-ui && npm audit
+  npm audit
+  cd ./webview-ui && npm audit
   ```
 
 - [ ] 重大度(high/critical)の脆弱性がある場合は報告
@@ -66,9 +66,9 @@ CLAUDE.mdの「セキュリティルール遵守」を具体化したチェッ�
 
 ### 検出された問題
 
-| # | 深刻度 | カテゴリ | 場所 | 説明 | 推奨対応 |
-|---|--------|----------|------|------|----------|
-| 1 | High   | XSS      | ... | ... | ...      |
+| #   | 深刻度 | カテゴリ | 場所 | 説明 | 推奨対応 |
+| --- | ------ | -------- | ---- | ---- | -------- |
+| 1   | High   | XSS      | ...  | ...  | ...      |
 
 ### 問題なしの項目
 

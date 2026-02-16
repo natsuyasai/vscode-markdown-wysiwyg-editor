@@ -12,7 +12,6 @@ user-invocable: true
 ### 1. ルートディレクトリ（VSCode拡張機能）
 
 ```bash
-cd /home/yasai/work/vscode-markdown-wysiwyg-editor
 npm run format
 npm run check-types
 npm run lint
@@ -22,7 +21,7 @@ npm test
 ### 2. webview-uiディレクトリ（React UI）
 
 ```bash
-cd /home/yasai/work/vscode-markdown-wysiwyg-editor/webview-ui
+cd ./webview-ui
 npm run format
 npm run check-types
 npm run lint
