@@ -162,9 +162,9 @@ export const HtmlTagsLight: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // 見出しが描画されていることを確認
+    // 見出しが描画されていることを確認（アウトラインリンクと区別するためh1要素を指定）
     await waitFor(async () => {
-      await expect(canvas.getByText("HTMLタグのテスト")).toBeInTheDocument();
+      await expect(canvas.getAllByText("HTMLタグのテスト")[0]).toBeInTheDocument();
     });
 
     // strong要素（太字）がレンダリングされていることを確認
@@ -195,16 +195,16 @@ export const MermaidLight: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // 見出しが描画されていることを確認
+    // 見出しが描画されていることを確認（アウトラインリンクと区別するためh1要素を指定）
     await waitFor(async () => {
-      await expect(canvas.getByText("Mermaid Diagram Test")).toBeInTheDocument();
+      await expect(canvas.getAllByText("Mermaid Diagram Test")[0]).toBeInTheDocument();
     });
 
-    // ダイアグラム以外のテキストが存在することを確認
+    // ダイアグラム以外のテキストが存在することを確認（アウトラインリンクと区別するためgetAllByTextを使用）
     await expect(
       canvas.getByText("This is a test document with a Mermaid diagram.")
     ).toBeInTheDocument();
-    await expect(canvas.getByText("Another Section")).toBeInTheDocument();
+    await expect(canvas.getAllByText("Another Section")[0]).toBeInTheDocument();
     await expect(canvas.getByText("Some text after the diagram.")).toBeInTheDocument();
 
     // MermaidのSVGが非同期でレンダリングされることを確認
@@ -229,12 +229,12 @@ export const PlantUmlLight: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // 見出しとテキストが描画されていることを確認
+    // 見出しとテキストが描画されていることを確認（アウトラインリンクと区別するためgetAllByTextを使用）
     await waitFor(async () => {
-      await expect(canvas.getByText("PlantUML Diagram Test")).toBeInTheDocument();
+      await expect(canvas.getAllByText("PlantUML Diagram Test")[0]).toBeInTheDocument();
     });
 
-    await expect(canvas.getByText("Another Section")).toBeInTheDocument();
+    await expect(canvas.getAllByText("Another Section")[0]).toBeInTheDocument();
     await expect(canvas.getByText("Some text after the diagram.")).toBeInTheDocument();
   },
 };
@@ -250,18 +250,18 @@ export const ComprehensiveLight: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // 見出しが描画されていることを確認
+    // 見出しが描画されていることを確認（アウトラインリンクと区別するためgetAllByTextを使用）
     await waitFor(async () => {
-      await expect(canvas.getByText("Markdown総合サンプル (閲覧モード)")).toBeInTheDocument();
+      await expect(canvas.getAllByText("Markdown総合サンプル (閲覧モード)")[0]).toBeInTheDocument();
     });
 
-    // H2見出しの確認
-    await expect(canvas.getByText("見出しとテキスト")).toBeInTheDocument();
-    await expect(canvas.getByText("リスト")).toBeInTheDocument();
-    await expect(canvas.getByText("コードと引用")).toBeInTheDocument();
+    // H2見出しの確認（アウトラインに同名リンクがあるためgetAllByTextを使用）
+    await expect(canvas.getAllByText("見出しとテキスト")[0]).toBeInTheDocument();
+    await expect(canvas.getAllByText("リスト")[0]).toBeInTheDocument();
+    await expect(canvas.getAllByText("コードと引用")[0]).toBeInTheDocument();
 
-    // H3見出しの確認
-    await expect(canvas.getByText("サブセクション")).toBeInTheDocument();
+    // H3見出しの確認（アウトラインに同名リンクがあるためgetAllByTextを使用）
+    await expect(canvas.getAllByText("サブセクション")[0]).toBeInTheDocument();
 
     // テキスト装飾の確認
     const boldText = canvas.getByText("太字");
