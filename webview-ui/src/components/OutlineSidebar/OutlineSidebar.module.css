@@ -27,11 +27,15 @@
   display: block;
   width: 18px;
   height: 2px;
-  background-color: var(--vscode-foreground, #cccccc);
+
   border-radius: 1px;
   transition:
     transform 0.3s,
     opacity 0.3s;
+  background-color: #1c1c1c;
+  &[data-theme="dark"] {
+    background-color: #cccccc;
+  }
 }
 
 /* ハンバーガー → × アニメーション */
