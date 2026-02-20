@@ -137,6 +137,17 @@ function customUrlTransform(url: string): string {
   return defaultUrlTransform(url);
 }
 
+// childrenを文字列に変換するヘルパー関数（純粋関数のためモジュールレベルに配置）
+function childrenToString(children: React.ReactNode): string {
+  if (typeof children === "string") {
+    return children;
+  }
+  if (Array.isArray(children)) {
+    return children.map(childrenToString).join("");
+  }
+  return "";
+}
+
 export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri = "" }) => {
   // 見出し抽出
   const headings = useMemo(() => extractHeadings(value), [value]);
@@ -194,78 +205,72 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
     [baseUri]
   );
 
-  // childrenを文字列に変換するヘルパー関数
-  const childrenToString = (children: React.ReactNode): string => {
-    if (typeof children === "string") {
-      return children;
-    }
-    if (Array.isArray(children)) {
-      return children.map(childrenToString).join("");
-    }
-    return "";
-  };
+  // カスタムコンポーネント（resolveImagePathとthemeが変わった時のみ再生成）
+  const components: Components = useMemo(() => {
+    // レンダリング開始時にID管理をリセット
+    idCountsRef.current = new Map<string, number>();
 
-  // レンダリング開始時にID管理をリセット
-  idCountsRef.current = new Map<string, number>();
-
-  const createHeadingComponent = (level: number) => {
-    const HeadingTag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
-    const HeadingComponent = ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
-      const text = childrenToString(children);
-      const baseId = generateHeadingId(text);
-      const count = idCountsRef.current.get(baseId) ?? 0;
-      const id = count > 0 ? `${baseId}-${count}` : baseId;
-      idCountsRef.current.set(baseId, count + 1);
-      return (
-        <HeadingTag id={id} {...props}>
-          {children}
-        </HeadingTag>
-      );
-    };
-    HeadingComponent.displayName = `Heading${level}`;
-    return HeadingComponent;
-  };
-
-  // カスタムコンポーネント
-  const components: Components = {
-    h1: createHeadingComponent(1),
-    h2: createHeadingComponent(2),
-    h3: createHeadingComponent(3),
-    h4: createHeadingComponent(4),
-    h5: createHeadingComponent(5),
-    h6: createHeadingComponent(6),
-    code: ({ className, children, ...props }) => {
-      const match = /language-(\w+)/.exec(className ?? "");
-      const language = match ? match[1] : "";
-      const codeContent = childrenToString(children).replace(/\n$/, "");
-
-      // Mermaidダイアグラム
-      if (language === "mermaid") {
-        return <MermaidDiagram code={codeContent} theme={theme} />;
-      }
-
-      // PlantUMLダイアグラム
-      if (language === "plantuml") {
-        return <PlantUmlDiagram code={codeContent} />;
-      }
-
-      // 通常のコードブロック
-      if (className) {
+    const createHeadingComponent = (level: number) => {
+      const HeadingTag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+      const HeadingComponent = ({
+        children,
+        ...props
+      }: React.HTMLAttributes<HTMLHeadingElement>) => {
+        const text = childrenToString(children);
+        const baseId = generateHeadingId(text);
+        const count = idCountsRef.current.get(baseId) ?? 0;
+        const id = count > 0 ? `${baseId}-${count}` : baseId;
+        idCountsRef.current.set(baseId, count + 1);
         return (
-          <code className={className} {...props}>
+          <HeadingTag id={id} {...props}>
             {children}
-          </code>
+          </HeadingTag>
         );
-      }
+      };
+      HeadingComponent.displayName = `Heading${level}`;
+      return HeadingComponent;
+    };
 
-      // インラインコード
-      return <code {...props}>{children}</code>;
-    },
-    img: ({ src, alt, ...props }) => {
-      const resolvedSrc = resolveImagePath(src ?? "");
-      return <img src={resolvedSrc} alt={alt ?? ""} {...props} />;
-    },
-  };
+    return {
+      h1: createHeadingComponent(1),
+      h2: createHeadingComponent(2),
+      h3: createHeadingComponent(3),
+      h4: createHeadingComponent(4),
+      h5: createHeadingComponent(5),
+      h6: createHeadingComponent(6),
+      code: ({ className, children, ...props }) => {
+        const match = /language-(\w+)/.exec(className ?? "");
+        const language = match ? match[1] : "";
+        const codeContent = childrenToString(children).replace(/\n$/, "");
+
+        // Mermaidダイアグラム
+        if (language === "mermaid") {
+          return <MermaidDiagram code={codeContent} theme={theme} />;
+        }
+
+        // PlantUMLダイアグラム
+        if (language === "plantuml") {
+          return <PlantUmlDiagram code={codeContent} />;
+        }
+
+        // 通常のコードブロック
+        if (className) {
+          return (
+            <code className={className} {...props}>
+              {children}
+            </code>
+          );
+        }
+
+        // インラインコード
+        return <code {...props}>{children}</code>;
+      },
+      img: ({ src, alt, ...props }) => {
+        const resolvedSrc = resolveImagePath(src ?? "");
+        return <img src={resolvedSrc} alt={alt ?? ""} {...props} />;
+      },
+    };
+  }, [resolveImagePath, theme]);
 
   return (
     <div className="markdown-viewer-wrapper">
