@@ -1,14 +1,16 @@
 import { Message, PlantUmlResultMessage } from "@message/messageTypeToWebview";
 import mermaid from "mermaid";
-import { FC, useCallback, useEffect, useId, useRef, useState } from "react";
+import { FC, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Markdown, { Components, defaultUrlTransform } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { SVG_COLOR_REPLACEMENTS, type ThemeKind } from "../../constants/themeColors";
+import { extractHeadings, generateHeadingId } from "../../utilities/extractHeadings";
 import { LOCAL_FILE_SCHEME } from "../../utilities/imagePathConverter";
 import { initializeMermaid } from "../../utilities/mermaidInitializer";
 import { PlantUmlCallbackManager } from "../../utilities/plantUmlCallbackManager";
 import { vscode } from "../../utilities/vscode";
+import { OutlineSidebar } from "../OutlineSidebar";
 import "./MarkdownViewer.css";
 
 // 許可するURLスキーム（デフォルト + VSCode拡張機能用）
@@ -136,6 +138,23 @@ function customUrlTransform(url: string): string {
 }
 
 export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri = "" }) => {
+  // 見出し抽出
+  const headings = useMemo(() => extractHeadings(value), [value]);
+
+  // コンテンツ領域のref
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // 重複ID管理用（レンダリングごとにリセット）
+  const idCountsRef = useRef(new Map<string, number>());
+
+  // スクロールハンドラ
+  const handleHeadingClick = useCallback((id: string) => {
+    const element = contentRef.current?.querySelector(`#${CSS.escape(id)}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
+
   // PlantUML結果のメッセージハンドラ
   const handleExtensionMessage = useCallback((event: MessageEvent<Message>) => {
     const message = event.data;
@@ -186,8 +205,35 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
     return "";
   };
 
+  // レンダリング開始時にID管理をリセット
+  idCountsRef.current = new Map<string, number>();
+
+  const createHeadingComponent = (level: number) => {
+    const HeadingTag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+    const HeadingComponent = ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
+      const text = childrenToString(children);
+      const baseId = generateHeadingId(text);
+      const count = idCountsRef.current.get(baseId) ?? 0;
+      const id = count > 0 ? `${baseId}-${count}` : baseId;
+      idCountsRef.current.set(baseId, count + 1);
+      return (
+        <HeadingTag id={id} {...props}>
+          {children}
+        </HeadingTag>
+      );
+    };
+    HeadingComponent.displayName = `Heading${level}`;
+    return HeadingComponent;
+  };
+
   // カスタムコンポーネント
   const components: Components = {
+    h1: createHeadingComponent(1),
+    h2: createHeadingComponent(2),
+    h3: createHeadingComponent(3),
+    h4: createHeadingComponent(4),
+    h5: createHeadingComponent(5),
+    h6: createHeadingComponent(6),
     code: ({ className, children, ...props }) => {
       const match = /language-(\w+)/.exec(className ?? "");
       const language = match ? match[1] : "";
@@ -222,15 +268,18 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
   };
 
   return (
-    <div className="markdown-viewer" data-theme={theme}>
-      <Markdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
-        components={components}
-        urlTransform={customUrlTransform}
-      >
-        {value}
-      </Markdown>
+    <div className="markdown-viewer-wrapper">
+      <OutlineSidebar headings={headings} onHeadingClick={handleHeadingClick} />
+      <div className="markdown-viewer" data-theme={theme} ref={contentRef}>
+        <Markdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          components={components}
+          urlTransform={customUrlTransform}
+        >
+          {value}
+        </Markdown>
+      </div>
     </div>
   );
 };
