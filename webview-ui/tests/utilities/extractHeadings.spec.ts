@@ -1,4 +1,3 @@
-// webview-ui/tests/utilities/extractHeadings.spec.ts
 import { describe, it, expect } from "vitest";
 import { extractHeadings, generateHeadingId } from "../../src/utilities/extractHeadings";
 

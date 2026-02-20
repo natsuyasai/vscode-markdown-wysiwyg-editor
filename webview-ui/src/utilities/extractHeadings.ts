@@ -1,4 +1,3 @@
-// webview-ui/src/utilities/extractHeadings.ts
 export type HeadingItem = {
   level: number;
   text: string;
@@ -8,7 +7,7 @@ export type HeadingItem = {
 export function generateHeadingId(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^\w\s\u3000-\u9fff\u4e00-\u9faf\uac00-\ud7af-]/g, "")
+    .replace(/[^\w\s\u3041-\u3096\u30a0-\u30ff\u4e00-\u9faf\uac00-\ud7af-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+$/, "");
 }
@@ -25,13 +24,10 @@ export function extractHeadings(markdown: string): HeadingItem[] {
   while ((match = regex.exec(withoutCodeBlocks)) !== null) {
     const level = match[1].length;
     const text = match[2].trim();
-    let id = generateHeadingId(text);
-
-    const count = idCounts.get(id) ?? 0;
-    if (count > 0) {
-      id = `${id}-${count}`;
-    }
-    idCounts.set(generateHeadingId(text), count + 1);
+    const baseId = generateHeadingId(text);
+    const count = idCounts.get(baseId) ?? 0;
+    const id = count > 0 ? `${baseId}-${count}` : baseId;
+    idCounts.set(baseId, count + 1);
 
     headings.push({ level, text, id });
   }
