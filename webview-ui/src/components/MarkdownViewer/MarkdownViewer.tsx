@@ -158,6 +158,9 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
   // 重複ID管理用（レンダリングごとにリセット）
   const idCountsRef = useRef(new Map<string, number>());
 
+  // レンダリングのたびにリセット（valueが変わった時もIDが正しくリセットされるよう、useMemo外に配置）
+  idCountsRef.current = new Map<string, number>();
+
   // スクロールハンドラ
   const handleHeadingClick = useCallback((id: string) => {
     const element = contentRef.current?.querySelector(`#${CSS.escape(id)}`);
@@ -207,9 +210,6 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
 
   // カスタムコンポーネント（resolveImagePathとthemeが変わった時のみ再生成）
   const components: Components = useMemo(() => {
-    // レンダリング開始時にID管理をリセット
-    idCountsRef.current = new Map<string, number>();
-
     const createHeadingComponent = (level: number) => {
       const HeadingTag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
       const HeadingComponent = ({

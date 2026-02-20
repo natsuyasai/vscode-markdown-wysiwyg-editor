@@ -32,7 +32,11 @@ export const OutlineSidebar: FC<OutlineSidebarProps> = ({ headings, onHeadingCli
         <span className={styles.hamburgerLine} />
         <span className={styles.hamburgerLine} />
       </button>
-      <nav className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ""}`} aria-label="Outline">
+      <nav
+        className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ""}`}
+        aria-label="Outline"
+        aria-hidden={!isOpen}
+      >
         <div className={styles.header}>
           <h2 className={styles.title}>Outline</h2>
         </div>

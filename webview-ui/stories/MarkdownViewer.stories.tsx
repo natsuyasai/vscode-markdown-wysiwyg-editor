@@ -162,9 +162,11 @@ export const HtmlTagsLight: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // 見出しが描画されていることを確認（アウトラインリンクと区別するためh1要素を指定）
+    // 見出しが描画されていることを確認（getByRoleでh1要素を明示的に指定）
     await waitFor(async () => {
-      await expect(canvas.getAllByText("HTMLタグのテスト")[0]).toBeInTheDocument();
+      await expect(
+        canvas.getByRole("heading", { name: "HTMLタグのテスト", level: 1 })
+      ).toBeInTheDocument();
     });
 
     // strong要素（太字）がレンダリングされていることを確認
@@ -195,16 +197,20 @@ export const MermaidLight: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // 見出しが描画されていることを確認（アウトラインリンクと区別するためh1要素を指定）
+    // 見出しが描画されていることを確認（getByRoleでh1要素を明示的に指定）
     await waitFor(async () => {
-      await expect(canvas.getAllByText("Mermaid Diagram Test")[0]).toBeInTheDocument();
+      await expect(
+        canvas.getByRole("heading", { name: "Mermaid Diagram Test", level: 1 })
+      ).toBeInTheDocument();
     });
 
-    // ダイアグラム以外のテキストが存在することを確認（アウトラインリンクと区別するためgetAllByTextを使用）
+    // ダイアグラム以外のテキストが存在することを確認
     await expect(
       canvas.getByText("This is a test document with a Mermaid diagram.")
     ).toBeInTheDocument();
-    await expect(canvas.getAllByText("Another Section")[0]).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("heading", { name: "Another Section", level: 2 })
+    ).toBeInTheDocument();
     await expect(canvas.getByText("Some text after the diagram.")).toBeInTheDocument();
 
     // MermaidのSVGが非同期でレンダリングされることを確認
@@ -229,12 +235,16 @@ export const PlantUmlLight: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // 見出しとテキストが描画されていることを確認（アウトラインリンクと区別するためgetAllByTextを使用）
+    // 見出しとテキストが描画されていることを確認（getByRoleでheading要素を明示的に指定）
     await waitFor(async () => {
-      await expect(canvas.getAllByText("PlantUML Diagram Test")[0]).toBeInTheDocument();
+      await expect(
+        canvas.getByRole("heading", { name: "PlantUML Diagram Test", level: 1 })
+      ).toBeInTheDocument();
     });
 
-    await expect(canvas.getAllByText("Another Section")[0]).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("heading", { name: "Another Section", level: 2 })
+    ).toBeInTheDocument();
     await expect(canvas.getByText("Some text after the diagram.")).toBeInTheDocument();
   },
 };
@@ -250,18 +260,26 @@ export const ComprehensiveLight: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // 見出しが描画されていることを確認（アウトラインリンクと区別するためgetAllByTextを使用）
+    // 見出しが描画されていることを確認（getByRoleでheading要素を明示的に指定）
     await waitFor(async () => {
-      await expect(canvas.getAllByText("Markdown総合サンプル (閲覧モード)")[0]).toBeInTheDocument();
+      await expect(
+        canvas.getByRole("heading", { name: "Markdown総合サンプル (閲覧モード)", level: 1 })
+      ).toBeInTheDocument();
     });
 
-    // H2見出しの確認（アウトラインに同名リンクがあるためgetAllByTextを使用）
-    await expect(canvas.getAllByText("見出しとテキスト")[0]).toBeInTheDocument();
-    await expect(canvas.getAllByText("リスト")[0]).toBeInTheDocument();
-    await expect(canvas.getAllByText("コードと引用")[0]).toBeInTheDocument();
+    // H2見出しの確認（getByRoleでheading要素を明示的に指定）
+    await expect(
+      canvas.getByRole("heading", { name: "見出しとテキスト", level: 2 })
+    ).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "リスト", level: 2 })).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("heading", { name: "コードと引用", level: 2 })
+    ).toBeInTheDocument();
 
-    // H3見出しの確認（アウトラインに同名リンクがあるためgetAllByTextを使用）
-    await expect(canvas.getAllByText("サブセクション")[0]).toBeInTheDocument();
+    // H3見出しの確認（getByRoleでheading要素を明示的に指定）
+    await expect(
+      canvas.getByRole("heading", { name: "サブセクション", level: 3 })
+    ).toBeInTheDocument();
 
     // テキスト装飾の確認
     const boldText = canvas.getByText("太字");
