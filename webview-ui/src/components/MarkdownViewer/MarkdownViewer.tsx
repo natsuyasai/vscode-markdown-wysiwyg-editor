@@ -274,17 +274,16 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
 
   return (
     <div className="markdown-viewer-wrapper">
-      <OutlineSidebar headings={headings} onHeadingClick={handleHeadingClick} />
       <div className="markdown-viewer" data-theme={theme} ref={contentRef}>
         <Markdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw]}
           components={components}
-          urlTransform={customUrlTransform}
-        >
+          urlTransform={customUrlTransform}>
           {value}
         </Markdown>
       </div>
+      <OutlineSidebar headings={headings} onHeadingClick={handleHeadingClick} theme={theme} />
     </div>
   );
 };

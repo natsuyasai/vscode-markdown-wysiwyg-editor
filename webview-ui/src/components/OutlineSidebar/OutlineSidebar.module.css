@@ -1,8 +1,8 @@
 /* ハンバーガーボタン */
 .hamburger {
-  position: absolute;
-  top: 8px;
-  left: 8px;
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
   z-index: 20;
   display: flex;
   flex-direction: column;
@@ -49,15 +49,13 @@
 
 /* サイドバー */
 .sidebar {
-  position: absolute;
+  position: fixed;
   top: 0;
-  left: 0;
+  right: 0;
   z-index: 10;
   width: 250px;
-  height: 100%;
-  background-color: var(--vscode-sideBar-background, #252526);
-  border-right: 1px solid var(--vscode-sideBar-border, #3c3c3c);
-  transform: translateX(-100%);
+  height: 100vh;
+  transform: translateX(100%);
   transition: transform 0.3s ease;
   overflow-y: auto;
   box-sizing: border-box;
@@ -67,10 +65,55 @@
   transform: translateX(0);
 }
 
+/* ライトテーマ */
+.sidebar[data-theme="light"] {
+  background-color: #f3f3f3;
+  border-right: 1px solid #e1e4e8;
+}
+
+.sidebar[data-theme="light"] .header {
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.sidebar[data-theme="light"] .title {
+  color: #555555;
+}
+
+.sidebar[data-theme="light"] .link {
+  color: #1c1c1c;
+}
+
+.sidebar[data-theme="light"] .link:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: #1c1c1c;
+}
+
+/* ダークテーマ */
+.sidebar[data-theme="dark"] {
+  background-color: #252526;
+  border-right: 1px solid #3c3c3c;
+}
+
+.sidebar[data-theme="dark"] .header {
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.sidebar[data-theme="dark"] .title {
+  color: #bbbbbb;
+}
+
+.sidebar[data-theme="dark"] .link {
+  color: #cccccc;
+}
+
+.sidebar[data-theme="dark"] .link:hover {
+  background-color: rgba(128, 128, 128, 0.1);
+  color: #cccccc;
+}
+
 /* ヘッダー */
 .header {
   padding: 44px 12px 8px;
-  border-bottom: 1px solid var(--vscode-sideBar-border, #3c3c3c);
 }
 
 .title {
@@ -79,7 +122,6 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--vscode-sideBarTitle-foreground, #bbbbbb);
 }
 
 /* 見出しリスト */
@@ -98,18 +140,12 @@
   padding: 4px 8px;
   font-size: 13px;
   line-height: 1.4;
-  color: var(--vscode-foreground, #cccccc);
   text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   border-radius: 0;
   transition: background-color 0.1s;
-}
-
-.link:hover {
-  background-color: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.1));
-  color: var(--vscode-list-hoverForeground, #cccccc);
 }
 
 /* スクロールバー */

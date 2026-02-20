@@ -1,14 +1,37 @@
-import { FC, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
+import type { ThemeKind } from "../../constants/themeColors";
 import type { HeadingItem } from "../../utilities/extractHeadings";
 import styles from "./OutlineSidebar.module.css";
 
 interface OutlineSidebarProps {
   headings: HeadingItem[];
   onHeadingClick: (id: string) => void;
+  theme: ThemeKind;
 }
 
-export const OutlineSidebar: FC<OutlineSidebarProps> = ({ headings, onHeadingClick }) => {
+export const OutlineSidebar: FC<OutlineSidebarProps> = ({ headings, onHeadingClick, theme }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        sidebarRef.current &&
+        !sidebarRef.current.contains(target) &&
+        hamburgerRef.current &&
+        !hamburgerRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
 
   const handleToggle = () => {
     setIsOpen((prev) => !prev);
@@ -22,6 +45,7 @@ export const OutlineSidebar: FC<OutlineSidebarProps> = ({ headings, onHeadingCli
   return (
     <>
       <button
+        ref={hamburgerRef}
         type="button"
         className={`${styles.hamburger} ${isOpen ? styles.hamburgerOpen : ""}`}
         onClick={handleToggle}
@@ -33,7 +57,9 @@ export const OutlineSidebar: FC<OutlineSidebarProps> = ({ headings, onHeadingCli
         <span className={styles.hamburgerLine} />
       </button>
       <nav
+        ref={sidebarRef}
         className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ""}`}
+        data-theme={theme}
         aria-label="Outline"
         aria-hidden={!isOpen}
       >
