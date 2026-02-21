@@ -279,7 +279,8 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw]}
           components={components}
-          urlTransform={customUrlTransform}>
+          urlTransform={customUrlTransform}
+        >
           {value}
         </Markdown>
       </div>

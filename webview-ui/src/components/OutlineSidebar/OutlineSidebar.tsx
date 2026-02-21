@@ -50,7 +50,8 @@ export const OutlineSidebar: FC<OutlineSidebarProps> = ({ headings, onHeadingCli
         className={`${styles.hamburger} ${isOpen ? styles.hamburgerOpen : ""}`}
         onClick={handleToggle}
         aria-label={isOpen ? "Close outline" : "Open outline"}
-        aria-expanded={isOpen}>
+        aria-expanded={isOpen}
+      >
         <span data-theme={theme} className={styles.hamburgerLine} />
         <span data-theme={theme} className={styles.hamburgerLine} />
         <span data-theme={theme} className={styles.hamburgerLine} />
@@ -60,7 +61,8 @@ export const OutlineSidebar: FC<OutlineSidebarProps> = ({ headings, onHeadingCli
         className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ""}`}
         data-theme={theme}
         aria-label="Outline"
-        aria-hidden={!isOpen}>
+        aria-hidden={!isOpen}
+      >
         <div className={styles.header}>
           <h2 className={styles.title}>Outline</h2>
         </div>
@@ -71,7 +73,8 @@ export const OutlineSidebar: FC<OutlineSidebarProps> = ({ headings, onHeadingCli
                 href={`#${heading.id}`}
                 className={styles.link}
                 style={{ paddingLeft: `${(heading.level - 1) * 12 + 8}px` }}
-                onClick={(e) => handleClick(e, heading.id)}>
+                onClick={(e) => handleClick(e, heading.id)}
+              >
                 {heading.text}
               </a>
             </li>
