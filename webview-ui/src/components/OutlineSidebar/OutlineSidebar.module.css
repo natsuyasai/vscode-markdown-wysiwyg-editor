@@ -145,9 +145,8 @@
   font-size: 13px;
   line-height: 1.4;
   text-decoration: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-wrap: break-word;
+  word-break: break-word;
   border-radius: 0;
   transition: background-color 0.1s;
 }
