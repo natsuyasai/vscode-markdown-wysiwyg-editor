@@ -163,7 +163,7 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
       };
       destroyEditor().catch(console.error);
     };
-  }, [onChange, createUploadImage]);
+  }, [onChange, createUploadImage, theme]);
 
   // 外部からの値変更時にエディタを更新
   useLayoutEffect(() => {
