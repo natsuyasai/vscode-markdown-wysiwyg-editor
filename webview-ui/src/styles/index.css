@@ -1,7 +1,10 @@
 html,
 body {
-  min-width: 750px;
   height: 100%;
+  margin: 0;
+  padding: 0;
+  word-break: break-all;
+  white-space: pre-wrap;
 }
 
 #root {
