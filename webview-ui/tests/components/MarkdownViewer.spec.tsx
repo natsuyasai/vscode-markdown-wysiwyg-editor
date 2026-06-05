@@ -257,4 +257,80 @@ const x = 1;
       expect(link).toHaveAttribute("href", "#section");
     });
   });
+
+  describe("シンタックスハイライト", () => {
+    it("言語指定コードブロックにhljsクラスが付与されること", () => {
+      const markdown = `
+\`\`\`javascript
+const x = 1;
+\`\`\`
+`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="light" />);
+      const code = container.querySelector("pre code");
+      expect(code?.className).toContain("hljs");
+    });
+
+    it("JavaScriptのキーワードがハイライトされること", () => {
+      const markdown = `
+\`\`\`javascript
+const x = 1;
+\`\`\`
+`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="light" />);
+      const keywordSpan = container.querySelector(".hljs-keyword");
+      expect(keywordSpan).toBeInTheDocument();
+      expect(keywordSpan?.textContent).toBe("const");
+    });
+
+    it("TypeScriptコードがハイライトされること", () => {
+      const markdown = `
+\`\`\`typescript
+interface Foo { bar: string; }
+\`\`\`
+`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="light" />);
+      const keywordSpan = container.querySelector(".hljs-keyword");
+      expect(keywordSpan).toBeInTheDocument();
+    });
+
+    it("言語未指定コードブロックはhljsクラスなしでレンダリングされること", () => {
+      const markdown = `
+\`\`\`
+plain text code
+\`\`\`
+`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="light" />);
+      const code = container.querySelector("pre code");
+      expect(code?.className).not.toContain("hljs");
+    });
+
+    it("インラインコードはハイライトされないこと", () => {
+      const { container } = render(
+        <MarkdownViewer value="Use `const x = 1;` here" theme="light" />
+      );
+      const inlineCode = container.querySelector("code:not(pre code)");
+      expect(inlineCode?.querySelector(".hljs-keyword")).not.toBeInTheDocument();
+    });
+
+    it("Mermaidコードブロックはダイアグラムコンポーネントのままであること", () => {
+      const markdown = `
+\`\`\`mermaid
+graph TD; A-->B;
+\`\`\`
+`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="light" />);
+      expect(container.querySelector(".markdown-viewer-diagram")).toBeInTheDocument();
+      expect(container.querySelector("pre code")).not.toBeInTheDocument();
+    });
+
+    it("darkテーマでもhljsクラスが付与されること", () => {
+      const markdown = `
+\`\`\`javascript
+const x = 1;
+\`\`\`
+`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="dark" />);
+      expect(container.querySelector(".hljs")).toBeInTheDocument();
+    });
+  });
 });
