@@ -2,6 +2,7 @@ import { Message, PlantUmlResultMessage } from "@message/messageTypeToWebview";
 import mermaid from "mermaid";
 import { FC, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Markdown, { Components, defaultUrlTransform } from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { SVG_COLOR_REPLACEMENTS, type ThemeKind } from "../../constants/themeColors";
@@ -277,7 +278,7 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
       <div className="markdown-viewer" data-theme={theme} ref={contentRef}>
         <Markdown
           remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw]}
+          rehypePlugins={[rehypeRaw, [rehypeHighlight, { detect: false, ignoreMissing: true }]]}
           components={components}
           urlTransform={customUrlTransform}
         >

@@ -310,3 +310,56 @@ export const ComprehensiveDark: Story = {
   render: () => <MarkdownViewerWrapper value={comprehensiveMarkdown} theme="dark" />,
   name: "総合サンプル - Dark",
 };
+
+const syntaxHighlightMarkdown = `# シンタックスハイライト
+
+## TypeScript
+
+\`\`\`typescript
+interface User {
+  id: number;
+  name: string;
+}
+
+async function fetchUser(id: number): Promise<User> {
+  // APIからユーザー情報を取得
+  const response = await fetch(\`/api/users/\${id}\`);
+  return response.json();
+}
+\`\`\`
+
+## Python
+
+\`\`\`python
+def fibonacci(n: int) -> list[int]:
+    # フィボナッチ数列を生成
+    sequence = [0, 1]
+    for i in range(2, n):
+        sequence.append(sequence[-1] + sequence[-2])
+    return sequence
+\`\`\`
+
+## 言語未指定
+
+\`\`\`
+plain text - no highlight
+\`\`\`
+`;
+
+export const SyntaxHighlightLight: Story = {
+  render: () => <MarkdownViewerWrapper value={syntaxHighlightMarkdown} theme="light" />,
+  name: "シンタックスハイライト - Light",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvasElement.querySelector(".hljs-keyword")).toBeInTheDocument();
+    await canvas.findByText("TypeScript");
+  },
+};
+
+export const SyntaxHighlightDark: Story = {
+  render: () => <MarkdownViewerWrapper value={syntaxHighlightMarkdown} theme="dark" />,
+  name: "シンタックスハイライト - Dark",
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector(".hljs-keyword")).toBeInTheDocument();
+  },
+};
