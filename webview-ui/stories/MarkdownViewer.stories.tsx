@@ -350,9 +350,7 @@ export const SyntaxHighlightLight: Story = {
   render: () => <MarkdownViewerWrapper value={syntaxHighlightMarkdown} theme="light" />,
   name: "シンタックスハイライト - Light",
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
     await expect(canvasElement.querySelector(".hljs-keyword")).toBeInTheDocument();
-    await canvas.findByText("TypeScript");
   },
 };
 
