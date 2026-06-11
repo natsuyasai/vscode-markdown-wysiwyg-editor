@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { MarkdownViewer } from "@/components/MarkdownViewer";
 
@@ -331,6 +332,125 @@ const x = 1;
 `;
       const { container } = render(<MarkdownViewer value={markdown} theme="dark" />);
       expect(container.querySelector(".hljs")).toBeInTheDocument();
+    });
+  });
+
+  describe("コードブロックの言語切替", () => {
+    it("言語指定コードブロックに言語セレクタが表示され、初期値がフェンス言語であること", () => {
+      const markdown = `
+\`\`\`javascript
+const x = 1;
+\`\`\`
+`;
+      render(<MarkdownViewer value={markdown} theme="light" />);
+
+      const select = screen.getByRole("combobox", { name: "コード言語" });
+      expect(select).toHaveValue("javascript");
+    });
+
+    it("言語未指定コードブロックはplaintextが初期値であること", () => {
+      const markdown = `
+\`\`\`
+plain text code
+\`\`\`
+`;
+      render(<MarkdownViewer value={markdown} theme="light" />);
+
+      const select = screen.getByRole("combobox", { name: "コード言語" });
+      expect(select).toHaveValue("plaintext");
+    });
+
+    it("言語を切り替えるとハイライトが変わること", async () => {
+      const user = userEvent.setup();
+      const markdown = `
+\`\`\`
+const x = 1;
+\`\`\`
+`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="light" />);
+
+      // 切替前はハイライトなし
+      expect(container.querySelector(".hljs-keyword")).not.toBeInTheDocument();
+
+      const select = screen.getByRole("combobox", { name: "コード言語" });
+      await user.selectOptions(select, "javascript");
+
+      const keywordSpan = container.querySelector(".hljs-keyword");
+      expect(keywordSpan).toBeInTheDocument();
+      expect(keywordSpan?.textContent).toBe("const");
+      expect(container.querySelector("pre code")?.className).toContain("language-javascript");
+    });
+
+    it("plaintextに切り替えるとハイライトが解除されること", async () => {
+      const user = userEvent.setup();
+      const markdown = `
+\`\`\`javascript
+const x = 1;
+\`\`\`
+`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="light" />);
+
+      expect(container.querySelector(".hljs-keyword")).toBeInTheDocument();
+
+      const select = screen.getByRole("combobox", { name: "コード言語" });
+      await user.selectOptions(select, "plaintext");
+
+      expect(container.querySelector(".hljs-keyword")).not.toBeInTheDocument();
+      expect(screen.getByText("const x = 1;")).toBeInTheDocument();
+    });
+
+    it("複数のコードブロックが独立して切り替わること", async () => {
+      const user = userEvent.setup();
+      const markdown = `
+\`\`\`
+const x = 1;
+\`\`\`
+
+\`\`\`
+def foo(): pass
+\`\`\`
+`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="light" />);
+
+      const selects = screen.getAllByRole("combobox", { name: "コード言語" });
+      expect(selects).toHaveLength(2);
+
+      await user.selectOptions(selects[0], "javascript");
+
+      const codeBlocks = container.querySelectorAll("pre code");
+      expect(codeBlocks[0].className).toContain("language-javascript");
+      expect(codeBlocks[1].className).not.toContain("language-javascript");
+      expect(codeBlocks[1].querySelector(".hljs-keyword")).not.toBeInTheDocument();
+    });
+
+    it("インラインコードには言語セレクタが表示されないこと", () => {
+      render(<MarkdownViewer value="Use `console.log()` for debugging." theme="light" />);
+
+      expect(screen.queryByRole("combobox", { name: "コード言語" })).not.toBeInTheDocument();
+    });
+
+    it("Mermaidコードブロックには言語セレクタが表示されないこと", () => {
+      const markdown = `
+\`\`\`mermaid
+graph TD; A-->B;
+\`\`\`
+`;
+      render(<MarkdownViewer value={markdown} theme="light" />);
+
+      expect(screen.queryByRole("combobox", { name: "コード言語" })).not.toBeInTheDocument();
+    });
+
+    it("PlantUMLコードブロックには言語セレクタが表示されないこと", () => {
+      const markdown = `
+\`\`\`plantuml
+@startuml
+Alice -> Bob: Hello
+@enduml
+\`\`\`
+`;
+      render(<MarkdownViewer value={markdown} theme="light" />);
+
+      expect(screen.queryByRole("combobox", { name: "コード言語" })).not.toBeInTheDocument();
     });
   });
 });

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within, waitFor } from "storybook/test";
+import { expect, within, waitFor, userEvent } from "storybook/test";
 import { MarkdownViewer } from "@/components/MarkdownViewer";
 
 const meta: Meta<typeof MarkdownViewer> = {
@@ -360,4 +360,64 @@ export const SyntaxHighlightDark: Story = {
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector(".hljs-keyword")).toBeInTheDocument();
   },
+};
+
+const codeLanguageSwitchMarkdown = `# コード言語切替
+
+## 言語未指定のコードブロック
+
+\`\`\`
+const value: number = 42;
+\`\`\`
+
+## TypeScript指定のコードブロック
+
+\`\`\`typescript
+interface User {
+  id: number;
+  name: string;
+}
+\`\`\`
+`;
+
+export const CodeLanguageSwitchLight: Story = {
+  render: () => <MarkdownViewerWrapper value={codeLanguageSwitchMarkdown} theme="light" />,
+  name: "コード言語切替 - Light",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // コードブロック毎に言語セレクタが描画されることを確認
+    await waitFor(async () => {
+      await expect(canvas.getAllByRole("combobox", { name: "コード言語" })).toHaveLength(2);
+    });
+
+    const selects = canvas.getAllByRole("combobox", { name: "コード言語" });
+
+    // 初期値の確認（言語未指定はplaintext、言語指定はフェンス言語）
+    await expect(selects[0]).toHaveValue("plaintext");
+    await expect(selects[1]).toHaveValue("typescript");
+
+    // 言語未指定ブロックはハイライトされていない
+    const firstCodeBlock = selects[0].closest(".markdown-viewer-code-block");
+    await expect(firstCodeBlock?.querySelector(".hljs-keyword")).not.toBeInTheDocument();
+
+    // typescriptに切り替えるとハイライトされる
+    await userEvent.selectOptions(selects[0], "typescript");
+    await waitFor(async () => {
+      await expect(firstCodeBlock?.querySelector(".hljs-keyword")).toBeInTheDocument();
+    });
+
+    // plaintextに切り替えるとハイライトが解除される
+    const secondCodeBlock = selects[1].closest(".markdown-viewer-code-block");
+    await expect(secondCodeBlock?.querySelector(".hljs-keyword")).toBeInTheDocument();
+    await userEvent.selectOptions(selects[1], "plaintext");
+    await waitFor(async () => {
+      await expect(secondCodeBlock?.querySelector(".hljs-keyword")).not.toBeInTheDocument();
+    });
+  },
+};
+
+export const CodeLanguageSwitchDark: Story = {
+  render: () => <MarkdownViewerWrapper value={codeLanguageSwitchMarkdown} theme="dark" />,
+  name: "コード言語切替 - Dark",
 };

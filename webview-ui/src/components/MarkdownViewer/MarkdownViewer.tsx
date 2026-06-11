@@ -1,8 +1,8 @@
 import { Message, PlantUmlResultMessage } from "@message/messageTypeToWebview";
+import type { Element, ElementContent } from "hast";
 import mermaid from "mermaid";
 import { FC, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Markdown, { Components, defaultUrlTransform } from "react-markdown";
-import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { SVG_COLOR_REPLACEMENTS, type ThemeKind } from "../../constants/themeColors";
@@ -12,6 +12,7 @@ import { initializeMermaid } from "../../utilities/mermaidInitializer";
 import { PlantUmlCallbackManager } from "../../utilities/plantUmlCallbackManager";
 import { vscode } from "../../utilities/vscode";
 import { OutlineSidebar } from "../OutlineSidebar";
+import { CodeBlock } from "./CodeBlock";
 import "./MarkdownViewer.css";
 
 // 許可するURLスキーム（デフォルト + VSCode拡張機能用）
@@ -149,6 +150,17 @@ function childrenToString(children: React.ReactNode): string {
   return "";
 }
 
+// hastノードからテキストを再帰的に抽出するヘルパー関数
+function hastToText(node: ElementContent): string {
+  if (node.type === "text") {
+    return node.value;
+  }
+  if (node.type === "element") {
+    return node.children.map(hastToText).join("");
+  }
+  return "";
+}
+
 export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri = "" }) => {
   // 見出し抽出
   const headings = useMemo(() => extractHeadings(value), [value]);
@@ -239,10 +251,20 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
       h4: createHeadingComponent(4),
       h5: createHeadingComponent(5),
       h6: createHeadingComponent(6),
-      code: ({ className, children, ...props }) => {
-        const match = /language-(\w+)/.exec(className ?? "");
+      pre: ({ node, children, ...props }) => {
+        const codeNode = node?.children.find(
+          (child): child is Element => child.type === "element" && child.tagName === "code"
+        );
+        if (!codeNode) {
+          return <pre {...props}>{children}</pre>;
+        }
+
+        const className = Array.isArray(codeNode.properties.className)
+          ? codeNode.properties.className.join(" ")
+          : "";
+        const match = /language-(\w+)/.exec(className);
         const language = match ? match[1] : "";
-        const codeContent = childrenToString(children).replace(/\n$/, "");
+        const codeContent = codeNode.children.map(hastToText).join("").replace(/\n$/, "");
 
         // Mermaidダイアグラム
         if (language === "mermaid") {
@@ -254,17 +276,8 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
           return <PlantUmlDiagram code={codeContent} />;
         }
 
-        // 通常のコードブロック
-        if (className) {
-          return (
-            <code className={className} {...props}>
-              {children}
-            </code>
-          );
-        }
-
-        // インラインコード
-        return <code {...props}>{children}</code>;
+        // 通常のコードブロック（言語セレクタ付き）
+        return <CodeBlock code={codeContent} initialLanguage={language} />;
       },
       img: ({ src, alt, ...props }) => {
         const resolvedSrc = resolveImagePath(src ?? "");
@@ -278,7 +291,7 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
       <div className="markdown-viewer" data-theme={theme} ref={contentRef}>
         <Markdown
           remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw, [rehypeHighlight, { detect: false, ignoreMissing: true }]]}
+          rehypePlugins={[rehypeRaw]}
           components={components}
           urlTransform={customUrlTransform}
         >
