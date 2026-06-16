@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canEdit } from "../../src/utilities/keyboard";
+import { canEdit } from "@/utilities/keyboard";
 
 function createKeyboardEvent(overrides: Partial<KeyboardEvent> & { key: string }): KeyboardEvent {
   return {

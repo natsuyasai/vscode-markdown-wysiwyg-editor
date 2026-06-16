@@ -10,9 +10,13 @@
     "outDir": "./dist/test"
   },
   "include": [
-    "./tests/**/*",
+    "./vitest.setup.ts",
     "__mocks__/**/*",
     "./src/**/*",
     "../src/message/**/*"
+  ],
+  "exclude": [
+    "src/**/*.stories.ts",
+    "src/**/*.stories.tsx"
   ]
 }

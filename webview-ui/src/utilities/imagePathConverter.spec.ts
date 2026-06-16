@@ -7,7 +7,7 @@ import {
   revertHtmlImagePathsFromWebviewUri,
   revertImagePathsFromWebviewUri,
   revertLinkPathsFromLocalFileUri,
-} from "../../src/utilities/imagePathConverter";
+} from "@/utilities/imagePathConverter";
 
 describe("revertImagePathsFromWebviewUri", () => {
   const baseUri = "vscode-webview://abc123/path/to/dir";

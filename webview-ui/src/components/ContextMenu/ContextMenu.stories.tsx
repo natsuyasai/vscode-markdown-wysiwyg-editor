@@ -316,7 +316,7 @@ export const WithNestedContent: Story = {
           cursor: "context-menu",
         }}
       >
-        <h3 style={{ margin: "0 0 10px 0" }}>ネストされたコンテンツ</h3>
+        <h1 style={{ margin: "0 0 10px 0" }}>ネストされたコンテンツ</h1>
         <p style={{ margin: "0 0 10px 0" }}>この領域のどこでも右クリックできます。</p>
         <button style={{ padding: "8px 16px", cursor: "pointer" }}>ボタンも含む</button>
       </div>

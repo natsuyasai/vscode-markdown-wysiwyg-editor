@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanupMarkdown, detectLineEnding } from "../../src/utilities/markdownCleanup";
+import { cleanupMarkdown, detectLineEnding } from "@/utilities/markdownCleanup";
 
 describe("detectLineEnding", () => {
   it("CRLFを含むテキストではCRLFを返す", () => {

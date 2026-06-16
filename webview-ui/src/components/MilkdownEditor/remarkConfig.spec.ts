@@ -2,7 +2,7 @@ import type { Root, Paragraph, Table, Code, ThematicBreak, List } from "mdast";
 import { gfmToMarkdown } from "mdast-util-gfm";
 import { toMarkdown } from "mdast-util-to-markdown";
 import { describe, it, expect } from "vitest";
-import { createRemarkStringifyOptions } from "../../src/components/MilkdownEditor/remarkConfig";
+import { createRemarkStringifyOptions } from "@/components/MilkdownEditor/remarkConfig";
 
 function paragraphWithBreak(before: string, after: string): Paragraph {
   return {

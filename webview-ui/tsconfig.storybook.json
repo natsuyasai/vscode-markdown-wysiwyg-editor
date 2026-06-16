@@ -12,9 +12,12 @@
   },
   "include": [
     ".storybook/**/*",
-    "stories/**/*",
     "./src/**/*",
     "./scss-modules.d.ts",
     "../src/message/**/*"
+  ],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx"
   ]
 }

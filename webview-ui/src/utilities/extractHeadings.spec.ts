@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractHeadings, generateHeadingId } from "../../src/utilities/extractHeadings";
+import { extractHeadings, generateHeadingId } from "@/utilities/extractHeadings";
 
 describe("generateHeadingId", () => {
   it("スペースをハイフンに変換し小文字化する", () => {
