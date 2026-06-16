@@ -122,7 +122,7 @@ const unittestConfig = {
 
 const storybookConfig = {
   name: "storybook",
-  files: ["**/*.stories.ts", "**/*.stories.tsx", ".storybook/**/*.ts", ".storybook/**/*.tsx"],
+  files: ["**/*.stories.ts", "**/*.stories.tsx", "**/*.testUtils.ts", "**/*.testUtils.tsx", ".storybook/**/*.ts", ".storybook/**/*.tsx"],
   languageOptions: {
     parser: typescriptParser,
     parserOptions: {
