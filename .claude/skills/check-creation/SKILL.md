@@ -26,6 +26,16 @@ npm run format
 npm run check-types
 npm run lint
 npm run test:unit
+npm run test:story
+```
+
+### 3. ビルド確認（最終）
+
+フォーマット・型・Lint・テストがすべて通った後、本番ビルドが成功することを確認する。
+
+```bash
+# ルートディレクトリ（webview-uiのビルドも含む本番パッケージング）
+npm run package
 ```
 
 ## エラー修正の優先順位

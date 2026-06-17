@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 開発フロー
+
+機能追加・修正・挙動変更などのアプリ開発は、**常に `feature-development-flow` スキルが定義するフローで進めること**。
+（要求明確化 → プラン策定 → 作業ブランチでのサブエージェント委譲＋TDD実装 → プロパティベーステスト → 完了処理）。各フェーズの詳細は対応スキル（`clarify-requirements` / `implementation-planning` / `subagent-tdd-implementation` / `property-based-testing` / `check-creation`）に従う。
+同様のミスの指摘が複数回発生した場合は、`record-recurring-mistakes` に従い本ファイルへ再発防止ルールを追記する。
+
 ## 基本ルール
 
 - 必ず日本語で回答してください。
