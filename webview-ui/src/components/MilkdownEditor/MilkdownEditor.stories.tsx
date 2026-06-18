@@ -441,17 +441,17 @@ export const HeadingsLight: Story = {
     // エディタが初期化され、見出しがレンダリングされるのを待つ
     await waitFor(
       async () => {
-        await expect(canvas.getByText("見出し1 (H1)")).toBeInTheDocument();
+        await expect(canvas.getByRole("heading", { name: "見出し1 (H1)" })).toBeInTheDocument();
       },
       { timeout: 10000 }
     );
 
     // 各レベルの見出しが表示されていること
-    await expect(canvas.getByText("見出し2 (H2)")).toBeInTheDocument();
-    await expect(canvas.getByText("見出し3 (H3)")).toBeInTheDocument();
-    await expect(canvas.getByText("見出し4 (H4)")).toBeInTheDocument();
-    await expect(canvas.getByText("見出し5 (H5)")).toBeInTheDocument();
-    await expect(canvas.getByText("見出し6 (H6)")).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "見出し2 (H2)" })).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "見出し3 (H3)" })).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "見出し4 (H4)" })).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "見出し5 (H5)" })).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "見出し6 (H6)" })).toBeInTheDocument();
 
     // 通常のテキストも表示されていること
     await expect(
@@ -489,15 +489,16 @@ export const OutlineInEditMode: Story = {
     await expect(hamburger).toBeInTheDocument();
 
     // サイドバー（nav[aria-label="Outline"]）は初期状態では閉じている
-    const sidebar = canvas.getByRole("navigation", { name: "Outline" });
-    await expect(sidebar.getAttribute("aria-hidden")).toBe("true");
+    const sidebar = canvasElement.querySelector<HTMLElement>('nav[aria-label="Outline"]');
+    await expect(sidebar).not.toBeNull();
+    await expect(sidebar!.getAttribute("aria-hidden")).toBe("true");
 
     // ハンバーガーボタンをクリックするとサイドバーが開く
     await userEvent.click(hamburger);
-    await expect(sidebar.getAttribute("aria-hidden")).toBe("false");
+    await expect(sidebar!.getAttribute("aria-hidden")).toBe("false");
 
     // サイドバー内に各見出しがリンクとして列挙されていること
-    const outline = within(sidebar);
+    const outline = within(sidebar!);
     await expect(outline.getByRole("link", { name: "見出し1 (H1)" })).toBeInTheDocument();
     await expect(outline.getByRole("link", { name: "見出し2 (H2)" })).toBeInTheDocument();
     await expect(outline.getByRole("link", { name: "見出し3 (H3)" })).toBeInTheDocument();
@@ -635,13 +636,15 @@ export const ComprehensiveLight: Story = {
     // エディタが初期化されるのを待つ
     await waitFor(
       async () => {
-        await expect(canvas.getByText("Markdown総合サンプル")).toBeInTheDocument();
+        await expect(
+          canvas.getByRole("heading", { name: "Markdown総合サンプル" })
+        ).toBeInTheDocument();
       },
       { timeout: 10000 }
     );
 
     // 各セクションの見出しが表示されていること
-    await expect(canvas.getByText("見出しとテキスト")).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "見出しとテキスト" })).toBeInTheDocument();
 
     // テキスト装飾が含まれていること
     const strongElements = canvasElement.querySelectorAll("strong");
