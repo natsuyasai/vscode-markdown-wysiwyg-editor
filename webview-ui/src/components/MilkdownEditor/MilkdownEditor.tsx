@@ -8,8 +8,10 @@ import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 import { remarkStringifyOptionsCtx } from "@milkdown/kit/core";
 import { replaceAll } from "@milkdown/utils";
-import { FC, useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useImageUpload } from "../../hooks/useImageUpload";
+import { extractHeadings } from "../../utilities/extractHeadings";
+import { OutlineSidebar } from "../OutlineSidebar";
 import {
   handlePlantUmlResult,
   renderMermaidPreview,
@@ -18,6 +20,7 @@ import {
 import { htmlBlockSchema, htmlSchema } from "./htmlPlugin";
 import "./MilkdownTheme.css";
 import { createRemarkStringifyOptions } from "./remarkConfig";
+import { scrollToHeadingInEditor } from "./scrollToHeading";
 
 /** CRLFをLFに正規化する（CodeMirror/ProseMirror間の位置ずれ防止） */
 function normalizeLineEndings(text: string): string {
@@ -49,6 +52,18 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   // refを最新の値で更新
   readonlyRef.current = readonly;
   themeRef.current = theme;
+
+  // markdownからリアルタイムに見出しを抽出
+  const headings = useMemo(() => extractHeadings(value), [value]);
+
+  // 最新のheadingsをrefで保持し、スクロールハンドラを安定させる
+  const headingsRef = useRef(headings);
+  headingsRef.current = headings;
+
+  // アウトラインの見出しクリック時、エディタ内の該当見出しへスムーズスクロールする
+  const handleHeadingClick = useCallback((id: string) => {
+    scrollToHeadingInEditor(divRef.current, headingsRef.current, id);
+  }, []);
 
   // 画像アップロード機能
   const { handleImageUploadResult, createUploadImage } = useImageUpload(baseUri);
@@ -195,13 +210,16 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   }, [readonly]);
 
   return (
-    <div
-      ref={divRef}
-      data-theme={theme}
-      style={{
-        width: "100%",
-        height: "100%",
-      }}
-    />
+    <div style={{ width: "100%", height: "100%" }}>
+      <div
+        ref={divRef}
+        data-theme={theme}
+        style={{
+          width: "100%",
+          height: "100%",
+        }}
+      />
+      <OutlineSidebar headings={headings} onHeadingClick={handleHeadingClick} theme={theme} />
+    </div>
   );
 };

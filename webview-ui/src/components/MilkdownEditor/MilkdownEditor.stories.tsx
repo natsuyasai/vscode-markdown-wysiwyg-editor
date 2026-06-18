@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { expect, within, waitFor } from "storybook/test";
+import { expect, userEvent, within, waitFor } from "storybook/test";
 import { MilkdownEditor } from "@/components/MilkdownEditor";
 
 const meta: Meta<typeof MilkdownEditor> = {
@@ -468,6 +468,43 @@ export const HeadingsLight: Story = {
 export const HeadingsDark: Story = {
   render: () => <MilkdownEditorWrapper initialValue={headingsMarkdown} theme="dark" />,
   name: "見出し (H1-H6) - Dark",
+};
+
+export const OutlineInEditMode: Story = {
+  render: () => <MilkdownEditorWrapper initialValue={headingsMarkdown} theme="light" />,
+  name: "アウトライン表示（編集モード） - Light",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // エディタが初期化され、見出しがレンダリングされるのを待つ
+    await waitFor(
+      async () => {
+        await expect(canvas.getAllByText("見出し1 (H1)").length).toBeGreaterThan(0);
+      },
+      { timeout: 10000 }
+    );
+
+    // アウトラインのハンバーガーボタンが存在すること
+    const hamburger = canvas.getByRole("button", { name: "Open outline" });
+    await expect(hamburger).toBeInTheDocument();
+
+    // サイドバー（nav[aria-label="Outline"]）は初期状態では閉じている
+    const sidebar = canvas.getByRole("navigation", { name: "Outline" });
+    await expect(sidebar.getAttribute("aria-hidden")).toBe("true");
+
+    // ハンバーガーボタンをクリックするとサイドバーが開く
+    await userEvent.click(hamburger);
+    await expect(sidebar.getAttribute("aria-hidden")).toBe("false");
+
+    // サイドバー内に各見出しがリンクとして列挙されていること
+    const outline = within(sidebar);
+    await expect(outline.getByRole("link", { name: "見出し1 (H1)" })).toBeInTheDocument();
+    await expect(outline.getByRole("link", { name: "見出し2 (H2)" })).toBeInTheDocument();
+    await expect(outline.getByRole("link", { name: "見出し3 (H3)" })).toBeInTheDocument();
+    await expect(outline.getByRole("link", { name: "見出し4 (H4)" })).toBeInTheDocument();
+    await expect(outline.getByRole("link", { name: "見出し5 (H5)" })).toBeInTheDocument();
+    await expect(outline.getByRole("link", { name: "見出し6 (H6)" })).toBeInTheDocument();
+  },
 };
 
 export const TextEmphasisLight: Story = {
