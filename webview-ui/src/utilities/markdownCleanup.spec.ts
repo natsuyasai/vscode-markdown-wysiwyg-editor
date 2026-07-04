@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanupMarkdown, detectLineEnding } from "@/utilities/markdownCleanup";
+import { cleanupMarkdown, convertLineEndings, detectLineEnding } from "@/utilities/markdownCleanup";
 
 describe("detectLineEnding", () => {
   it("CRLFを含むテキストではCRLFを返す", () => {
@@ -12,6 +12,50 @@ describe("detectLineEnding", () => {
 
   it("改行なしのテキストではLFを返す", () => {
     expect(detectLineEnding("No newline")).toBe("\n");
+  });
+});
+
+describe("convertLineEndings", () => {
+  it("LFをCRLFに変換する", () => {
+    expect(convertLineEndings("Line1\nLine2\nLine3", "\r\n")).toBe("Line1\r\nLine2\r\nLine3");
+  });
+
+  it("CRLFをLFに変換する", () => {
+    expect(convertLineEndings("Line1\r\nLine2\r\nLine3", "\n")).toBe("Line1\nLine2\nLine3");
+  });
+
+  it("混在した改行コードをLFに統一する", () => {
+    expect(convertLineEndings("Line1\r\nLine2\nLine3", "\n")).toBe("Line1\nLine2\nLine3");
+  });
+
+  it("混在した改行コードをCRLFに統一する", () => {
+    expect(convertLineEndings("Line1\r\nLine2\nLine3", "\r\n")).toBe("Line1\r\nLine2\r\nLine3");
+  });
+
+  it("すでにLFのテキストにLFを指定した場合は変化しない", () => {
+    expect(convertLineEndings("Line1\nLine2", "\n")).toBe("Line1\nLine2");
+  });
+
+  it("すでにCRLFのテキストにCRLFを指定した場合は変化しない", () => {
+    expect(convertLineEndings("Line1\r\nLine2", "\r\n")).toBe("Line1\r\nLine2");
+  });
+
+  it("空文字はそのまま返す", () => {
+    expect(convertLineEndings("", "\r\n")).toBe("");
+  });
+
+  it("改行なしのテキストはそのまま返す", () => {
+    expect(convertLineEndings("No newline", "\r\n")).toBe("No newline");
+  });
+
+  it("連続する改行も個数を維持したまま変換する", () => {
+    expect(convertLineEndings("A\n\n\nB", "\r\n")).toBe("A\r\n\r\n\r\nB");
+  });
+
+  it("cleanupMarkdownと異なり空行の圧縮などの正規化は行わない", () => {
+    expect(convertLineEndings("A<br>B\n\n\n\nC&nbsp;D\n\n", "\n")).toBe(
+      "A<br>B\n\n\n\nC&nbsp;D\n\n"
+    );
   });
 });
 

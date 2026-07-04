@@ -9,6 +9,14 @@ export function detectLineEnding(text: string): LineEnding {
 }
 
 /**
+ * テキスト中の改行コード（CRLFおよびLF）を指定の改行コードに統一する
+ * 空行の圧縮などの正規化は行わず、改行コードの変換のみを行う
+ */
+export function convertLineEndings(text: string, lineEnding: LineEnding): string {
+  return text.replace(/\r\n|\n/g, lineEnding);
+}
+
+/**
  * テーブル行かどうかを判定する
  * GFMテーブル行は `|` で始まるか、アライメント行（`| --- |` 等）であること
  */
@@ -63,7 +71,7 @@ function cleanupNonTableLine(line: string): string {
  */
 export function cleanupMarkdown(text: string, lineEnding: LineEnding): string {
   // まずCRLFをLFに統一（後続の処理をLFベースで行うため）
-  let normalized = text.replace(/\r\n/g, "\n");
+  let normalized = convertLineEndings(text, "\n");
 
   // 行ごとにテーブル行かどうかを判定し、適切なクリーンアップを適用
   const lines = normalized.split("\n");
@@ -75,15 +83,14 @@ export function cleanupMarkdown(text: string, lineEnding: LineEnding): string {
   });
   normalized = cleanedLines.join("\n");
 
-  return (
-    normalized
-      // バックスラッシュ改行をtrailing spaces（スペース2つ+改行）に変換
-      .replace(/\\\n/g, "  \n")
-      // 3つ以上の連続空行を2つの空行（1つの空行）に正規化
-      .replace(/\n{3,}/g, "\n\n")
-      // 末尾の余分な空行を1つの改行に正規化
-      .replace(/\n{2,}$/, "\n")
-      // 改行コードを元ファイルの形式に統一
-      .replace(/\n/g, lineEnding)
-  );
+  normalized = normalized
+    // バックスラッシュ改行をtrailing spaces（スペース2つ+改行）に変換
+    .replace(/\\\n/g, "  \n")
+    // 3つ以上の連続空行を2つの空行（1つの空行）に正規化
+    .replace(/\n{3,}/g, "\n\n")
+    // 末尾の余分な空行を1つの改行に正規化
+    .replace(/\n{2,}$/, "\n");
+
+  // 改行コードを元ファイルの形式に統一
+  return convertLineEndings(normalized, lineEnding);
 }
