@@ -715,3 +715,96 @@ export const HtmlTagsDark: Story = {
   render: () => <MilkdownEditorWrapper initialValue={htmlMarkdown} theme="dark" />,
   name: "HTMLタグ - Dark",
 };
+
+// ===== onContentLoadedコールバックのストーリー =====
+
+// `*` 箇条書きのMarkdown（シリアライズ時に `-` へ正規化されるため、ラウンドトリップ結果であることを検証できる）
+const asteriskBulletMarkdown = `* item1
+* item2`;
+
+// onContentLoadedの通知内容をDOMへ出力し、play functionから観測できるようにする検証用ラッパー
+function ContentLoadedWrapper({
+  initialValue,
+  theme,
+}: {
+  initialValue: string;
+  theme: "light" | "dark";
+}) {
+  const [value, setValue] = useState(initialValue);
+  const [loadedContent, setLoadedContent] = useState<string | null>(null);
+
+  return (
+    <div
+      data-theme={theme}
+      style={{ height: "100%", background: theme === "dark" ? "#1e1e1e" : "#ffffff" }}
+    >
+      <MilkdownEditor
+        value={value}
+        onChange={setValue}
+        theme={theme}
+        onContentLoaded={setLoadedContent}
+      />
+      <button type="button" onClick={() => setValue("* item3")}>
+        外部更新
+      </button>
+      <div data-testid="content-loaded-result" data-value-type={typeof loadedContent} hidden>
+        {loadedContent}
+      </div>
+    </div>
+  );
+}
+
+export const ContentLoadedOnInit: Story = {
+  render: () => <ContentLoadedWrapper initialValue={asteriskBulletMarkdown} theme="light" />,
+  name: "onContentLoaded - 初期化時に通知",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // エディタの初期化完了後にonContentLoadedが呼ばれるのを待つ
+    await waitFor(
+      async () => {
+        const result = canvas.getByTestId("content-loaded-result");
+        await expect(result.getAttribute("data-value-type")).toBe("string");
+        await expect(result.textContent ?? "").not.toBe("");
+      },
+      { timeout: 10000 }
+    );
+
+    // シリアライズ済みMarkdown（ラウンドトリップ結果）が通知されること
+    // `*` 箇条書きはremark-stringifyの設定（bullet: "-"）により `-` へ正規化される
+    const serialized = canvas.getByTestId("content-loaded-result").textContent ?? "";
+    await expect(serialized).toContain("- item1");
+    await expect(serialized).toContain("- item2");
+    await expect(serialized).not.toContain("* item1");
+  },
+};
+
+export const ContentLoadedOnExternalUpdate: Story = {
+  render: () => <ContentLoadedWrapper initialValue={asteriskBulletMarkdown} theme="light" />,
+  name: "onContentLoaded - 外部値変更時に通知",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // 初期化完了時の通知を待つ
+    await waitFor(
+      async () => {
+        const result = canvas.getByTestId("content-loaded-result");
+        await expect(result.textContent ?? "").toContain("- item1");
+      },
+      { timeout: 10000 }
+    );
+
+    // 外部から値を変更する（replaceAllが実行される）
+    await userEvent.click(canvas.getByRole("button", { name: "外部更新" }));
+
+    // replaceAll直後にもシリアライズ結果が通知されること
+    await waitFor(
+      async () => {
+        const serialized = canvas.getByTestId("content-loaded-result").textContent ?? "";
+        await expect(serialized).toContain("- item3");
+        await expect(serialized).not.toContain("- item1");
+      },
+      { timeout: 10000 }
+    );
+  },
+};
