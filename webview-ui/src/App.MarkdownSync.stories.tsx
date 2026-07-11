@@ -1,15 +1,40 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, spyOn, waitFor, within } from "storybook/test";
 import App from "@/App";
 import {
   SAMPLE_HEADING_TEXT,
   UPDATED_HEADING_TEXT,
   UPDATED_MARKDOWN,
+  pressCtrlS,
   sendInit,
   sendUpdate,
   toggleMode,
   waitForEditorReady,
 } from "@/App.testUtils";
+
+/**
+ * vscode.postMessage は acquireVsCodeApi が存在しない環境（Storybookのブラウザテスト含む）では
+ * console.log にフォールバックする（`webview-ui/src/utilities/vscode.ts` 参照）。
+ * これを利用し、console.log をスパイして save メッセージのpayloadを捕捉する。
+ */
+interface SaveMessage {
+  type: "save";
+  payload: string;
+}
+
+function isSaveMessage(value: unknown): value is SaveMessage {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { type?: unknown }).type === "save" &&
+    typeof (value as { payload?: unknown }).payload === "string"
+  );
+}
+
+/** console.log スパイの呼び出し引数から、最初に見つかった save メッセージを取得する */
+function findSaveMessage(calls: unknown[][]): SaveMessage | undefined {
+  return calls.map((call): unknown => call[0]).find(isSaveMessage);
+}
 
 /**
  * 拡張機能 → WebView の Markdown 同期に関する統合テスト。
@@ -63,5 +88,48 @@ export const InitAndUpdate: Story = {
 
     // 旧内容は表示されていない
     await expect(canvas.queryByText(SAMPLE_HEADING_TEXT)).toBeNull();
+  },
+};
+
+export const SaveWithoutEditKeepsOriginalUnchanged: Story = {
+  name: "編集せずCtrl+S保存するとoriginalが完全不変で保存される",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const logSpy = spyOn(console, "log");
+
+    try {
+      // 編集モードのエディタが初期化されるのを待つ
+      await waitForEditorReady(canvasElement);
+
+      // `*`箇条書きを含む文書をinitで送る（エディタ側は`-`へ正規化してラウンドトリップする）
+      const original = "# Heading\n\n* item1\n* item2\n* item3\n";
+      sendInit(original);
+
+      // ラウンドトリップ後の内容がエディタに反映される（＝baselineが確定する）まで待つ
+      await waitFor(
+        async () => {
+          await expect(canvas.getByText("item1")).toBeInTheDocument();
+          await expect(canvas.getByText("item3")).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+      // DOM反映後、Ctrl+Sハンドラの再購読（useEffect）が完了するのを待つ
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // 編集は一切行わずCtrl+S相当のショートカットを発火する
+      pressCtrlS();
+
+      // save メッセージ（console.logへフォールバック）のpayloadを捕捉する
+      await waitFor(async () => {
+        const saveMessage = findSaveMessage(logSpy.mock.calls);
+        await expect(saveMessage).toBeDefined();
+      });
+
+      const saveMessage = findSaveMessage(logSpy.mock.calls);
+      // 未編集（baseline===current）のため、originalがバイト単位で不変のまま保存される
+      await expect(saveMessage?.payload).toBe(original);
+    } finally {
+      logSpy.mockRestore();
+    }
   },
 };

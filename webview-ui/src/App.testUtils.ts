@@ -101,3 +101,10 @@ export async function waitForEditorReady(canvasElement: HTMLElement): Promise<vo
     { timeout: 10000 }
   );
 }
+
+/** Ctrl+S（保存ショートカット）をwindowへ発火する */
+export function pressCtrlS(): void {
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", { key: "s", ctrlKey: true, bubbles: true, cancelable: true })
+  );
+}
