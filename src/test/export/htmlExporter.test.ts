@@ -1,7 +1,55 @@
 import * as assert from "assert";
-import { renderMarkdownToHtml } from "../../export/htmlExporter";
+import { buildMermaidImageMap, renderMarkdownToHtml } from "../../export/htmlExporter";
 
 suite("htmlExporter", () => {
+  suite("buildMermaidImageMap", () => {
+    test("imagesがundefinedの場合、undefinedを返すこと", () => {
+      const result = buildMermaidImageMap(undefined);
+
+      assert.strictEqual(result, undefined);
+    });
+
+    test("imagesが空配列の場合、undefinedを返すこと", () => {
+      const result = buildMermaidImageMap([]);
+
+      assert.strictEqual(result, undefined);
+    });
+
+    test("複数要素がある場合、各codeのtrim済み文字列をキーとしたMapを返すこと", () => {
+      const result = buildMermaidImageMap([
+        { code: "graph TD;\nA-->B;", dataUri: "data:image/png;base64,AAAA" },
+        { code: "graph TD;\nC-->D;", dataUri: "data:image/png;base64,BBBB" },
+      ]);
+
+      assert.ok(result instanceof Map);
+      assert.strictEqual(result.size, 2);
+      assert.strictEqual(result.get("graph TD;\nA-->B;"), "data:image/png;base64,AAAA");
+      assert.strictEqual(result.get("graph TD;\nC-->D;"), "data:image/png;base64,BBBB");
+    });
+
+    test("前後に空白があるcodeの場合、trimされたキーで格納されること", () => {
+      const result = buildMermaidImageMap([
+        { code: "  \ngraph TD;\nA-->B;\n  ", dataUri: "data:image/png;base64,AAAA" },
+      ]);
+
+      assert.ok(result instanceof Map);
+      assert.strictEqual(result.size, 1);
+      assert.strictEqual(result.get("graph TD;\nA-->B;"), "data:image/png;base64,AAAA");
+      assert.strictEqual(result.get("  \ngraph TD;\nA-->B;\n  "), undefined);
+    });
+
+    test("同一trimキーが重複した場合、後勝ちで格納されること", () => {
+      const result = buildMermaidImageMap([
+        { code: "graph TD;\nA-->B;", dataUri: "data:image/png;base64,OLD" },
+        { code: "  graph TD;\nA-->B;  ", dataUri: "data:image/png;base64,NEW" },
+      ]);
+
+      assert.ok(result instanceof Map);
+      assert.strictEqual(result.size, 1);
+      assert.strictEqual(result.get("graph TD;\nA-->B;"), "data:image/png;base64,NEW");
+    });
+  });
+
   suite("renderMarkdownToHtml", () => {
     test("mermaidブロックでマップに一致する画像がある場合、img要素に置換されること", () => {
       const markdown = "```mermaid\ngraph TD;\nA-->B;\n```";

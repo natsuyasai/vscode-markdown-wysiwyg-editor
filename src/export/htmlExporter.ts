@@ -15,6 +15,24 @@ export interface ExportOptions {
 }
 
 /**
+ * WebViewから送られたMermaid画像配列を、コード（trim済み）をキーとした
+ * Mapへ変換する。imagesが未指定または空配列の場合はundefinedを返す。
+ * 同一trimキーが重複した場合は後勝ちで格納する。
+ */
+export function buildMermaidImageMap(
+  images?: Array<{ code: string; dataUri: string }>
+): Map<string, string> | undefined {
+  if (!images || images.length === 0) {
+    return undefined;
+  }
+  const map = new Map<string, string>();
+  for (const { code, dataUri } of images) {
+    map.set(code.trim(), dataUri);
+  }
+  return map;
+}
+
+/**
  * infostringの先頭トークン（言語指定）を抽出する。
  * marked.Renderer.prototype.code内部の抽出ロジックと同じ正規表現を使用する。
  */
