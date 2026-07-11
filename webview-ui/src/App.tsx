@@ -57,7 +57,7 @@ export default function App() {
   useLinkHandler();
 
   // エクスポート機能
-  const { contextMenuItems } = useExport();
+  const { contextMenuItems } = useExport({ markdown, themeSetting, theme });
 
   // グローバルキーボードショートカット
   useKeyboardShortcuts({

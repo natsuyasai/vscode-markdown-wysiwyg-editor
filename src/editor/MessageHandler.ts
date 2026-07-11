@@ -9,6 +9,8 @@ import {
   ThemeKind,
 } from "../message/messageTypeToWebview";
 import {
+  ExportBlogHtmlMessage,
+  ExportHtmlMessage,
   Message,
   OpenFileMessage,
   RenderPlantUmlMessage,
@@ -17,7 +19,7 @@ import {
 } from "../message/messageTypeToExtention";
 import { saveImageLocally } from "./imageStorage";
 import { getPlantUmlServer } from "../plantuml/plantUmlServer";
-import { exportToHtml, generateHtmlForPdf } from "../export/htmlExporter";
+import { buildMermaidImageMap, exportToHtml, generateHtmlForPdf } from "../export/htmlExporter";
 import { loadCustomCss } from "../util/customCssLoader";
 
 interface MessageHandlerContext {
@@ -85,11 +87,21 @@ export async function handleMessage(
       return;
 
     case "exportHtml":
-      await handleExportHtml(document, webviewPanel, context.getThemeKind);
+      await handleExportHtml(
+        message as ExportHtmlMessage,
+        document,
+        webviewPanel,
+        context.getThemeKind
+      );
       return;
 
     case "exportBlogHtml":
-      await handleExportBlogHtml(document, webviewPanel, context.getThemeKind);
+      await handleExportBlogHtml(
+        message as ExportBlogHtmlMessage,
+        document,
+        webviewPanel,
+        context.getThemeKind
+      );
       return;
 
     case "exportPdf":
@@ -158,6 +170,7 @@ function resolveExportTheme(getThemeKind: () => ThemeKind): ThemeKind {
 }
 
 async function handleExportHtml(
+  message: ExportHtmlMessage,
   document: vscode.TextDocument,
   webviewPanel: vscode.WebviewPanel,
   getThemeKind: () => ThemeKind
@@ -180,12 +193,14 @@ async function handleExportHtml(
       const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
       const cssPaths = config.get<string[]>("customCssPaths", []);
       const { css: customCss } = loadCustomCss(cssPaths);
+      const mermaidImages = buildMermaidImageMap(message.payload?.mermaidImages);
 
       exportToHtml(document.getText(), basePath, saveUri.fsPath, {
         theme,
         title,
         embedImages: true,
         customCss,
+        mermaidImages,
       });
 
       webviewPanel.webview.postMessage({
@@ -213,6 +228,7 @@ async function handleExportHtml(
 }
 
 async function handleExportBlogHtml(
+  message: ExportBlogHtmlMessage,
   document: vscode.TextDocument,
   webviewPanel: vscode.WebviewPanel,
   getThemeKind: () => ThemeKind
@@ -236,6 +252,7 @@ async function handleExportBlogHtml(
       const cssPaths = config.get<string[]>("customCssPaths", []);
       const { css: customCss } = loadCustomCss(cssPaths);
       const useShadowDom = config.get<boolean>("blogExport.useShadowDom", false);
+      const mermaidImages = buildMermaidImageMap(message.payload?.mermaidImages);
 
       exportToHtml(document.getText(), basePath, saveUri.fsPath, {
         theme,
@@ -244,6 +261,7 @@ async function handleExportBlogHtml(
         customCss,
         scopedCss: true,
         useShadowDom,
+        mermaidImages,
       });
 
       webviewPanel.webview.postMessage({

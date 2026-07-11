@@ -70,8 +70,16 @@ export interface OpenFileMessage extends Message {
   };
 }
 
+export interface MermaidImagePayload {
+  code: string;
+  dataUri: string;
+}
+
 export interface ExportHtmlMessage extends Message {
   type: "exportHtml";
+  payload?: {
+    mermaidImages: MermaidImagePayload[];
+  };
 }
 
 export interface ExportPdfMessage extends Message {
@@ -80,4 +88,7 @@ export interface ExportPdfMessage extends Message {
 
 export interface ExportBlogHtmlMessage extends Message {
   type: "exportBlogHtml";
+  payload?: {
+    mermaidImages: MermaidImagePayload[];
+  };
 }
