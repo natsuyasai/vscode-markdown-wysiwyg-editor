@@ -34,6 +34,7 @@ export default function App() {
     baseUriRef,
     documentDirRef,
     updateMarkdownFromExtension,
+    handleBaselineLoaded,
     handleApply,
     handleImageInserted,
   } = useMarkdownSync();
@@ -101,6 +102,7 @@ export default function App() {
                 theme={theme}
                 readonly={false}
                 baseUri={baseUriRef.current}
+                onContentLoaded={handleBaselineLoaded}
               />
             )}
           </main>
