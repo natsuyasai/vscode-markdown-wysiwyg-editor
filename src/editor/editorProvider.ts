@@ -158,7 +158,6 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     });
 
     // Receive message from the webview.
-    /* eslint-disable @typescript-eslint/no-misused-promises */
     const webviewReceiveMessageSubscription = webviewPanel.webview.onDidReceiveMessage(
       async (e: Message) => {
         await handleMessage(e, {
@@ -174,7 +173,6 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
         });
       }
     );
-    /* eslint-enable @typescript-eslint/no-misused-promises */
 
     // CSSファイルの変更を監視
     const cssWatchers: vscode.FileSystemWatcher[] = [];
@@ -264,13 +262,20 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     `;
   }
 
-  private updateTextDocument(document: vscode.TextDocument, csvText: string) {
-    const edit = new vscode.WorkspaceEdit();
+  private async updateTextDocument(
+    document: vscode.TextDocument,
+    markdownText: string
+  ): Promise<vscode.Uri | undefined> {
+    // 内容が同一なら編集適用をスキップして保存のみ行う
+    // （未変更時に無駄なダーティ化やonDidChangeTextDocumentのエコーを起こさないため）
+    if (markdownText === document.getText()) {
+      return vscode.workspace.save(document.uri);
+    }
 
-    // Just replace the entire document every time for this example extension.
-    // A more complete extension should compute minimal edits instead.
-    edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), csvText);
-    vscode.workspace.applyEdit(edit);
+    const edit = new vscode.WorkspaceEdit();
+    // ドキュメント全体を置き換える（最小限の差分計算は行わない）
+    edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), markdownText);
+    await vscode.workspace.applyEdit(edit);
 
     return vscode.workspace.save(document.uri);
   }

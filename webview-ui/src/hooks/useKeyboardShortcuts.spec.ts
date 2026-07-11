@@ -307,4 +307,37 @@ describe("useKeyboardShortcuts", () => {
 
     expect(mockHandler).not.toHaveBeenCalled();
   });
+
+  it("rerenderでshortcutsが差し替わっても、リスナーを張り替えずに最新のhandlerが呼ばれること", () => {
+    // リスナー再購読（addEventListener/removeEventListener）の呼び出し回数を監視する
+    const addSpy = vi.spyOn(document, "addEventListener");
+    const makeShortcuts = (handler: KeyboardShortcut["handler"]): KeyboardShortcut[] => [
+      { key: "s", ctrl: true, handler },
+    ];
+
+    const { rerender } = renderHook(
+      ({ shortcuts }: { shortcuts: KeyboardShortcut[] }) => useKeyboardShortcuts({ shortcuts }),
+      { initialProps: { shortcuts: makeShortcuts(mockHandler) } }
+    );
+
+    const keydownAddCallsAfterMount = addSpy.mock.calls.filter(
+      (call) => call[0] === "keydown"
+    ).length;
+
+    // 最新のhandler（mockHandler2）を持つ別配列に差し替えてrerender
+    rerender({ shortcuts: makeShortcuts(mockHandler2) });
+
+    // keydownリスナーは張り替えられない（effect依存配列にshortcutsを含めないため再購読が起きない）
+    const keydownAddCallsAfterRerender = addSpy.mock.calls.filter(
+      (call) => call[0] === "keydown"
+    ).length;
+    expect(keydownAddCallsAfterRerender).toBe(keydownAddCallsAfterMount);
+
+    // イベント発火時は再購読に依存せず、常にrefが指す最新のhandlerが呼ばれる
+    const event = new KeyboardEvent("keydown", { key: "s", ctrlKey: true });
+    document.dispatchEvent(event);
+
+    expect(mockHandler2).toHaveBeenCalledWith(event);
+    expect(mockHandler).not.toHaveBeenCalled();
+  });
 });

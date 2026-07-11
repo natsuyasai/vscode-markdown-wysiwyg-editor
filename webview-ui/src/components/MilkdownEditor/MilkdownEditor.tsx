@@ -33,6 +33,8 @@ interface MilkdownEditorProps {
   theme: "light" | "dark";
   readonly?: boolean;
   baseUri?: string;
+  /** エディタがコンテンツを読み込んだ直後に、シリアライズ結果（ラウンドトリップ後のMarkdown）を通知する */
+  onContentLoaded?: (serialized: string) => void;
 }
 
 export const MilkdownEditor: FC<MilkdownEditorProps> = ({
@@ -41,6 +43,7 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   theme,
   readonly = false,
   baseUri = "",
+  onContentLoaded,
 }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
@@ -48,10 +51,12 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   const lastKnownValueRef = useRef(normalizeLineEndings(value));
   const readonlyRef = useRef(readonly);
   const themeRef = useRef(theme);
+  const onContentLoadedRef = useRef(onContentLoaded);
 
   // refを最新の値で更新
   readonlyRef.current = readonly;
   themeRef.current = theme;
+  onContentLoadedRef.current = onContentLoaded;
 
   // markdownからリアルタイムに見出しを抽出
   const headings = useMemo(() => extractHeadings(value), [value]);
@@ -158,6 +163,8 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
         isEditorReadyRef.current = true;
         // 初期化後にreadonlyを適用
         crepe.setReadonly(readonlyRef.current);
+        // 初期コンテンツのシリアライズ結果（ラウンドトリップ後のMarkdown）を通知
+        onContentLoadedRef.current?.(normalizeLineEndings(crepe.getMarkdown()));
       }
     };
 
@@ -197,6 +204,8 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
       // flush=true でカーソル位置をリセットして安全に置換
       crepeRef.current.editor.action(replaceAll(normalizedValue, true));
       lastKnownValueRef.current = normalizedValue;
+      // 置換後のシリアライズ結果（ラウンドトリップ後のMarkdown）を通知
+      onContentLoadedRef.current?.(normalizeLineEndings(crepeRef.current.getMarkdown()));
     } catch (error) {
       console.error("Failed to update editor content:", error);
     }

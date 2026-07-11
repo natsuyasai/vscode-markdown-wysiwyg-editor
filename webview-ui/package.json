@@ -28,6 +28,7 @@
     "@vscode/codicons": "^0.0.45",
     "highlight.js": "^11.11.1",
     "mermaid": "^11.13.0",
+    "node-diff3": "^3.2.1",
     "npm-check-updates": "^19.6.5",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
