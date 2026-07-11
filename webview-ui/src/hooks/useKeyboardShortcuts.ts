@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export interface KeyboardShortcut {
   key: string;
@@ -23,8 +23,13 @@ export function useKeyboardShortcuts({
   element = null,
   enabled = true,
 }: UseKeyboardShortcutsOptions): void {
+  // 最新のshortcutsをrefで保持し、リスナーを張り替えずに最新のhandlerクロージャを参照する
+  // （毎レンダーの再購読をやめ、再購読前に古いクロージャが登録される一瞬の窓をなくす）
+  const shortcutsRef = useRef(shortcuts);
+  shortcutsRef.current = shortcuts;
+
   useEffect(() => {
-    if (!enabled || shortcuts.length === 0) {
+    if (!enabled) {
       return;
     }
 
@@ -34,7 +39,7 @@ export function useKeyboardShortcuts({
       if (!(event instanceof KeyboardEvent)) {
         return;
       }
-      for (const shortcut of shortcuts) {
+      for (const shortcut of shortcutsRef.current) {
         if (isMatchingShortcut(event, shortcut)) {
           // 条件チェック
           if (shortcut.condition && !shortcut.condition()) {
@@ -61,7 +66,7 @@ export function useKeyboardShortcuts({
     return () => {
       targetElement.removeEventListener("keydown", handleKeyDown);
     };
-  }, [shortcuts, element, enabled]);
+  }, [element, enabled]);
 }
 
 function isMatchingShortcut(event: KeyboardEvent, shortcut: KeyboardShortcut): boolean {
