@@ -215,7 +215,7 @@ describe("useExtensionMessages", () => {
             data: {
               type: "updateSettings",
               payload: {
-                themeSetting: "dark" as ThemeSetting,
+                themeSetting: "dark",
                 customCss: "",
               },
             },
@@ -250,7 +250,7 @@ describe("useExtensionMessages", () => {
             data: {
               type: "updateSettings",
               payload: {
-                themeSetting: "auto" as ThemeSetting,
+                themeSetting: "auto",
                 customCss: "",
               },
             },
