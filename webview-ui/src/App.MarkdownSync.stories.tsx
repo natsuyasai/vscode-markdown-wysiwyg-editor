@@ -101,15 +101,51 @@ export const SaveWithoutEditKeepsOriginalUnchanged: Story = {
       // 編集モードのエディタが初期化されるのを待つ
       await waitForEditorReady(canvasElement);
 
-      // `*`箇条書きを含む文書をinitで送る（エディタ側は`-`へ正規化してラウンドトリップする）
-      const original = "# Heading\n\n* item1\n* item2\n* item3\n";
+      // 見出し階層・箇条書き(`*`)・番号付きリスト・テーブル・フェンス付きコードブロック・引用を
+      // 含む複雑な文書をinitで送る。Milkdownはラウンドトリップ時に`*`を`-`へ正規化するなど
+      // 各要素を整形しうるが、未編集(baseline===current)なら3-wayマージがoriginalを完全不変で返す。
+      const original = [
+        "# メインタイトル",
+        "",
+        "## 概要セクション",
+        "",
+        "これは3-wayマージ検証用の複雑な文書です。",
+        "",
+        "### 箇条書き",
+        "",
+        "* alpha",
+        "* beta",
+        "* gamma",
+        "",
+        "### 手順",
+        "",
+        "1. 手順一",
+        "2. 手順二",
+        "3. 手順三",
+        "",
+        "## データ表",
+        "",
+        "| 名前 | 役割 |",
+        "| --- | --- |",
+        "| foo | 管理者 |",
+        "| bar | 利用者 |",
+        "",
+        "## コード例",
+        "",
+        "```ts",
+        "export const answer = 42;",
+        "```",
+        "",
+        "> これは補足のための引用文です。",
+        "",
+      ].join("\n");
       sendInit(original);
 
       // ラウンドトリップ後の内容がエディタに反映される（＝baselineが確定する）まで待つ
       await waitFor(
         async () => {
-          await expect(canvas.getByText("item1")).toBeInTheDocument();
-          await expect(canvas.getByText("item3")).toBeInTheDocument();
+          await expect(canvas.getByText("alpha")).toBeInTheDocument();
+          await expect(canvas.getByText("gamma")).toBeInTheDocument();
         },
         { timeout: 5000 }
       );
