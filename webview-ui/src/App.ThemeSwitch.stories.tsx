@@ -1,7 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, waitFor } from "storybook/test";
 import App from "@/App";
-import { getAppRootTheme, selectTheme, sendUpdateTheme, waitForEditorReady } from "@/App.testUtils";
+import {
+  SAMPLE_MARKDOWN,
+  getAppRootTheme,
+  selectTheme,
+  sendInit,
+  sendUpdateTheme,
+  waitForEditorReady,
+} from "@/App.testUtils";
 
 /**
  * テーマ切り替えに関する統合テスト。
@@ -30,6 +37,10 @@ export const ViaToolbar: Story = {
   play: async ({ canvasElement }) => {
     await waitForEditorReady(canvasElement);
 
+    // 見出し階層・リスト・テーブル・コードブロック・引用・リンク・画像を含む複雑な文書を
+    // 読み込ませた状態でも、ツールバーからのテーマ切替が成立することを確認する
+    sendInit(SAMPLE_MARKDOWN);
+
     // 初期は light
     await expect(getAppRootTheme(canvasElement)).toBe("light");
 
@@ -51,6 +62,10 @@ export const ViaExtensionMessage: Story = {
   name: "updateThemeメッセージにauto設定が追従",
   play: async ({ canvasElement }) => {
     await waitForEditorReady(canvasElement);
+
+    // 見出し階層・リスト・テーブル・コードブロック・引用・リンク・画像を含む複雑な文書を
+    // 読み込ませた状態でも、updateThemeメッセージへの追従が成立することを確認する
+    sendInit(SAMPLE_MARKDOWN);
 
     // 初期のテーマ設定は auto のため VSCode テーマに追従する
     await expect(getAppRootTheme(canvasElement)).toBe("light");
