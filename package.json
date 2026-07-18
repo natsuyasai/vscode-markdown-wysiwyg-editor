@@ -103,21 +103,21 @@
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
-    "@types/node": "^24.10.11",
+    "@types/node": "^26.1.1",
     "@types/pako": "^2.0.4",
     "@types/vscode": "^1.99.0",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2",
-    "esbuild": "^0.27.1",
-    "eslint": "^9.39.1",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.7.4",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.48.1"
   },
   "dependencies": {
     "marked": "^18.0.6",
-    "pako": "^2.1.0"
+    "pako": "^3.0.1"
   }
 }
