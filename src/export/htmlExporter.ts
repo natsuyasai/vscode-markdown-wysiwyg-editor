@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { marked } from "marked";
+import { Marked, type Tokens } from "marked";
 import { embedImagesInMarkdown, embedImagesInHtml } from "./imageEmbedder";
 import { generateHtmlDocument, generateScopedHtmlDocument } from "./htmlTemplate";
 
@@ -34,7 +34,7 @@ export function buildMermaidImageMap(
 
 /**
  * infostringの先頭トークン（言語指定）を抽出する。
- * marked.Renderer.prototype.code内部の抽出ロジックと同じ正規表現を使用する。
+ * marked既定のコードレンダラと同じ正規表現で先頭の言語トークンを取り出す。
  */
 function extractLang(infostring: string | undefined): string {
   return (infostring || "").match(/\S*/)?.[0] ?? "";
@@ -51,27 +51,23 @@ export function renderMarkdownToHtml(
   markdown: string,
   mermaidImages?: Map<string, string>
 ): string {
-  const renderer = new marked.Renderer();
-  renderer.code = function (
-    code: string,
-    infostring: string | undefined,
-    escaped: boolean
-  ): string {
-    const lang = extractLang(infostring);
-    if (lang.toLowerCase() === "mermaid" && mermaidImages) {
-      const dataUri = mermaidImages.get(code.trim());
-      if (dataUri) {
-        return `<img src="${dataUri}" alt="mermaid diagram" style="display:block;max-width:100%;" />\n`;
-      }
-    }
-    return marked.Renderer.prototype.code.call(this, code, infostring, escaped) as string;
-  };
-
-  return marked.parse(markdown, {
-    gfm: true,
-    breaks: false,
-    renderer,
+  const instance = new Marked({ gfm: true, breaks: false });
+  instance.use({
+    renderer: {
+      code({ text, lang }: Tokens.Code): string | false {
+        const language = extractLang(lang);
+        if (language.toLowerCase() === "mermaid" && mermaidImages) {
+          const dataUri = mermaidImages.get(text.trim());
+          if (dataUri) {
+            return `<img src="${dataUri}" alt="mermaid diagram" style="display:block;max-width:100%;" />\n`;
+          }
+        }
+        return false;
+      },
+    },
   });
+
+  return instance.parse(markdown, { async: false });
 }
 
 export function exportToHtml(
@@ -129,9 +125,8 @@ export function generateHtmlForPdf(
   }
 
   // Convert Markdown to HTML using marked
-  const htmlContent = marked.parse(processedMarkdown, {
-    gfm: true,
-    breaks: false,
+  const htmlContent = new Marked({ gfm: true, breaks: false }).parse(processedMarkdown, {
+    async: false,
   });
 
   // Embed images in HTML (for HTML img tags in markdown)
