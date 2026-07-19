@@ -152,6 +152,86 @@ describe("useLinkHandler", () => {
     expect(scrollIntoViewMock).toHaveBeenCalled();
   });
 
+  it("パーセントエンコードされた日本語アンカーで、対応するIDの要素へスクロールすること", () => {
+    // 日本語IDを持つ見出し要素を作成
+    const targetElement = document.createElement("h2");
+    targetElement.id = "日本語見出し";
+    targetElement.textContent = "日本語見出し";
+    container.appendChild(targetElement);
+
+    // パーセントエンコードされたhrefを持つリンクを作成
+    const link = document.createElement("a");
+    link.href = "#" + encodeURIComponent("日本語見出し");
+    link.textContent = "見出しへ";
+    container.appendChild(link);
+
+    const scrollIntoViewMock = vi.fn();
+    targetElement.scrollIntoView = scrollIntoViewMock;
+
+    renderHook(() => useLinkHandler());
+
+    act(() => {
+      link.click();
+    });
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+
+  it("パーセントエンコードされた日本語アンカーで、IDが無くても見出しテキストで検索されること", () => {
+    // IDを持たない日本語見出し要素を作成
+    const targetElement = document.createElement("h2");
+    targetElement.textContent = "日本語見出し";
+    container.appendChild(targetElement);
+
+    // パーセントエンコードされたhrefを持つリンクを作成
+    const link = document.createElement("a");
+    link.href = "#" + encodeURIComponent("日本語見出し");
+    link.textContent = "見出しへ";
+    container.appendChild(link);
+
+    const scrollIntoViewMock = vi.fn();
+    targetElement.scrollIntoView = scrollIntoViewMock;
+
+    renderHook(() => useLinkHandler());
+
+    act(() => {
+      link.click();
+    });
+
+    expect(scrollIntoViewMock).toHaveBeenCalled();
+  });
+
+  it("不正なパーセントエンコーディングのアンカーでもエラーがスローされないこと", () => {
+    // 見出し要素を作成（マッチしない）
+    const targetElement = document.createElement("h2");
+    targetElement.id = "test-section";
+    targetElement.textContent = "Test Section";
+    container.appendChild(targetElement);
+
+    // 壊れたパーセントエンコーディングのhrefを持つリンクを作成
+    const link = document.createElement("a");
+    link.setAttribute("href", "#%");
+    link.textContent = "壊れたリンク";
+    container.appendChild(link);
+
+    const scrollIntoViewMock = vi.fn();
+    targetElement.scrollIntoView = scrollIntoViewMock;
+
+    renderHook(() => useLinkHandler());
+
+    expect(() => {
+      act(() => {
+        link.click();
+      });
+    }).not.toThrow();
+
+    // マッチしないためスクロールは行われない
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+  });
+
   it("hookがアンマウントされたときにイベントリスナーが削除されること", async () => {
     const { vscode } = await import("@/utilities/vscode");
 
