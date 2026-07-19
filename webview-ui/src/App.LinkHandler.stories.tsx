@@ -102,6 +102,66 @@ export const AnchorLinkScrollsToHeading: Story = {
   },
 };
 
+export const AnchorLinkScrollsToJapaneseHeading: Story = {
+  name: "日本語アンカーリンククリックで対象見出しへスクロールする",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // scrollIntoView が呼ばれた要素のidを記録する(実ブラウザでのスクロール副作用を抑止する)。
+    // Storybookのinstrumenterが getByRole の戻り値をProxyでラップしDOMノードの同一性比較が
+    // 成立しないため、要素そのものではなくidで対象を検証する。
+    const scrolledIds: string[] = [];
+    const scrollSpy = spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (
+      this: Element
+    ) {
+      scrolledIds.push((this as HTMLElement).id);
+    });
+
+    try {
+      // 読み取りモードに切り替えて描画を決定的にする(App.MarkdownSync.stories.tsxと同様のパターン)
+      await waitForEditorReady(canvasElement);
+      await toggleMode(canvasElement);
+
+      // 見出し `## 本文セクション`(generateHeadingId により id="本文セクション"、
+      // ひらがな・カタカナ・漢字は保持されスペースがないためテキストがそのままidになる)と、
+      // それを指す日本語アンカーリンクを含む文書。react-markdown はアンカーの href を
+      // パーセントエンコードするが、useLinkHandler は decodeURIComponent でデコードしてから
+      // 正規化・id照合するため、非ASCII見出しでもスクロールが働く。
+      const markdown = [
+        "# LinkHandler結合テスト",
+        "",
+        "冒頭から本文へ移動できるようにしています。",
+        "",
+        "[本文へ](#本文セクション)",
+        "",
+        "## 本文セクション",
+        "",
+        "これは本文セクションの内容です。",
+        "",
+      ].join("\n");
+      sendInit(markdown);
+
+      // 読み取りモードで見出し(id="本文セクション")とアンカーリンクが描画されるまで待つ
+      await waitFor(
+        async () => {
+          await expect(canvas.getByRole("heading", { name: "本文セクション" })).toBeInTheDocument();
+          await expect(canvas.getByRole("link", { name: "本文へ" })).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+
+      // アンカーリンクをクリックすると、VSCodeとの通信なしに対象見出し(id="本文セクション")へスクロールする
+      await userEvent.click(canvas.getByRole("link", { name: "本文へ" }));
+
+      await waitFor(async () => {
+        await expect(scrolledIds).toContain("本文セクション");
+      });
+    } finally {
+      scrollSpy.mockRestore();
+    }
+  },
+};
+
 export const CustomSchemeLinkSendsOpenFileMessage: Story = {
   name: "カスタムスキームリンククリックでopenFileメッセージを送信する",
   play: async ({ canvasElement }) => {
