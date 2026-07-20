@@ -59,8 +59,18 @@ export function useLinkHandler(): void {
  * 指定されたIDまたはテキストを持つ見出しにスクロールする
  */
 function scrollToHeading(targetId: string): void {
+  // react-markdownは非ASCII文字を含むhrefをパーセントエンコードするため、
+  // 見出しのidやテキストと比較できるようデコードする。
+  // 不正なパーセントエンコーディングの場合は元の値のまま処理する。
+  let decodedId = targetId;
+  try {
+    decodedId = decodeURIComponent(targetId);
+  } catch {
+    decodedId = targetId;
+  }
+
   // IDを正規化（小文字、空白をハイフンに変換）
-  const normalizedId = targetId.toLowerCase().replace(/\s+/g, "-");
+  const normalizedId = decodedId.toLowerCase().replace(/\s+/g, "-");
 
   // 1. 完全一致でIDを検索
   let targetElement = document.getElementById(normalizedId);
@@ -72,7 +82,7 @@ function scrollToHeading(targetId: string): void {
       const headingText = heading.textContent?.toLowerCase().replace(/\s+/g, "-") ?? "";
 
       // テキスト内容を正規化したものが一致するか
-      if (headingText === targetId) {
+      if (headingText === normalizedId) {
         targetElement = heading as HTMLElement;
         break;
       }

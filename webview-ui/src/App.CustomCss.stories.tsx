@@ -1,7 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, waitFor } from "storybook/test";
 import App from "@/App";
-import { getAppRootTheme, sendUpdateSettings, waitForEditorReady } from "@/App.testUtils";
+import {
+  SAMPLE_MARKDOWN,
+  getAppRootTheme,
+  sendInit,
+  sendUpdateSettings,
+  waitForEditorReady,
+} from "@/App.testUtils";
 
 /**
  * 設定更新メッセージ(updateSettings)に関する統合テスト。
@@ -31,6 +37,10 @@ export const ApplyCustomCss: Story = {
   name: "updateSettingsでカスタムCSSとテーマを反映",
   play: async ({ canvasElement }) => {
     await waitForEditorReady(canvasElement);
+
+    // 見出し階層・リスト・テーブル・コードブロック・引用・リンク・画像を含む複雑な文書を
+    // 読み込ませた状態でも、カスタムCSS適用とテーマ反映が成立することを確認する
+    sendInit(SAMPLE_MARKDOWN);
 
     // 設定更新メッセージ（テーマ=dark, カスタムCSSあり）を受信
     sendUpdateSettings("dark", CUSTOM_CSS);

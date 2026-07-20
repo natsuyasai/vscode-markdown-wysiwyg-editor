@@ -1,5 +1,5 @@
 import type { ThemeSetting } from "@message/messageTypeToExtention";
-import type { Message, ThemeKind } from "@message/messageTypeToWebview";
+import type { Message, SaveImageResultMessage, ThemeKind } from "@message/messageTypeToWebview";
 import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
 
 /**
@@ -42,15 +42,100 @@ export function sendDocumentInfo(dirPath: string, baseUri: string): void {
   emitExtensionMessage({ type: "documentInfo", payload: { dirPath, baseUri } });
 }
 
+/** 画像保存結果メッセージ（拡張機能側での画像保存完了通知） */
+export function sendSaveImageResult(payload: SaveImageResultMessage["payload"]): void {
+  emitExtensionMessage({ type: "saveImageResult", payload });
+}
+
 // ===== サンプルMarkdown =====
 
 export const SAMPLE_HEADING_TEXT = "統合テスト見出し";
 export const SAMPLE_BODY_TEXT = "これは統合テスト用の本文です。";
-export const SAMPLE_MARKDOWN = `# ${SAMPLE_HEADING_TEXT}\n\n${SAMPLE_BODY_TEXT}\n`;
+export const SAMPLE_MARKDOWN = `# ${SAMPLE_HEADING_TEXT}
+
+${SAMPLE_BODY_TEXT}
+
+## 導入セクション
+
+このドキュメントはWYSIWYGエディタの結合テスト用サンプルです。
+
+### 背景
+
+- 要素をひととおり含む
+- 表示崩れを検知する
+- Milkdownとreact-markdownの双方で描画する
+
+### 手順
+
+1. エディタを開く
+2. 内容を確認する
+3. モードを切り替える
+
+## データ一覧
+
+| 項目 | 値 |
+| --- | --- |
+| 種類 | サンプル |
+| 状態 | 初期 |
+
+## コード例
+
+\`\`\`ts
+export function greet(name: string): string {
+  return \`Hello, \${name}\`;
+}
+\`\`\`
+
+> これは補足のための引用文です。
+
+詳しくは[公式ドキュメント](https://example.com/docs)を参照してください。
+
+![サンプル画像](sample.png)
+`;
 
 export const UPDATED_HEADING_TEXT = "更新後の見出し";
 export const UPDATED_BODY_TEXT = "更新後の本文です。";
-export const UPDATED_MARKDOWN = `# ${UPDATED_HEADING_TEXT}\n\n${UPDATED_BODY_TEXT}\n`;
+export const UPDATED_MARKDOWN = `# ${UPDATED_HEADING_TEXT}
+
+${UPDATED_BODY_TEXT}
+
+## 更新後の概要
+
+更新後のドキュメントも各種要素を含みます。
+
+### 変更点
+
+- 見出しを差し替えた
+- 本文を更新した
+- 一覧の内容を変えた
+
+### 確認事項
+
+1. 旧見出しが消えている
+2. 新しい内容が表示される
+3. レイアウトが崩れない
+
+## 更新データ一覧
+
+| 項目 | 値 |
+| --- | --- |
+| 種類 | 更新版 |
+| 状態 | 反映済み |
+
+## 更新後コード例
+
+\`\`\`js
+function farewell(name) {
+  return \`Bye, \${name}\`;
+}
+\`\`\`
+
+> これは更新後の引用文です。
+
+続きは[更新ページ](https://example.com/updated)を確認してください。
+
+![更新後画像](updated.png)
+`;
 
 // ===== ツールバー操作ヘルパー =====
 

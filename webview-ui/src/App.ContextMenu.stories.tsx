@@ -90,13 +90,29 @@ export const ExportHtmlWithMermaidRendersPngImage: Story = {
       await waitForEditorReady(canvasElement);
       await toggleMode(canvasElement);
 
-      // シンプルなMermaidフローチャートを含むMarkdownを送信する
+      // Mermaid図を含む現実的なドキュメント（見出し階層・段落・リストで囲む）を送信する。
+      // Mermaidコードブロックの中身は buildMermaidImageMap のキー照合に影響するため変更しない。
       const markdownWithMermaid = [
         "# Mermaid Export",
+        "",
+        "この文書はエクスポート機能の動作確認用のサンプルです。",
+        "",
+        "## 概要",
+        "",
+        "以下の図はシステムの処理フローを表しています。",
         "",
         "```mermaid",
         "graph TD;A-->B;",
         "```",
+        "",
+        "## 補足",
+        "",
+        "図中の各ノードは次を表します。",
+        "",
+        "- A: 処理の開始",
+        "- B: 処理の完了",
+        "",
+        "詳細は別紙を参照してください。",
         "",
       ].join("\n");
       sendInit(markdownWithMermaid);
