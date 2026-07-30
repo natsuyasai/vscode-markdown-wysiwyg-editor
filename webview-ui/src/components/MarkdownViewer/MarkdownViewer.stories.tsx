@@ -144,6 +144,29 @@ function hello() {
 *以上がMarkdownの主要機能です。*
 `;
 
+// YAMLフロントマターを含むMarkdown（SKILLファイル風）
+const frontmatterMarkdown = `---
+name: code-review
+description: コード変更をレビューし、改善提案を行うスキル
+allowed-tools:
+  - Read
+  - Grep
+  - Bash
+version: 1.2
+---
+
+# コードレビュー
+
+このドキュメントはフロントマター付きのMarkdownサンプルです。
+
+## 使い方
+
+以下の手順でレビューを実施します。
+
+1. 差分を確認する
+2. 問題点を洗い出す
+`;
+
 // MarkdownViewerラッパー
 function MarkdownViewerWrapper({ value, theme }: { value: string; theme: "light" | "dark" }) {
   return (
@@ -420,4 +443,41 @@ export const CodeLanguageSwitchLight: Story = {
 export const CodeLanguageSwitchDark: Story = {
   render: () => <MarkdownViewerWrapper value={codeLanguageSwitchMarkdown} theme="dark" />,
   name: "コード言語切替 - Dark",
+};
+
+export const FrontmatterLight: Story = {
+  render: () => <MarkdownViewerWrapper value={frontmatterMarkdown} theme="light" />,
+  name: "YAMLフロントマター - Light",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // フロントマターテーブルが描画されていることを確認
+    await waitFor(async () => {
+      await expect(canvas.getByRole("table")).toBeInTheDocument();
+    });
+
+    await expect(canvas.getByText("name")).toBeInTheDocument();
+    await expect(canvas.getByText("code-review")).toBeInTheDocument();
+    await expect(canvas.getByText("description")).toBeInTheDocument();
+    await expect(
+      canvas.getByText("コード変更をレビューし、改善提案を行うスキル")
+    ).toBeInTheDocument();
+    await expect(canvas.getByText("allowed-tools")).toBeInTheDocument();
+    await expect(canvas.getByText("Read, Grep, Bash")).toBeInTheDocument();
+    await expect(canvas.getByText("version")).toBeInTheDocument();
+    await expect(canvas.getByText("1.2")).toBeInTheDocument();
+
+    // フロントマター以降の本文が通常通りレンダリングされていることを確認
+    await expect(
+      canvas.getByRole("heading", { name: "コードレビュー", level: 1 })
+    ).toBeInTheDocument();
+
+    // フロントマターの生YAMLテキストが本文として重複表示されていないことを確認
+    await expect(canvas.queryByText("name: code-review")).not.toBeInTheDocument();
+  },
+};
+
+export const FrontmatterDark: Story = {
+  render: () => <MarkdownViewerWrapper value={frontmatterMarkdown} theme="dark" />,
+  name: "YAMLフロントマター - Dark",
 };

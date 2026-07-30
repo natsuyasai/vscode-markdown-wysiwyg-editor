@@ -453,4 +453,66 @@ Alice -> Bob: Hello
       expect(screen.queryByRole("combobox", { name: "コード言語" })).not.toBeInTheDocument();
     });
   });
+
+  describe("YAMLフロントマター", () => {
+    it("フラットなkey-valueのフロントマターを持つMarkdownでテーブルが描画され、キーと値がセルとして表示されること", () => {
+      const markdown = `---
+title: Hello
+author: Taro
+---
+
+# Body`;
+      render(<MarkdownViewer value={markdown} theme="light" />);
+
+      expect(screen.getByRole("table")).toBeInTheDocument();
+      expect(screen.getByText("title")).toBeInTheDocument();
+      expect(screen.getByText("Hello")).toBeInTheDocument();
+      expect(screen.getByText("author")).toBeInTheDocument();
+      expect(screen.getByText("Taro")).toBeInTheDocument();
+    });
+
+    it("フロントマターブロックの元のYAMLテキストが本文として重複表示されないこと", () => {
+      const markdown = `---
+title: Hello
+---
+
+# Body`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="light" />);
+
+      expect(container.textContent).not.toContain("title: Hello");
+    });
+
+    it("フロントマター以降の本文Markdownは通常通りレンダリングされること", () => {
+      const markdown = `---
+title: Hello
+---
+
+# Body Heading
+
+Body paragraph.`;
+      render(<MarkdownViewer value={markdown} theme="light" />);
+
+      expect(screen.getByRole("heading", { level: 1, name: "Body Heading" })).toBeInTheDocument();
+      expect(screen.getByText("Body paragraph.")).toBeInTheDocument();
+    });
+
+    it("不正なYAML構文の場合はテーブルが描画されず、元のテキストがそのままレンダリングされること", () => {
+      const markdown = `---
+title: [unterminated
+---
+
+# Body`;
+      const { container } = render(<MarkdownViewer value={markdown} theme="light" />);
+
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+      expect(container.textContent).toContain("title: [unterminated");
+    });
+
+    it("フロントマターが存在しないMarkdownでは従来通りテーブルなしで本文がレンダリングされること", () => {
+      render(<MarkdownViewer value="# Hello World" theme="light" />);
+
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Hello World");
+    });
+  });
 });
