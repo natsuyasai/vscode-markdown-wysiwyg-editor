@@ -588,3 +588,48 @@
 .markdown-viewer[data-theme="dark"] .hljs-addition {
   color: #b5cea8;
 }
+
+/* ========================================
+   Frontmatter Table
+   ======================================== */
+
+.markdown-viewer-frontmatter {
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.markdown-viewer-frontmatter-table {
+  border-spacing: 0;
+  border-collapse: collapse;
+  width: max-content;
+  max-width: 100%;
+}
+
+.markdown-viewer-frontmatter-table th,
+.markdown-viewer-frontmatter-table td {
+  padding: 6px 13px;
+  border: 1px solid;
+  text-align: left;
+}
+
+.markdown-viewer-frontmatter-table th {
+  font-weight: 600;
+}
+
+.markdown-viewer[data-theme="light"] .markdown-viewer-frontmatter-table th {
+  background-color: #f7f7f7;
+}
+
+.markdown-viewer[data-theme="light"] .markdown-viewer-frontmatter-table th,
+.markdown-viewer[data-theme="light"] .markdown-viewer-frontmatter-table td {
+  border-color: #e1e4e8;
+}
+
+.markdown-viewer[data-theme="dark"] .markdown-viewer-frontmatter-table th {
+  background-color: #2d2d2d;
+}
+
+.markdown-viewer[data-theme="dark"] .markdown-viewer-frontmatter-table th,
+.markdown-viewer[data-theme="dark"] .markdown-viewer-frontmatter-table td {
+  border-color: #3c3c3c;
+}
