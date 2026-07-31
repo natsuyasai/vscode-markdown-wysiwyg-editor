@@ -9,10 +9,12 @@ import { SVG_COLOR_REPLACEMENTS, type ThemeKind } from "../../constants/themeCol
 import { extractHeadings, generateHeadingId } from "../../utilities/extractHeadings";
 import { LOCAL_FILE_SCHEME } from "../../utilities/imagePathConverter";
 import { initializeMermaid } from "../../utilities/mermaidInitializer";
+import { parseFrontmatter } from "../../utilities/parseFrontmatter";
 import { PlantUmlCallbackManager } from "../../utilities/plantUmlCallbackManager";
 import { vscode } from "../../utilities/vscode";
 import { OutlineSidebar } from "../OutlineSidebar";
 import { CodeBlock } from "./CodeBlock";
+import { FrontmatterTable } from "./FrontmatterTable";
 import "./MarkdownViewer.css";
 
 // 許可するURLスキーム（デフォルト + VSCode拡張機能用）
@@ -162,8 +164,11 @@ function hastToText(node: ElementContent): string {
 }
 
 export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri = "" }) => {
-  // 見出し抽出
-  const headings = useMemo(() => extractHeadings(value), [value]);
+  // YAMLフロントマターの分離
+  const { frontmatter, content } = useMemo(() => parseFrontmatter(value), [value]);
+
+  // 見出し抽出（フロントマターの"---"がノイズにならないようcontentを使う）
+  const headings = useMemo(() => extractHeadings(content), [content]);
 
   // コンテンツ領域のref
   const contentRef = useRef<HTMLDivElement>(null);
@@ -289,13 +294,14 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
   return (
     <div className="markdown-viewer-wrapper">
       <div className="markdown-viewer" data-theme={theme} ref={contentRef}>
+        {frontmatter && <FrontmatterTable data={frontmatter} />}
         <Markdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw]}
           components={components}
           urlTransform={customUrlTransform}
         >
-          {value}
+          {content}
         </Markdown>
       </div>
       <OutlineSidebar headings={headings} onHeadingClick={handleHeadingClick} theme={theme} />
