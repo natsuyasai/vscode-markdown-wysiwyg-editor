@@ -1,7 +1,7 @@
 {
   "name": "markdown-wysiwyg-editor",
   "displayName": "markdown-wysiwyg-editor",
-  "description": "edit markdown",
+  "description": "MarkdownをWYSIWYGで編集できるVS Codeカスタムエディタ。Readonly表示、アウトライン、HTML/PDFエクスポート、Mermaid・PlantUMLに対応",
   "version": "0.0.1-alpha1",
   "repository": {
     "url": "https://github.com/natsuyasai/vscode-markdown-wysiwyg-editor"
@@ -60,7 +60,7 @@
           "type": "string",
           "default": "",
           "scope": "machine",
-          "description": "Path to Java executable. If not set, the extension will try to find Java in JAVA_HOME or PATH."
+          "description": "Java実行ファイルのパスを指定します。未設定の場合は、JAVA_HOME または PATH から検出します。"
         },
         "markdownWysiwygEditor.plantumlJarPath": {
           "type": "string",
@@ -71,7 +71,7 @@
         "markdownWysiwygEditor.plantumlServerPort": {
           "type": "number",
           "default": 8888,
-          "description": "Port number for the local PlantUML server."
+          "description": "ローカルのPlantUMLサーバーのポート番号を指定します。"
         },
         "markdownWysiwygEditor.theme": {
           "type": "string",
@@ -81,7 +81,7 @@
             "dark"
           ],
           "default": "auto",
-          "description": "Editor theme. 'auto' follows VS Code's color theme."
+          "description": "エディタのテーマを指定します。「auto」はVS Codeのカラーテーマに追従します。"
         },
         "markdownWysiwygEditor.customCssPaths": {
           "type": "array",
