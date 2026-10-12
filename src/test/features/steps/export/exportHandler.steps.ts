@@ -54,6 +54,13 @@ Given(
   }
 );
 
+Given(
+  "エクスポートの保存先として、存在しないフォルダ内の{string}が選ばれる",
+  function (this: ExportWorld, relativePath: string) {
+    this.exportSavePath = exportPath(this, relativePath);
+  }
+);
+
 Given("エクスポートの保存ダイアログはキャンセルされる", function (this: ExportWorld) {
   this.exportSavePath = undefined;
 });
@@ -147,6 +154,15 @@ Then("WebViewにエクスポート成功が通知される", function (this: Exp
   const result = this.exportResults?.at(-1);
   assert.ok(result?.success, `エクスポート成功が通知されていません: ${JSON.stringify(result)}`);
 });
+
+Then(
+  "WebViewにエクスポート失敗が{string}を含むメッセージで通知される",
+  function (this: ExportWorld, text: string) {
+    const result = this.exportResults?.at(-1);
+    assert.strictEqual(result?.success, false, `通知: ${JSON.stringify(result)}`);
+    assert.ok(result.message.includes(text), `通知: ${JSON.stringify(result)}`);
+  }
+);
 
 Then(
   "WebViewへのエクスポート成功の通知に{string}が含まれる",
