@@ -4,10 +4,12 @@ import mermaid from "mermaid";
 import { FC, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Markdown, { Components, defaultUrlTransform } from "react-markdown";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { SVG_COLOR_REPLACEMENTS, type ThemeKind } from "../../constants/themeColors";
 import { extractHeadings } from "../../utilities/extractHeadings";
 import { LOCAL_FILE_SCHEME } from "../../utilities/imagePathConverter";
+import { markdownViewerSanitizeSchema } from "../../utilities/markdownViewerSanitizeSchema";
 import { initializeMermaid } from "../../utilities/mermaidInitializer";
 import { parseFrontmatter } from "../../utilities/parseFrontmatter";
 import {
@@ -282,7 +284,7 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
         {frontmatter && <FrontmatterTable data={frontmatter} />}
         <Markdown
           remarkPlugins={[remarkGfm, remarkHeadingIds]}
-          rehypePlugins={[rehypeRaw]}
+          rehypePlugins={[rehypeRaw, [rehypeSanitize, markdownViewerSanitizeSchema]]}
           components={components}
           urlTransform={customUrlTransform}
         >
