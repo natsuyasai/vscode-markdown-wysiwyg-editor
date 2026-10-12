@@ -11,12 +11,12 @@ import {
 import {
   ExportBlogHtmlMessage,
   ExportHtmlMessage,
-  Message,
   OpenFileMessage,
   RenderPlantUmlMessage,
   SaveImageMessage,
   SaveSettingsMessage,
 } from "../message/messageTypeToExtention";
+import { isValidWebviewMessage } from "../message/validateWebviewMessage";
 import { saveImageLocally } from "./imageStorage";
 import { getPlantUmlServer } from "../plantuml/plantUmlServer";
 import { buildMermaidImageMap, exportToHtml, generateHtmlForPdf } from "../export/htmlExporter";
@@ -41,10 +41,11 @@ export interface MessageHandlerContext {
  * WebViewからのメッセージを処理するハンドラ
  */
 export async function handleMessage(
-  message: Message,
+  message: unknown,
   context: MessageHandlerContext
 ): Promise<void> {
   const { document, webviewPanel, extensionPath } = context;
+  if (!isValidWebviewMessage(message)) return; // 不正な形式のメッセージは無視する
 
   switch (message.type) {
     case "init":
