@@ -60,9 +60,10 @@ export function renderMarkdownToHtml(
       // コードブロックやインラインコードの中は画像のトークンにならないため、埋め込み対象にならない。
       // 同じ記法が複数あっても、画像のトークンごとに埋め込む
       if (imageBasePath !== undefined && token.type === "image") {
-        const dataUri = resolveImageDataUri(token.href, imageBasePath);
+        const image = token as Tokens.Image;
+        const dataUri = resolveImageDataUri(image.href, imageBasePath);
         if (dataUri) {
-          token.href = dataUri;
+          image.href = dataUri;
         }
       }
     },

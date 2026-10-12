@@ -37,7 +37,7 @@ Given(
 Given(
   "OSの一時フォルダに、書き出したものではない{string}で終わるファイルがある",
   function (this: PdfTempWorld, suffix: string) {
-    this.pdfUnrelatedFile = path.join(os.tmpdir(), `b2-unrelated-${process.pid}${suffix}`);
+    this.pdfUnrelatedFile = path.join(os.tmpdir(), `b2-unrelated-${String(process.pid)}${suffix}`);
     fs.writeFileSync(this.pdfUnrelatedFile, "無関係なファイル", "utf-8");
     this.exportRestoreConfigs ??= [];
     const target = this.pdfUnrelatedFile;
@@ -61,7 +61,7 @@ Then("書き出したPDF用の一時HTMLのパスはすべて異なる", functio
 Then("書き出したPDF用の一時HTMLはすべてOSの一時フォルダ内にある", function (this: PdfTempWorld) {
   // 続けて書き出すと前のものは削除されるため、最後のものだけを確認する
   const last = this.pdfTempPaths?.at(-1);
-  assert.ok(last && isInsideOsTemp(last), `OSの一時フォルダ内ではありません: ${last}`);
+  assert.ok(last && isInsideOsTemp(last), `OSの一時フォルダ内ではありません: ${String(last)}`);
 });
 
 Then(
@@ -100,7 +100,7 @@ Then(
   "ブラウザで開いたPDF用の一時HTMLはすべてOSの一時フォルダ内にある",
   function (this: PdfTempWorld) {
     const last = openedPaths(this).at(-1);
-    assert.ok(last && isInsideOsTemp(last), `OSの一時フォルダ内ではありません: ${last}`);
+    assert.ok(last && isInsideOsTemp(last), `OSの一時フォルダ内ではありません: ${String(last)}`);
   }
 );
 

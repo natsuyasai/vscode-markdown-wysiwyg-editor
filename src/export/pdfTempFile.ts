@@ -19,7 +19,12 @@ const writtenDirs = new Set<string>();
 
 /** ファイル名に使えない文字を置き換える */
 function toSafeFileName(title: string): string {
-  const safe = title.replace(/[<>:"/\|?*\u0000-\u001f]/g, "_").trim();
+  const invalidChars = '<>:"/' + String.fromCharCode(92) + "|?*";
+  const safe = Array.from(title, (char) =>
+    char.charCodeAt(0) < 0x20 || invalidChars.includes(char) ? "_" : char
+  )
+    .join("")
+    .trim();
   return safe === "" ? "document" : safe;
 }
 

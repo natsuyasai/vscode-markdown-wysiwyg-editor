@@ -32,8 +32,8 @@ import { getCustomCssBaseDir } from "./customCssWarnings";
 
 /** エクスポートで使う VS Code の操作（テストで差し替えられるようにする） */
 export interface ExportOperations {
-  showSaveDialog: (options: vscode.SaveDialogOptions) => Thenable<vscode.Uri | undefined>;
-  openExternal: (uri: vscode.Uri) => Thenable<boolean>;
+  showSaveDialog: (options: vscode.SaveDialogOptions) => PromiseLike<vscode.Uri | undefined>;
+  openExternal: (uri: vscode.Uri) => PromiseLike<boolean>;
 }
 
 const defaultExportOperations: ExportOperations = {

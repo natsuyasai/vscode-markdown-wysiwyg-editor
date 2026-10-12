@@ -42,7 +42,7 @@ export interface ExportWorld extends IWorld {
   /** WebViewへ送られた exportResult のpayload */
   exportResults?: ExportResultPayload[];
   /** シナリオの終了時に元へ戻す設定 */
-  exportRestoreConfigs?: (() => Thenable<void>)[];
+  exportRestoreConfigs?: (() => PromiseLike<void>)[];
 }
 
 export function exportRoot(world: ExportWorld): string {

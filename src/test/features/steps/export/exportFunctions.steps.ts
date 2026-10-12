@@ -76,7 +76,7 @@ Then(
     const tags = imgTagsWithAlt(this.html ?? "", alt);
     assert.ok(tags.length > 0, `代替テキスト"${alt}"の画像がありません:\n${this.html ?? ""}`);
     assert.ok(
-      tags.every((tag) => /src="data:image\/png;base64,/.test(tag)),
+      tags.every((tag) => tag.includes('src="data:image/png;base64,')),
       `data URIで埋め込まれていません: ${tags.join(" ")}`
     );
   }
