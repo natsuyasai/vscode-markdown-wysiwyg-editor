@@ -118,6 +118,9 @@ async function handleSaveImage(
 ): Promise<void> {
   const { requestId, imageData, fileName, mimeType } = message.payload;
   const result = await saveImageLocally(document, imageData, fileName, mimeType);
+  if (!result.success && result.error !== undefined) {
+    void vscode.window.showErrorMessage(`Markdown WYSIWYG Editor: ${result.error}`);
+  }
   webviewPanel.webview.postMessage({
     type: "saveImageResult",
     payload: {
