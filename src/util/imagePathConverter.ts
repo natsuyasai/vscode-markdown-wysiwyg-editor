@@ -48,47 +48,6 @@ export function convertImagePathsToWebviewUri(
 }
 
 /**
- * HTML内の画像パスをWebView URIに変換する（<img src="...">形式）
- * @param html HTMLテキスト
- * @param documentDir ドキュメントのディレクトリパス
- * @param webview WebViewインスタンス
- * @returns 変換後のHTMLテキスト
- */
-export function convertHtmlImagePathsToWebviewUri(
-  html: string,
-  documentDir: string,
-  webview: vscode.Webview
-): string {
-  // <img src="..."> パターンをマッチ
-  return html.replace(
-    /<img\s+([^>]*?)src=["']([^"']+)["']([^>]*)>/gi,
-    (match: string, before: string, imagePath: string, after: string): string => {
-      // URLまたはdata URIの場合はそのまま
-      if (
-        imagePath.startsWith("http://") ||
-        imagePath.startsWith("https://") ||
-        imagePath.startsWith("data:") ||
-        imagePath.startsWith("vscode-webview:")
-      ) {
-        return match;
-      }
-
-      // 相対パスを絶対パスに変換
-      const absolutePath = path.resolve(documentDir, imagePath);
-
-      // ファイルが存在するか確認（存在しない場合は変換しない）
-      if (!fs.existsSync(absolutePath)) {
-        return match;
-      }
-
-      // WebView URIに変換
-      const webviewUri = webview.asWebviewUri(vscode.Uri.file(absolutePath));
-      return `<img ${before}src="${webviewUri.toString()}"${after}>`;
-    }
-  );
-}
-
-/**
  * Markdown内のローカルファイルリンクをカスタムスキームURIに変換する
  * アンカーリンク（#で始まる）やHTTP(S) URLはそのまま
  * @param markdown Markdownテキスト

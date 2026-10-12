@@ -234,12 +234,6 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     const stylesUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.css"]);
     // The JS file from the React build output
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
-    // const codiconsUri = getUri(webview, extensionUri, [
-    //   "webview-ui",
-    //   "build",
-    //   "assets",
-    //   "codicon.css",
-    // ]);
 
     // Use a nonce to whitelist which scripts can be run
     const nonce = getNonce();
@@ -250,7 +244,6 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} data: blob: file: https:;">
-          <!-- <link rel="stylesheet" href="" id="vscode-codicon-stylesheet"> -->
           <link rel="stylesheet" type="text/css" href="${stylesUri.toString()}" />
           <title>CSVEditor</title>
         </head>

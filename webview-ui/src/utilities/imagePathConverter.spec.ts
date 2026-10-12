@@ -4,7 +4,6 @@ import {
   parseLocalFileUri,
   removeBlobImageReferences,
   revertAllPathsFromWebviewUri,
-  revertHtmlImagePathsFromWebviewUri,
   revertImagePathsFromWebviewUri,
   revertLinkPathsFromLocalFileUri,
 } from "@/utilities/imagePathConverter";
@@ -72,40 +71,6 @@ describe("revertImagePathsFromWebviewUri", () => {
     const markdown = "This is some text without images.";
     const result = revertImagePathsFromWebviewUri(markdown, baseUri);
     expect(result).toBe(markdown);
-  });
-});
-
-describe("revertHtmlImagePathsFromWebviewUri", () => {
-  const baseUri = "vscode-webview://abc123/path/to/dir";
-
-  it("HTML内のWebView URIの画像パスを相対パスに戻す", () => {
-    const html = `<img src="${baseUri}/image.png">`;
-    const result = revertHtmlImagePathsFromWebviewUri(html, baseUri);
-    expect(result).toBe('<img src="image.png">');
-  });
-
-  it("属性が他にある場合も正しく変換する", () => {
-    const html = `<img alt="test" src="${baseUri}/image.png" width="100">`;
-    const result = revertHtmlImagePathsFromWebviewUri(html, baseUri);
-    expect(result).toBe('<img alt="test" src="image.png" width="100">');
-  });
-
-  it("baseUriが空の場合は変換しない", () => {
-    const html = `<img src="${baseUri}/image.png">`;
-    const result = revertHtmlImagePathsFromWebviewUri(html, "");
-    expect(result).toBe(html);
-  });
-
-  it("HTTPSのURLは変換しない", () => {
-    const html = '<img src="https://example.com/image.png">';
-    const result = revertHtmlImagePathsFromWebviewUri(html, baseUri);
-    expect(result).toBe(html);
-  });
-
-  it("シングルクォートも対応する", () => {
-    const html = `<img src='${baseUri}/image.png'>`;
-    const result = revertHtmlImagePathsFromWebviewUri(html, baseUri);
-    expect(result).toBe("<img src='image.png'>");
   });
 });
 

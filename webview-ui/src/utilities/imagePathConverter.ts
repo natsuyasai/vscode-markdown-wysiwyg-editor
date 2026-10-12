@@ -24,27 +24,6 @@ export function revertImagePathsFromWebviewUri(markdown: string, baseUri: string
 }
 
 /**
- * HTML内のWebView URI形式の画像パスを相対パスに戻す
- * @param html HTMLテキスト
- * @param baseUri WebView URI形式のベースURI
- * @returns 相対パスに戻されたHTMLテキスト
- */
-export function revertHtmlImagePathsFromWebviewUri(html: string, baseUri: string): string {
-  if (!baseUri) {
-    return html;
-  }
-
-  // baseUriの末尾にスラッシュがない場合は追加
-  const normalizedBaseUri = baseUri.endsWith("/") ? baseUri : `${baseUri}/`;
-
-  // <img src="baseUri/path"> パターンを <img src="path"> に戻す
-  const escapedBaseUri = normalizedBaseUri.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`(<img\\s+[^>]*?src=["'])${escapedBaseUri}([^"']+)(["'][^>]*>)`, "gi");
-
-  return html.replace(regex, "$1$2$3");
-}
-
-/**
  * カスタムスキームURIのリンクパスを相対パスに戻す
  * @param markdown Markdownテキスト
  * @param documentDir ドキュメントのディレクトリパス（相対パス計算用）

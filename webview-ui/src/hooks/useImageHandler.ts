@@ -11,7 +11,7 @@ interface UseImageHandlerOptions {
 /**
  * 画像のペースト/ドロップを処理し、Extension経由でローカル保存する
  */
-export function useImageHandler({ onImageInserted, enabled = true }: UseImageHandlerOptions) {
+export function useImageHandler({ onImageInserted, enabled = true }: UseImageHandlerOptions): void {
   const pendingRequestIdsRef = useRef<Set<string>>(new Set());
 
   // Extension からの画像保存結果を処理
@@ -145,8 +145,4 @@ export function useImageHandler({ onImageInserted, enabled = true }: UseImageHan
       document.removeEventListener("dragover", handleDragOver, true);
     };
   }, [enabled, handlePaste, handleDrop, handleDragOver]);
-
-  return {
-    isPending: pendingRequestIdsRef.current.size > 0,
-  };
 }
