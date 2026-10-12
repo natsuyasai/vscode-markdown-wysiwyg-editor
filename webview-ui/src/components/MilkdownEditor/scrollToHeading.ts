@@ -14,7 +14,10 @@ export function scrollToHeadingInEditor(
     return;
   }
 
-  const headingElements = container.querySelectorAll("h1, h2, h3, h4, h5, h6");
+  // 空の見出しはアウトラインに載らないので、対応付けでも数えない
+  const headingElements = [...container.querySelectorAll("h1, h2, h3, h4, h5, h6")].filter(
+    (element) => (element.textContent ?? "").trim() !== ""
+  );
   const target = headingElements[index];
   if (target === undefined) {
     return;

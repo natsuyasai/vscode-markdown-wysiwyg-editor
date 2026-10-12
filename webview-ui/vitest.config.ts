@@ -67,6 +67,8 @@ export default mergeConfig(
         {
           // Gherkin（.browser.feature）を実ブラウザで実行する。step定義は src/**/*.browser.steps.ts
           extends: true,
+          // 実ブラウザでのエディタ操作は並列実行中に既定の3秒を超えることがあり、
+          // Mermaidの実描画は初回に時間がかかるため、stepの上限を長めにする
           plugins: [quickpickle({ stepTimeout: 15_000 })],
           test: {
             name: "gherkin-browser",

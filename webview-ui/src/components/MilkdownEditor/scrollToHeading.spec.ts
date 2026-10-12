@@ -6,8 +6,9 @@ type ScrollMock = ReturnType<typeof vi.fn>;
 
 function createContainer(levels: number[]): { container: HTMLElement; mocks: ScrollMock[] } {
   const container = document.createElement("div");
-  const mocks = levels.map((level) => {
+  const mocks = levels.map((level, index) => {
     const heading = document.createElement(`h${level}`);
+    heading.textContent = `見出し${index}`;
     const mock = vi.fn();
     heading.scrollIntoView = mock;
     container.appendChild(heading);
@@ -71,5 +72,26 @@ describe("scrollToHeadingInEditor", () => {
 
     expect(() => scrollToHeadingInEditor(container, headings, "second")).not.toThrow();
     expect(mocks[0]).not.toHaveBeenCalled();
+  });
+
+  it("編集領域の空の見出し要素は数えずに対応付ける（空の見出しはアウトラインに載らない）", () => {
+    const container = document.createElement("div");
+    const mocks = ["最初", "", "目的"].map((text) => {
+      const heading = document.createElement("h2");
+      heading.textContent = text;
+      const mock = vi.fn();
+      heading.scrollIntoView = mock;
+      container.appendChild(heading);
+      return mock;
+    });
+    const headings: HeadingItem[] = [
+      { level: 2, text: "最初", id: "最初" },
+      { level: 2, text: "目的", id: "目的" },
+    ];
+
+    scrollToHeadingInEditor(container, headings, "目的");
+
+    expect(mocks[2]).toHaveBeenCalledWith({ behavior: "smooth" });
+    expect(mocks[1]).not.toHaveBeenCalled();
   });
 });
