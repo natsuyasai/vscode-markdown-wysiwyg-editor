@@ -37,6 +37,15 @@ function imageToBase64(imagePath: string): string | null {
   }
 }
 
+/** パーセントエンコードされたパスを元に戻す。不正なエンコードのときは undefined */
+function safeDecode(imagePath: string): string | undefined {
+  try {
+    return decodeURIComponent(imagePath);
+  } catch {
+    return undefined;
+  }
+}
+
 function resolveImagePath(imagePath: string, basePath: string): string {
   if (path.isAbsolute(imagePath)) {
     return imagePath;
@@ -44,59 +53,42 @@ function resolveImagePath(imagePath: string, basePath: string): string {
   return path.resolve(basePath, imagePath);
 }
 
-export function embedImagesInMarkdown(markdown: string, basePath: string): string {
-  // Markdown image pattern: ![alt](path) or ![alt](path "title")
-  const markdownImageRegex = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
-
-  let result = markdown;
-  const matches = [...markdown.matchAll(markdownImageRegex)];
-
-  for (const match of matches) {
-    const fullMatch = match[0];
-    const alt = match[1];
-    const imagePath = match[2];
-
-    if (!isLocalPath(imagePath) || !isSupportedImage(imagePath)) {
-      continue;
-    }
-
-    const absolutePath = resolveImagePath(imagePath, basePath);
-    const base64Data = imageToBase64(absolutePath);
-
+/**
+ * 画像の参照先（Markdownの画像記法やimgタグのsrc）から、埋め込み用のdata URIを求める。
+ * ローカルの対応画像で、実在するものだけが対象。それ以外は null を返す。
+ * `%20` などのパーセントエンコードは元に戻したパスを優先し、
+ * 該当するファイルがなければ表記どおりのパスも試す（実際のファイル名に `%` を含む場合）。
+ */
+export function resolveImageDataUri(imagePath: string, basePath: string): string | null {
+  if (!isLocalPath(imagePath) || !isSupportedImage(imagePath)) {
+    return null;
+  }
+  const decoded = safeDecode(imagePath);
+  const candidates =
+    decoded !== undefined && decoded !== imagePath ? [decoded, imagePath] : [imagePath];
+  for (const candidate of candidates) {
+    const base64Data = imageToBase64(resolveImagePath(candidate, basePath));
     if (base64Data) {
-      const replacement = `![${alt}](${base64Data})`;
-      result = result.replace(fullMatch, replacement);
+      return base64Data;
     }
   }
-
-  return result;
+  return null;
 }
 
+/**
+ * HTML中のimgタグのsrcにあるローカル画像を、data URIとして埋め込む。
+ * （Markdownの画像記法は、Markdownの構文解析の段階で htmlExporter が埋め込む）
+ */
 export function embedImagesInHtml(html: string, basePath: string): string {
   // HTML img tag pattern: <img ... src="path" ...>
   const htmlImageRegex = /<img\s+([^>]*?)src=["']([^"']+)["']([^>]*)>/gi;
 
-  let result = html;
-  const matches = [...html.matchAll(htmlImageRegex)];
-
-  for (const match of matches) {
-    const fullMatch = match[0];
-    const beforeSrc = match[1];
-    const imagePath = match[2];
-    const afterSrc = match[3];
-
-    if (!isLocalPath(imagePath) || !isSupportedImage(imagePath)) {
-      continue;
+  // 関数で置換する（文字列だと、data URIなどの `$` が置換パターンとして解釈されるため）
+  return html.replace(
+    htmlImageRegex,
+    (fullMatch, beforeSrc: string, imagePath: string, afterSrc: string) => {
+      const base64Data = resolveImageDataUri(imagePath, basePath);
+      return base64Data ? `<img ${beforeSrc}src="${base64Data}"${afterSrc}>` : fullMatch;
     }
-
-    const absolutePath = resolveImagePath(imagePath, basePath);
-    const base64Data = imageToBase64(absolutePath);
-
-    if (base64Data) {
-      const replacement = `<img ${beforeSrc}src="${base64Data}"${afterSrc}>`;
-      result = result.replace(fullMatch, replacement);
-    }
-  }
-
-  return result;
+  );
 }

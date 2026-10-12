@@ -33,6 +33,8 @@
       | {"type":"exportHtml","payload":{"mermaidImages":[{"code":"graph TD;","dataUri":"data:image/png;base64,AAAA"}]}}    |
       | {"type":"exportBlogHtml","payload":{"mermaidImages":[{"code":"graph TD;","dataUri":"data:image/png;base64,AAAA"}]}} |
       | {"type":"exportPdf"}                                                                                               |
+      | {"type":"exportPdf","payload":{"mermaidImages":[]}}                                                                |
+      | {"type":"exportPdf","payload":{"mermaidImages":[{"code":"graph TD;","dataUri":"data:image/png;base64,AAAA"}]}}    |
       | {"type":"save","payload":"# 見出し","extra":1}                                                                      |
 
   シナリオアウトライン: 不正な形式のメッセージは受け付けられない
@@ -71,6 +73,8 @@
       | {"type":"exportHtml","payload":{"mermaidImages":"graph TD;"}}                                       |
       | {"type":"exportHtml","payload":{"mermaidImages":[{"code":"graph TD;"}]}}                            |
       | {"type":"exportBlogHtml","payload":{"mermaidImages":[{"code":1,"dataUri":"data:image/png;base64,AAAA"}]}} |
+      | {"type":"exportPdf","payload":{"mermaidImages":"graph TD;"}}                                        |
+      | {"type":"exportPdf","payload":{"mermaidImages":[{"code":"graph TD;"}]}}                             |
 
   シナリオ: 不正な形式のメッセージを受け取っても、例外にならず何も処理されない
     前提 強化検証用の一時ディレクトリ内の"docs/doc.md"にMarkdown文書を保存してある
