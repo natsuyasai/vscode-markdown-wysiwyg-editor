@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { revertAllPathsFromWebviewUri } from "../utilities/imagePathConverter";
+import { removeBlobImageReferences } from "../utilities/imagePathConverter";
 import {
   cleanupMarkdown,
   convertLineEndings,
@@ -68,12 +68,8 @@ export function useMarkdownSync(): UseMarkdownSyncResult {
 
     // baseline未設定時は従来フロー（revert→cleanupMarkdown）にフォールバック
     if (original === null || baseline === null) {
-      // WebView URIとカスタムスキームを相対パスに戻してから保存
-      const revertedMarkdown = revertAllPathsFromWebviewUri(
-        markdown,
-        baseUriRef.current,
-        documentDirRef.current
-      );
+      // 表示用URIは拡張機能側で元の表記に戻すため、そのまま送る
+      const revertedMarkdown = removeBlobImageReferences(markdown);
       vscode.postMessage({
         type: "save",
         payload: cleanupMarkdown(revertedMarkdown, originalLineEndingRef.current),
@@ -86,12 +82,8 @@ export function useMarkdownSync(): UseMarkdownSyncResult {
     const currentClean = cleanupMarkdown(markdown, "\n");
     // baseline→currentの差分（＝ユーザーの実編集）のみをoriginalに適用する
     const merged = mergeUserEdits(convertLineEndings(original, "\n"), baselineClean, currentClean);
-    // WebView URIとカスタムスキームを相対パスに戻してから保存
-    const reverted = revertAllPathsFromWebviewUri(
-      merged,
-      baseUriRef.current,
-      documentDirRef.current
-    );
+    // 表示用URIは拡張機能側で元の表記に戻すため、そのまま送る
+    const reverted = removeBlobImageReferences(merged);
     vscode.postMessage({
       type: "save",
       payload: convertLineEndings(reverted, originalLineEndingRef.current),

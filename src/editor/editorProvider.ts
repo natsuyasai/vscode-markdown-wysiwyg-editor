@@ -11,9 +11,20 @@ import {
 import { Message } from "../message/messageTypeToExtention";
 import { getUri } from "../util/getUri";
 import { getNonce } from "../util/util";
-import { convertAllPathsToWebviewUri } from "../util/imagePathConverter";
+import {
+  convertPathsForDisplay,
+  DisplayPathRegistry,
+  type PathConversionEnv,
+  restorePathsFromDisplay,
+} from "../util/imagePathConverter";
 import { handleMessage } from "./MessageHandler";
 import { loadCustomCss } from "../util/customCssLoader";
+import {
+  computeImageRoots,
+  computeLocalResourceRoots,
+  getLocalWorkspaceFolderPaths,
+} from "../util/localResourceRoots";
+import * as fs from "fs";
 import * as path from "path";
 
 export class EditorProvider implements vscode.CustomTextEditorProvider {
@@ -69,12 +80,14 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
   ): void {
     // ドキュメントのディレクトリを取得
     const documentDir = vscode.Uri.file(path.dirname(document.uri.fsPath));
+    // 画像の読み込みを許可するディレクトリ（文書のディレクトリとワークスペースフォルダ）
+    const imageRoots = computeImageRoots(documentDir.fsPath, getLocalWorkspaceFolderPaths());
 
     // Setup initial content for the webview
     webviewPanel.webview.options = {
       enableScripts: true,
       // ローカル画像ファイルへのアクセスを許可
-      localResourceRoots: [this.context.extensionUri, documentDir],
+      localResourceRoots: computeLocalResourceRoots(this.context.extensionUri, imageRoots),
     };
     webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
@@ -137,17 +150,22 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
       }
     });
 
+    // 表示用URI → 元の表記の対応表（パネルごとに保持し、保存時に元の表記へ正確に戻す）
+    const pathRegistry = new DisplayPathRegistry();
+    const pathEnv: PathConversionEnv = {
+      documentDir: documentDir.fsPath,
+      allowedRoots: imageRoots,
+      toWebviewUri: (fsPath) =>
+        webviewPanel.webview.asWebviewUri(vscode.Uri.file(fsPath)).toString(),
+      exists: (fsPath) => fs.existsSync(fsPath),
+    };
+
     function updateWebview() {
-      const dirPath = path.dirname(document.uri.fsPath);
-      // ローカル画像パスとリンクパスをWebView用URIに変換
-      const convertedMarkdown = convertAllPathsToWebviewUri(
-        document.getText(),
-        dirPath,
-        webviewPanel.webview
-      );
+      // WebViewは常にLFで扱う。ローカル画像パスとリンクパスを表示用URIに変換して送る
+      const lfText = document.getText().replace(/\r\n/g, "\n");
       webviewPanel.webview.postMessage({
         type: "update",
-        payload: convertedMarkdown.replace(/\r\n/g, "\n"),
+        payload: convertPathsForDisplay(lfText, pathEnv, pathRegistry),
       } satisfies UpdateMessage);
     }
     // Update the webview when the document changes
@@ -164,7 +182,8 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
           document,
           webviewPanel,
           extensionPath: this.context.extensionPath,
-          updateTextDocument: (doc, text) => this.updateTextDocument(doc, text),
+          updateTextDocument: (doc, text) =>
+            this.updateTextDocument(doc, restorePathsFromDisplay(text, pathEnv, pathRegistry)),
           updateWebview,
           updateTheme,
           sendDocumentInfo,
