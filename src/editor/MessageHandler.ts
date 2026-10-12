@@ -22,7 +22,7 @@ import { getPlantUmlServer } from "../plantuml/plantUmlServer";
 import { buildMermaidImageMap, exportToHtml, generateHtmlForPdf } from "../export/htmlExporter";
 import { loadCustomCss } from "../util/customCssLoader";
 
-interface MessageHandlerContext {
+export interface MessageHandlerContext {
   document: vscode.TextDocument;
   webviewPanel: vscode.WebviewPanel;
   extensionPath: string;

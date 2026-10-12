@@ -14,6 +14,7 @@ import { getNonce } from "../util/util";
 import { convertAllPathsToWebviewUri } from "../util/imagePathConverter";
 import { handleMessage } from "./MessageHandler";
 import { loadCustomCss } from "../util/customCssLoader";
+import { buildWebviewHtml } from "./webviewHtml";
 import * as path from "path";
 
 export class EditorProvider implements vscode.CustomTextEditorProvider {
@@ -236,23 +237,13 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
 
     // Use a nonce to whitelist which scripts can be run
-    const nonce = getNonce();
-    return /*html*/ `
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} data: blob: file: https:;">
-          <link rel="stylesheet" type="text/css" href="${stylesUri.toString()}" />
-          <title>CSVEditor</title>
-        </head>
-        <body>
-          <div id="root"></div>
-          <script type="module" nonce="${nonce}" src="${scriptUri.toString()}"></script>
-        </body>
-      </html>
-    `;
+    return buildWebviewHtml({
+      cspSource: webview.cspSource,
+      stylesUri: stylesUri.toString(),
+      scriptUri: scriptUri.toString(),
+      nonce: getNonce(),
+      lang: vscode.env.language,
+    });
   }
 
   private async updateTextDocument(
