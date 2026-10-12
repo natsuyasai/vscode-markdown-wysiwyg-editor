@@ -151,7 +151,21 @@ async function handleRenderPlantUml(
 async function handleSaveSettings(message: SaveSettingsMessage): Promise<void> {
   const { themeSetting } = message.payload;
   const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
-  await config.update("theme", themeSetting, vscode.ConfigurationTarget.Global);
+  const target = chooseThemeConfigurationTarget(config.inspect("theme"));
+  await config.update("theme", themeSetting, target);
+}
+
+/**
+ * テーマ設定の保存先を決める。
+ * ワークスペース設定に値があればワークスペース設定へ、なければユーザー設定（Global）へ保存する。
+ * （ワークスペース設定がある環境で Global に保存すると、変更が有効にならないため）
+ */
+export function chooseThemeConfigurationTarget(
+  inspected: { workspaceValue?: unknown } | undefined
+): vscode.ConfigurationTarget {
+  return inspected?.workspaceValue !== undefined
+    ? vscode.ConfigurationTarget.Workspace
+    : vscode.ConfigurationTarget.Global;
 }
 
 async function handleOpenFile(message: OpenFileMessage): Promise<void> {
