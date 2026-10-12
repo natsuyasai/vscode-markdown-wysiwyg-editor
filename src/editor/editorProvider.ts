@@ -13,7 +13,8 @@ import { getUri } from "../util/getUri";
 import { getNonce } from "../util/util";
 import { convertAllPathsToWebviewUri } from "../util/imagePathConverter";
 import { handleMessage } from "./MessageHandler";
-import { loadCustomCss } from "../util/customCssLoader";
+import { getCustomCssWatchTarget, loadCustomCss } from "../util/customCssLoader";
+import { getCustomCssBaseDir, reportCustomCssErrorsOnce } from "./customCssWarnings";
 import { buildWebviewHtml } from "./webviewHtml";
 import * as path from "path";
 
@@ -135,10 +136,8 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
 
     function sendSettings() {
       const cssPaths = getCustomCssPaths();
-      const { css, errors } = loadCustomCss(cssPaths);
-      for (const error of errors) {
-        vscode.window.showWarningMessage(`Markdown WYSIWYG Editor: ${error}`);
-      }
+      const { css, errors } = loadCustomCss(cssPaths, { baseDir: getCustomCssBaseDir(document) });
+      reportCustomCssErrorsOnce(errors);
       webviewPanel.webview.postMessage({
         type: "updateSettings",
         payload: { themeSetting: getThemeSetting(), customCss: css },
@@ -213,8 +212,12 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
 
       const cssPaths = getCustomCssPaths();
       for (const cssPath of cssPaths) {
-        if (cssPath.trim() === "") continue;
-        const watcher = vscode.workspace.createFileSystemWatcher(cssPath);
+        // 読み込みと同じ規則で解決したパスを監視する
+        const target = getCustomCssWatchTarget(cssPath, { baseDir: getCustomCssBaseDir(document) });
+        if (target === undefined) continue;
+        const watcher = vscode.workspace.createFileSystemWatcher(
+          new vscode.RelativePattern(vscode.Uri.file(target.baseDir), target.fileName)
+        );
         watcher.onDidChange(() => {
           sendSettings();
         });
