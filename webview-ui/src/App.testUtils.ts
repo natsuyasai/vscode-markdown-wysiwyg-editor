@@ -17,9 +17,9 @@ function emitExtensionMessage(message: Message): void {
   window.dispatchEvent(new MessageEvent("message", { data: message }));
 }
 
-/** 初期化メッセージ（initは行末コードの検出も伴う） */
+/** 文書を開いた直後の内容の受信（拡張機能は初期化も update で送る） */
 export function sendInit(markdown: string): void {
-  emitExtensionMessage({ type: "init", payload: markdown });
+  emitExtensionMessage({ type: "update", payload: markdown });
 }
 
 /** Markdown更新メッセージ */
@@ -191,5 +191,12 @@ export async function waitForEditorReady(canvasElement: HTMLElement): Promise<vo
 export function pressCtrlS(): void {
   window.dispatchEvent(
     new KeyboardEvent("keydown", { key: "s", ctrlKey: true, bubbles: true, cancelable: true })
+  );
+}
+
+/** Cmd+S（macOSの保存ショートカット）をwindowへ発火する */
+export function pressCmdS(): void {
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", { key: "s", metaKey: true, bubbles: true, cancelable: true })
   );
 }

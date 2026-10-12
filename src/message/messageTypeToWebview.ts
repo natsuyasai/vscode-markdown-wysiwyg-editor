@@ -1,5 +1,4 @@
 export type MessageType =
-  | "init"
   | "update"
   | "updateTheme"
   | "updateSettings"
@@ -14,10 +13,6 @@ export type ThemeSetting = "auto" | "light" | "dark";
 export interface Message {
   type: MessageType;
   payload?: unknown;
-}
-
-export interface InitMessage extends Message {
-  type: "init";
 }
 
 export interface UpdateMessage extends Message {
