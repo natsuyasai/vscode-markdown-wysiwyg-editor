@@ -10,7 +10,11 @@ import { extractHeadings, generateHeadingId } from "../../utilities/extractHeadi
 import { LOCAL_FILE_SCHEME } from "../../utilities/imagePathConverter";
 import { initializeMermaid } from "../../utilities/mermaidInitializer";
 import { parseFrontmatter } from "../../utilities/parseFrontmatter";
-import { PlantUmlCallbackManager } from "../../utilities/plantUmlCallbackManager";
+import {
+  PLANTUML_RESPONSE_TIMEOUT_MS,
+  PLANTUML_TIMEOUT_MESSAGE,
+  PlantUmlCallbackManager,
+} from "../../utilities/plantUmlCallbackManager";
 import { vscode } from "../../utilities/vscode";
 import { OutlineSidebar } from "../OutlineSidebar";
 import { CodeBlock } from "./CodeBlock";
@@ -95,15 +99,25 @@ const PlantUmlDiagram: FC<{ code: string }> = ({ code }) => {
     const requestId = `plantuml-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     requestIdRef.current = requestId;
 
-    plantUmlCallbackManager.register(requestId, (svgResult, errorResult) => {
-      if (svgResult) {
-        setSvg(svgResult);
-        setError(null);
-      } else {
-        setError(errorResult ?? "Unknown error");
-        setSvg(null);
+    plantUmlCallbackManager.register(
+      requestId,
+      (svgResult, errorResult) => {
+        if (svgResult) {
+          setSvg(svgResult);
+          setError(null);
+        } else {
+          setError(errorResult ?? "Unknown error");
+          setSvg(null);
+        }
+      },
+      {
+        timeoutMs: PLANTUML_RESPONSE_TIMEOUT_MS,
+        onTimeout: () => {
+          setError(PLANTUML_TIMEOUT_MESSAGE);
+          setSvg(null);
+        },
       }
-    });
+    );
 
     vscode.postMessage({
       type: "renderPlantUml",

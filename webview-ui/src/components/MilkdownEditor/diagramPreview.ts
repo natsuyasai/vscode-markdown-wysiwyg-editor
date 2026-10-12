@@ -1,11 +1,25 @@
 import mermaid from "mermaid";
 import { SVG_COLOR_REPLACEMENTS, type ThemeKind } from "../../constants/themeColors";
 import { initializeMermaid } from "../../utilities/mermaidInitializer";
-import { PlantUmlCallbackManager } from "../../utilities/plantUmlCallbackManager";
+import {
+  PLANTUML_RESPONSE_TIMEOUT_MS,
+  PLANTUML_TIMEOUT_MESSAGE,
+  PlantUmlCallbackManager,
+} from "../../utilities/plantUmlCallbackManager";
 import { vscode } from "../../utilities/vscode";
 
+type ApplyPreview = (result: HTMLElement | null) => void;
+
 // PlantUML結果のコールバック管理
-const plantUmlCallbackManager = new PlantUmlCallbackManager<(result: HTMLElement | null) => void>();
+const plantUmlCallbackManager = new PlantUmlCallbackManager<
+  (svg: string | undefined, error: string | undefined) => void
+>();
+
+/**
+ * 応答待ちのPlantUML描画要求（コード → 結果を反映する先）。
+ * 同じコードの要求が応答前に重なった場合は、拡張機能への要求を1回にまとめる。
+ */
+const inFlightPlantUmlRequests = new Map<string, ApplyPreview[]>();
 
 /** ダイアグラムコンテナのスタイル */
 const DIAGRAM_CONTAINER_STYLE = "padding: 16px; background: var(--crepe-color-surface);";
@@ -91,25 +105,47 @@ export function renderMermaidPreview(
 }
 
 /**
- * PlantUMLプレビューのコールバックを登録する
- */
-export function registerPlantUmlCallback(
-  requestId: string,
-  callback: (result: HTMLElement | null) => void
-): void {
-  plantUmlCallbackManager.register(requestId, callback);
-}
-
-/**
  * PlantUMLプレビューをレンダリングする（Extension経由）
+ *
+ * 応答は {@link handlePlantUmlResult} で受け取る。
+ * 応答待ちの上限（既定60秒）を過ぎた場合は、タイムアウトのエラーを表示する。
+ * 同じコードの要求が応答待ちであれば、新たに要求せず、その応答を共有する。
  */
 export function renderPlantUmlPreview(
   content: string,
   requestId: string,
-  applyPreview: (result: HTMLElement | null) => void
+  applyPreview: ApplyPreview,
+  timeoutMs: number = PLANTUML_RESPONSE_TIMEOUT_MS
 ): void {
-  // コールバックを登録
-  registerPlantUmlCallback(requestId, applyPreview);
+  const waiting = inFlightPlantUmlRequests.get(content);
+  if (waiting) {
+    waiting.push(applyPreview);
+    return;
+  }
+
+  const appliers = [applyPreview];
+  inFlightPlantUmlRequests.set(content, appliers);
+  const applyToAll = (createElement: () => HTMLElement): void => {
+    inFlightPlantUmlRequests.delete(content);
+    for (const apply of appliers) {
+      apply(createElement());
+    }
+  };
+
+  plantUmlCallbackManager.register(
+    requestId,
+    (svg, error) => {
+      applyToAll(() =>
+        svg ? createDiagramContainer(svg) : createErrorElement("PlantUML", error ?? "Unknown error")
+      );
+    },
+    {
+      timeoutMs,
+      onTimeout: () => {
+        applyToAll(() => createErrorElement("PlantUML", PLANTUML_TIMEOUT_MESSAGE));
+      },
+    }
+  );
 
   // Extension経由でレンダリングをリクエスト
   vscode.postMessage({
@@ -123,11 +159,5 @@ export function renderPlantUmlPreview(
  */
 export function handlePlantUmlResult(requestId: string, svg?: string, error?: string): void {
   const callback = plantUmlCallbackManager.resolve(requestId);
-  if (callback) {
-    if (svg) {
-      callback(createDiagramContainer(svg));
-    } else {
-      callback(createErrorElement("PlantUML", error ?? "Unknown error"));
-    }
-  }
+  callback?.(svg, error);
 }
