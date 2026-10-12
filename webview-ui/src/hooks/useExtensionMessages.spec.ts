@@ -13,9 +13,9 @@ vi.mock("@/utilities/vscode", () => ({
   },
 }));
 
-// debounceをモック（即座に実行）
+// debounceをモック（即座に実行）。デバウンスそのものの検証は useExtensionMessages.feature で行う
 vi.mock("@/utilities/debounce", () => ({
-  debounce: (fn: () => void) => fn,
+  debounce: (fn: () => void) => Object.assign(fn, { cancel: () => undefined }),
 }));
 
 describe("useExtensionMessages", () => {
@@ -25,7 +25,7 @@ describe("useExtensionMessages", () => {
   let setTheme: Mock<React.Dispatch<React.SetStateAction<ThemeKind>>>;
   let setThemeSetting: Mock<React.Dispatch<React.SetStateAction<ThemeSetting>>>;
   let setCustomCss: Mock<React.Dispatch<React.SetStateAction<string>>>;
-  let updateMarkdownFromExtension: Mock<(text: string, isInit?: boolean) => void>;
+  let updateMarkdownFromExtension: Mock<(text: string) => void>;
   let messageHandler: ((event: MessageEvent) => void) | null = null;
 
   beforeEach(() => {
@@ -42,7 +42,7 @@ describe("useExtensionMessages", () => {
       return callback;
     });
     setCustomCss = vi.fn<React.Dispatch<React.SetStateAction<string>>>();
-    updateMarkdownFromExtension = vi.fn<(text: string, isInit?: boolean) => void>();
+    updateMarkdownFromExtension = vi.fn<(text: string) => void>();
 
     // windowのaddEventListenerをスパイしてハンドラをキャプチャ
     const originalAddEventListener = window.addEventListener;
@@ -105,10 +105,10 @@ describe("useExtensionMessages", () => {
       }
     });
 
-    expect(updateMarkdownFromExtension).toHaveBeenCalledWith("# Test Markdown", false);
+    expect(updateMarkdownFromExtension).toHaveBeenCalledWith("# Test Markdown");
   });
 
-  it("initメッセージでisInit=trueでupdateMarkdownFromExtensionが呼ばれること", () => {
+  it("拡張機能からのinitメッセージは扱わないこと（拡張機能はinitを送らない）", () => {
     renderHook(() =>
       useExtensionMessages({
         vscodeThemeRef,
@@ -122,19 +122,12 @@ describe("useExtensionMessages", () => {
     );
 
     act(() => {
-      if (messageHandler) {
-        messageHandler(
-          new MessageEvent("message", {
-            data: {
-              type: "init",
-              payload: "# Initial Markdown",
-            },
-          })
-        );
-      }
+      messageHandler?.(
+        new MessageEvent("message", { data: { type: "init", payload: "# Initial Markdown" } })
+      );
     });
 
-    expect(updateMarkdownFromExtension).toHaveBeenCalledWith("# Initial Markdown", true);
+    expect(updateMarkdownFromExtension).not.toHaveBeenCalled();
   });
 
   it("updateThemeメッセージでvscodeThemeRefが更新されること", () => {

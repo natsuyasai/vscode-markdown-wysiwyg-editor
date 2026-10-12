@@ -6,7 +6,7 @@ import {
   UpdateMessage,
   UpdateSettingsMessage,
 } from "@message/messageTypeToWebview";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { debounce } from "../utilities/debounce";
 import { vscode } from "../utilities/vscode";
 import { useEventListener } from "./useEventListener";
@@ -18,8 +18,11 @@ interface UseExtensionMessagesParams {
   setTheme: React.Dispatch<React.SetStateAction<ThemeKind>>;
   setThemeSetting: React.Dispatch<React.SetStateAction<ThemeSetting>>;
   setCustomCss: React.Dispatch<React.SetStateAction<string>>;
-  updateMarkdownFromExtension: (text: string, isInit?: boolean) => void;
+  updateMarkdownFromExtension: (text: string) => void;
 }
+
+/** 拡張機能からの連続した更新を1つにまとめる待ち時間（ms）。編集内容の取り込みを遅らせすぎない短さにする */
+export const EXTENSION_UPDATE_DEBOUNCE_MS = 50;
 
 /**
  * Extension通信のカスタムフック
@@ -33,19 +36,24 @@ export function useExtensionMessages({
   setCustomCss,
   updateMarkdownFromExtension,
 }: UseExtensionMessagesParams): void {
+  // 最新の取り込み処理を参照しつつ、デバウンスは1つだけ作る（メッセージごとに作ると、まとめ処理にならない）
+  const updateMarkdownFromExtensionRef = useRef(updateMarkdownFromExtension);
+  updateMarkdownFromExtensionRef.current = updateMarkdownFromExtension;
+  const applyExtensionUpdate = useMemo(
+    () =>
+      debounce((text: string) => {
+        updateMarkdownFromExtensionRef.current(text);
+      }, EXTENSION_UPDATE_DEBOUNCE_MS),
+    []
+  );
+  useEffect(() => () => applyExtensionUpdate.cancel(), [applyExtensionUpdate]);
+
   const handleMessagesFromExtension = useCallback(
     (event: MessageEvent<Message>) => {
       const message = event.data satisfies Message;
       switch (message.type) {
-        case "init":
         case "update":
-          {
-            const updateMessage = message as UpdateMessage;
-            const isInit = message.type === "init";
-            debounce(() => {
-              updateMarkdownFromExtension(updateMessage.payload, isInit);
-            })();
-          }
+          applyExtensionUpdate((message as UpdateMessage).payload);
           break;
         case "updateTheme":
           {
@@ -94,7 +102,7 @@ export function useExtensionMessages({
       setTheme,
       setThemeSetting,
       setCustomCss,
-      updateMarkdownFromExtension,
+      applyExtensionUpdate,
     ]
   );
 
