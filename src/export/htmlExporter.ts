@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { Marked, type Tokens } from "marked";
+import { stripFrontmatter } from "./frontmatter";
 import { embedImagesInMarkdown, embedImagesInHtml } from "./imageEmbedder";
 import { generateHtmlDocument, generateScopedHtmlDocument } from "./htmlTemplate";
 
@@ -78,10 +79,13 @@ export function exportToHtml(
 ): void {
   const { theme, title, embedImages = true, mermaidImages } = options;
 
+  // YAMLフロントマターは出力に含めない
+  const body = stripFrontmatter(markdown);
+
   // Process markdown to embed images if enabled
-  let processedMarkdown = markdown;
+  let processedMarkdown = body;
   if (embedImages) {
-    processedMarkdown = embedImagesInMarkdown(markdown, basePath);
+    processedMarkdown = embedImagesInMarkdown(body, basePath);
   }
 
   // Convert Markdown to HTML using marked
@@ -118,10 +122,13 @@ export function generateHtmlForPdf(
 ): string {
   const { theme, title = "Document", embedImages = true, mermaidImages } = options;
 
+  // YAMLフロントマターは出力に含めない
+  const body = stripFrontmatter(markdown);
+
   // Process markdown to embed images if enabled
-  let processedMarkdown = markdown;
+  let processedMarkdown = body;
   if (embedImages) {
-    processedMarkdown = embedImagesInMarkdown(markdown, basePath);
+    processedMarkdown = embedImagesInMarkdown(body, basePath);
   }
 
   // Convert Markdown to HTML using marked
