@@ -44,6 +44,23 @@ export function splitFrontmatter(markdown: string): SplitFrontmatter {
 }
 
 /**
+ * 編集領域（Crepe）に渡す前の分割。
+ *
+ * フロントマターがあるとき、その直後の空行もフロントマター側に含める。
+ * Crepeは本文の先頭の空行を出力しないため、本文側に残すと「フロントマターと本文の間の空行」が
+ * ラウンドトリップで失われ、保存時の3-wayマージで空行の重複などの余計な差分になる。
+ * `prefix + body === markdown` が常に成り立つ。
+ */
+export function splitForEditor(markdown: string): { prefix: string; body: string } {
+  const { raw, body } = splitFrontmatter(markdown);
+  if (raw === "") {
+    return { prefix: "", body: markdown };
+  }
+  const leadingBlankLines = /^(?:[ \t]*\r?\n)*/.exec(body)?.[0] ?? "";
+  return { prefix: raw + leadingBlankLines, body: body.slice(leadingBlankLines.length) };
+}
+
+/**
  * Markdown文字列先頭のYAMLフロントマターを検出してパースする
  * - パースに失敗した場合、または結果がプレーンオブジェクトでない場合は
  *   frontmatterをnullとし、contentは元のmarkdownをそのまま返す

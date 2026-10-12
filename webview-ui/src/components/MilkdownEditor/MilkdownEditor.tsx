@@ -11,6 +11,7 @@ import { replaceAll } from "@milkdown/utils";
 import { FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useImageUpload } from "../../hooks/useImageUpload";
 import { extractHeadings } from "../../utilities/extractHeadings";
+import { splitForEditor } from "../../utilities/parseFrontmatter";
 import { OutlineSidebar } from "../OutlineSidebar";
 import {
   handlePlantUmlResult,
@@ -48,7 +49,11 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   const divRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
   const isEditorReadyRef = useRef(false);
-  const lastKnownValueRef = useRef(normalizeLineEndings(value));
+  // フロントマターは編集領域に渡さず、元の文字列のまま保持して出力のたびに先頭へ付け直す
+  const frontmatterRef = useRef("");
+  // エディタに渡した、またはエディタが出力した最後の本文（フロントマターを除く）
+  const lastKnownBodyRef = useRef<string | null>(null);
+  const initialValueRef = useRef(normalizeLineEndings(value));
   const readonlyRef = useRef(readonly);
   const themeRef = useRef(theme);
   const onContentLoadedRef = useRef(onContentLoaded);
@@ -60,8 +65,8 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   themeRef.current = theme;
   onContentLoadedRef.current = onContentLoaded;
 
-  // markdownからリアルタイムに見出しを抽出
-  const headings = useMemo(() => extractHeadings(value), [value]);
+  // markdownからリアルタイムに見出しを抽出（フロントマターは編集領域に表示しないので対象外）
+  const headings = useMemo(() => extractHeadings(splitForEditor(value).body), [value]);
 
   // 最新のheadingsをrefで保持し、スクロールハンドラを安定させる
   const headingsRef = useRef(headings);
@@ -104,10 +109,17 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
     let isMounted = true;
     let previewIdCounter = 0;
 
-    const initialValue = normalizeLineEndings(lastKnownValueRef.current);
+    // 作り直しのときは、最後にエディタが知っていた前置き(フロントマター)と本文から始める（再分割はしない）
+    const initialSplit =
+      lastKnownBodyRef.current === null
+        ? splitForEditor(initialValueRef.current)
+        : { prefix: frontmatterRef.current, body: lastKnownBodyRef.current };
+    const initialValue = initialSplit.prefix + initialSplit.body;
+    frontmatterRef.current = initialSplit.prefix;
+    lastKnownBodyRef.current = initialSplit.body;
     const crepe = new Crepe({
       root: divRef.current,
-      defaultValue: initialValue,
+      defaultValue: initialSplit.body,
       featureConfigs: {
         [Crepe.Feature.CodeMirror]: {
           renderPreview: (language, content, applyPreview) => {
@@ -137,9 +149,9 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
 
     crepe.on((listener) => {
       listener.markdownUpdated((_, markdown) => {
-        const normalized = normalizeLineEndings(markdown);
-        lastKnownValueRef.current = normalized;
-        onChange(normalized);
+        const body = normalizeLineEndings(markdown);
+        lastKnownBodyRef.current = body;
+        onChange(frontmatterRef.current + body);
       });
     });
 
@@ -169,11 +181,17 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
         // 初期化中に値が変わっていた場合は、最新の値へ置き換える（初期化中は値の変更が反映されないため）
         const latestValue = normalizeLineEndings(valueRef.current);
         if (latestValue !== initialValue) {
-          crepe.editor.action(replaceAll(latestValue, true));
-          lastKnownValueRef.current = latestValue;
+          const latest = splitForEditor(latestValue);
+          frontmatterRef.current = latest.prefix;
+          if (latest.body !== initialSplit.body) {
+            crepe.editor.action(replaceAll(latest.body, true));
+          }
+          lastKnownBodyRef.current = latest.body;
         }
-        // 初期コンテンツのシリアライズ結果（ラウンドトリップ後のMarkdown）を通知
-        onContentLoadedRef.current?.(normalizeLineEndings(crepe.getMarkdown()));
+        // 初期コンテンツのシリアライズ結果（ラウンドトリップ後のMarkdown）を、フロントマターを付けて通知
+        onContentLoadedRef.current?.(
+          frontmatterRef.current + normalizeLineEndings(crepe.getMarkdown())
+        );
       }
     };
 
@@ -183,10 +201,10 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
       // 作り直し・破棄の前に、通知が間に合っていない最新の編集内容を取り込む（編集を失わないため）
       if (isEditorReadyRef.current) {
         try {
-          const latest = normalizeLineEndings(crepe.getMarkdown());
-          if (latest !== lastKnownValueRef.current) {
-            lastKnownValueRef.current = latest;
-            onChange(latest);
+          const latestBody = normalizeLineEndings(crepe.getMarkdown());
+          if (latestBody !== lastKnownBodyRef.current) {
+            lastKnownBodyRef.current = latestBody;
+            onChange(frontmatterRef.current + latestBody);
           }
         } catch {
           // エディタが既に破棄されている場合は取り込めない
@@ -217,16 +235,23 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
 
     // 内部変更の場合はスキップ（最後に知っている値と同じ場合）
     const normalizedValue = normalizeLineEndings(value);
-    if (normalizedValue === lastKnownValueRef.current) {
+    if (normalizedValue === frontmatterRef.current + (lastKnownBodyRef.current ?? "")) {
       return;
     }
 
     try {
-      // flush=true でカーソル位置をリセットして安全に置換
-      crepeRef.current.editor.action(replaceAll(normalizedValue, true));
-      lastKnownValueRef.current = normalizedValue;
-      // 置換後のシリアライズ結果（ラウンドトリップ後のMarkdown）を通知
-      onContentLoadedRef.current?.(normalizeLineEndings(crepeRef.current.getMarkdown()));
+      const next = splitForEditor(normalizedValue);
+      frontmatterRef.current = next.prefix;
+      // フロントマターだけが変わった場合は本文を置き換えない（カーソル位置を保つ）
+      if (next.body !== lastKnownBodyRef.current) {
+        // flush=true でカーソル位置をリセットして安全に置換
+        crepeRef.current.editor.action(replaceAll(next.body, true));
+        lastKnownBodyRef.current = next.body;
+      }
+      // 外部から与えた内容の読み込み完了として、フロントマターを付けたシリアライズ結果（ラウンドトリップ後のMarkdown）を通知
+      onContentLoadedRef.current?.(
+        frontmatterRef.current + normalizeLineEndings(crepeRef.current.getMarkdown())
+      );
     } catch (error) {
       console.error("Failed to update editor content:", error);
     }

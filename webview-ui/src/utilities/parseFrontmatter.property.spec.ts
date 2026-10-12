@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { stringify } from "yaml";
-import { parseFrontmatter, splitFrontmatter } from "@/utilities/parseFrontmatter";
+import { parseFrontmatter, splitForEditor, splitFrontmatter } from "@/utilities/parseFrontmatter";
 
 /**
  * parseFrontmatter のプロパティベーステスト。
@@ -107,6 +107,23 @@ describe("splitFrontmatter のプロパティ", () => {
           expect(split.raw + split.body).toBe(text);
           expect(parsed.content).toBe(split.body);
           expect(parsed.frontmatter === null).toBe(split.raw === "");
+        }
+      ),
+      { numRuns: 500 }
+    );
+  });
+
+  it("任意の文字列で、splitForEditor の前置きと本文をつなげると元の文字列に戻る", () => {
+    const fragments = fc.constantFrom("---", "\n", "\r\n", "a: b", "# c", "text", " ", "\t");
+    fc.assert(
+      fc.property(
+        fc.array(fragments, { maxLength: 14 }).map((parts) => parts.join("")),
+        (text) => {
+          const split = splitForEditor(text);
+          expect(split.prefix + split.body).toBe(text);
+          if (split.prefix !== "") {
+            expect(split.body).not.toMatch(/^[ \t]*\r?\n/);
+          }
         }
       ),
       { numRuns: 500 }

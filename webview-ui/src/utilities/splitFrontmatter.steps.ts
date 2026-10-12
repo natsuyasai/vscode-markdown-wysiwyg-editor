@@ -1,11 +1,16 @@
 import { type DocString, Given, Then, When } from "quickpickle";
 import type { QuickPickleWorldInterface } from "quickpickle";
 import { expect } from "vitest";
-import { splitFrontmatter, type SplitFrontmatter } from "@/utilities/parseFrontmatter";
+import {
+  splitForEditor,
+  splitFrontmatter,
+  type SplitFrontmatter,
+} from "@/utilities/parseFrontmatter";
 
 interface SplitFrontmatterData {
   markdown?: string;
   split?: SplitFrontmatter;
+  editorSplit?: { prefix: string; body: string };
 }
 
 function data(world: QuickPickleWorldInterface): SplitFrontmatterData {
@@ -49,3 +54,25 @@ Then("フロントマターは切り出されない", (world: QuickPickleWorldIn
   expect(result(world).raw).toBe("");
   expect(result(world).body).toBe(data(world).markdown);
 });
+
+When("編集領域に渡す形に切り出す", (world: QuickPickleWorldInterface) => {
+  data(world).editorSplit = splitForEditor(data(world).markdown ?? "");
+});
+
+Then(
+  "編集領域に渡す前置きは次の文字列である:",
+  (world: QuickPickleWorldInterface, expected: DocString) => {
+    expect(data(world).editorSplit?.prefix).toBe(expected.toString());
+  }
+);
+
+Then("編集領域に渡す前置きは空である", (world: QuickPickleWorldInterface) => {
+  expect(data(world).editorSplit?.prefix).toBe("");
+});
+
+Then(
+  "編集領域に渡す本文は次の文字列である:",
+  (world: QuickPickleWorldInterface, expected: DocString) => {
+    expect(data(world).editorSplit?.body).toBe(expected.toString());
+  }
+);
