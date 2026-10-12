@@ -31,7 +31,7 @@ function isMermaidImage(value: unknown): boolean {
   return hasStringFields(value, ["code", "dataUri"]);
 }
 
-/** exportHtml / exportBlogHtml: payload は省略可。指定する場合 mermaidImages は {code, dataUri} の配列 */
+/** exportHtml / exportBlogHtml / exportPdf: payload は省略可。指定する場合 mermaidImages は {code, dataUri} の配列 */
 function isExportPayload(payload: unknown): boolean {
   if (payload === undefined) {
     return true;
@@ -66,7 +66,7 @@ const PAYLOAD_VALIDATORS: Record<MessageType, PayloadValidator> = {
     hasStringFields(payload, ["filePath"]) && isRecord(payload) && isOptionalString(payload.anchor),
   exportHtml: isExportPayload,
   exportBlogHtml: isExportPayload,
-  exportPdf: acceptAnyPayload,
+  exportPdf: isExportPayload,
 };
 
 function isMessageType(value: unknown): value is MessageType {

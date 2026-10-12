@@ -84,6 +84,9 @@ export interface ExportHtmlMessage extends Message {
 
 export interface ExportPdfMessage extends Message {
   type: "exportPdf";
+  payload?: {
+    mermaidImages: MermaidImagePayload[];
+  };
 }
 
 export interface ExportBlogHtmlMessage extends Message {

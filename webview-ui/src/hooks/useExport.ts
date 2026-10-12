@@ -21,7 +21,7 @@ interface UseExportParams {
 
 interface UseExportResult {
   handleExportHtml: () => Promise<void>;
-  handleExportPdf: () => void;
+  handleExportPdf: () => Promise<void>;
   handleExportBlogHtml: () => Promise<void>;
   contextMenuItems: ContextMenuItem[];
 }
@@ -86,9 +86,23 @@ export function useExport({ markdown, themeSetting, theme }: UseExportParams): U
     } satisfies ExportHtmlMessage);
   }, []);
 
-  const handleExportPdf = useCallback(() => {
+  const handleExportPdf = useCallback(async () => {
+    const mermaidImages = await collectMermaidImages(
+      markdownRef.current,
+      themeSettingRef.current,
+      themeRef.current
+    );
+
+    if (mermaidImages.length === 0) {
+      vscode.postMessage({
+        type: "exportPdf",
+      } satisfies ExportPdfMessage);
+      return;
+    }
+
     vscode.postMessage({
       type: "exportPdf",
+      payload: { mermaidImages },
     } satisfies ExportPdfMessage);
   }, []);
 
@@ -128,7 +142,9 @@ export function useExport({ markdown, themeSetting, theme }: UseExportParams): U
       },
       {
         label: "PDFとしてエクスポート",
-        onClick: handleExportPdf,
+        onClick: () => {
+          void handleExportPdf();
+        },
       },
     ],
     [handleExportHtml, handleExportBlogHtml, handleExportPdf]
