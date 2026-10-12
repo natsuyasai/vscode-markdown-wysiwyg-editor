@@ -77,14 +77,15 @@ jobs:
           cd webview-ui
           npx playwright install --with-deps chromium
 
-      - name: Run unit tests (webview-ui)
+      # unit / storybook / gherkin / gherkin-browser をすべて実行する
+      - name: Run tests (webview-ui)
         run: |
           cd webview-ui
           npm run test
 
+      - name: Build extension tests
+        run: npm run compile-tests && node esbuild.js
+
+      # webview-uiのテストは上で実行済みのため、拡張機能のテスト（mocha + cucumber）のみ実行する
       - name: VSCode extension tests
-        run: |
-          /usr/bin/Xvfb :99 -screen 0 1024x768x24 & sleep 1
-          ps aux | grep Xvfb --color=always | grep -v grep
-          DISPLAY=:99.0 npm run test
-          killall Xvfb
+        run: xvfb-run -a npm run test:extension
