@@ -1,6 +1,7 @@
 import { type DataTable, type DocString, Given, Then, When } from "quickpickle";
 import type { QuickPickleWorldInterface } from "quickpickle";
 import { expect } from "vitest";
+import { findExecutableMarkup } from "@/test/gherkin/findExecutableMarkup";
 import { sanitizeDiagramSvg } from "@/utilities/sanitizeDiagramSvg";
 
 interface SanitizeDiagramSvgData {
@@ -16,26 +17,6 @@ function sanitizedContainer(world: QuickPickleWorldInterface): HTMLElement {
   const container = document.createElement("div");
   container.innerHTML = data(world).sanitizedDiagramSvg ?? "";
   return container;
-}
-
-/** スクリプトとして実行される要素や属性（イベントハンドラ、javascriptスキーム等）を検出する */
-export function findExecutableMarkup(root: Element): string[] {
-  const found: string[] = [];
-  const forbiddenTags = ["script", "iframe", "object", "embed", "animate", "set"];
-  for (const element of root.querySelectorAll("*")) {
-    if (forbiddenTags.includes(element.localName.toLowerCase())) {
-      found.push(`<${element.localName}>`);
-    }
-    for (const attr of element.attributes) {
-      if (/^on/i.test(attr.name)) {
-        found.push(`${element.localName}[${attr.name}]`);
-      }
-      if (/^\s*javascript:/i.test(attr.value)) {
-        found.push(`${element.localName}[${attr.name}=javascript:]`);
-      }
-    }
-  }
-  return found;
 }
 
 Given("次の図のSVG:", (world: QuickPickleWorldInterface, svg: DocString) => {

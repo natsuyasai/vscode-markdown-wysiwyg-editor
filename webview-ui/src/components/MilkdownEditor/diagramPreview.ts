@@ -66,7 +66,7 @@ export function renderMermaidPreview(
 
   mermaid
     .render(`mermaid-${id}`, content, tempContainer)
-    .then(({ svg, bindFunctions }) => {
+    .then(({ svg }) => {
       // 一時コンテナを削除
       tempContainer.remove();
 
@@ -88,11 +88,6 @@ export function renderMermaidPreview(
       if (svgElement) {
         svgElement.style.display = "block";
         svgElement.style.minWidth = "fit-content";
-      }
-
-      // インタラクティブな要素のバインド（存在する場合）
-      if (bindFunctions) {
-        bindFunctions(container);
       }
 
       applyPreview(container);
