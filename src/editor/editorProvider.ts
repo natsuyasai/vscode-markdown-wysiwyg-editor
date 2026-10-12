@@ -17,6 +17,27 @@ import { loadCustomCss } from "../util/customCssLoader";
 import { buildWebviewHtml } from "./webviewHtml";
 import * as path from "path";
 
+/**
+ * エディタの登録に使う VS Code API（テストで記録用の実装に差し替えられるようにする）
+ */
+export interface EditorRegistrationApi {
+  registerCommand(command: string, callback: () => void): vscode.Disposable;
+  registerCustomEditorProvider(
+    viewType: string,
+    provider: vscode.CustomTextEditorProvider,
+    options: {
+      readonly webviewOptions?: vscode.WebviewPanelOptions;
+      readonly supportsMultipleEditorsPerDocument?: boolean;
+    }
+  ): vscode.Disposable;
+}
+
+const defaultEditorRegistrationApi: EditorRegistrationApi = {
+  registerCommand: (command, callback) => vscode.commands.registerCommand(command, callback),
+  registerCustomEditorProvider: (viewType, provider, options) =>
+    vscode.window.registerCustomEditorProvider(viewType, provider, options),
+};
+
 export class EditorProvider implements vscode.CustomTextEditorProvider {
   /**
    * Register the editor provider.
@@ -24,19 +45,22 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
    * @param context The extension context.
    * @returns A disposable that unregisters the editor provider.
    */
-  public static register(context: vscode.ExtensionContext): vscode.Disposable {
+  public static register(
+    context: vscode.ExtensionContext,
+    api: EditorRegistrationApi = defaultEditorRegistrationApi
+  ): vscode.Disposable {
     // 現在アクティブなファイルを開くコマンドを登録
-    vscode.commands.registerCommand("markdown-wysiwyg-editor.openEditor", () => {
+    const openEditorCommand = api.registerCommand("markdown-wysiwyg-editor.openEditor", () => {
       const activeEditor = vscode.window.activeTextEditor;
       if (!activeEditor) {
-        vscode.window.showErrorMessage("markdown-wysiwyg-editor: No active editor.");
+        void vscode.window.showErrorMessage("markdown-wysiwyg-editor: No active editor.");
         return;
       }
       const uri = activeEditor.document.uri;
-      vscode.commands.executeCommand("vscode.openWith", uri, EditorProvider.viewType);
+      void vscode.commands.executeCommand("vscode.openWith", uri, EditorProvider.viewType);
     });
 
-    return vscode.window.registerCustomEditorProvider(
+    const customEditorProvider = api.registerCustomEditorProvider(
       EditorProvider.viewType,
       new EditorProvider(context),
       {
@@ -47,6 +71,9 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
         supportsMultipleEditorsPerDocument: false, // 同一ドキュメントに対して複数のエディタをサポートするかどうか
       }
     );
+
+    // 呼び出し側（activate）が subscriptions に追加し、拡張機能の破棄時にまとめて解除する
+    return vscode.Disposable.from(openEditorCommand, customEditorProvider);
   }
 
   // package.jsonのviewTypeと一致させる
@@ -118,7 +145,7 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
       } satisfies UpdateSettingsMessage);
     }
 
-    vscode.window.onDidChangeActiveColorTheme(() => {
+    const themeChangeSubscription = vscode.window.onDidChangeActiveColorTheme(() => {
       updateTheme();
     });
 
@@ -204,6 +231,7 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
 
     // Make sure we get rid of the listener when our editor is closed.
     webviewPanel.onDidDispose(() => {
+      themeChangeSubscription.dispose();
       changeDocumentSubscription.dispose();
       webviewReceiveMessageSubscription.dispose();
       configChangeSubscription.dispose();
