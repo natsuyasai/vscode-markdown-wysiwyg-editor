@@ -140,4 +140,54 @@ describe("mergeUserEdits", () => {
 
     expect(mergeUserEdits(original, baseline, baseline)).toBe(original);
   });
+
+  describe("空行が対応付けの目印にならないこと（#24）", () => {
+    it("先頭の空行が落ちる文書で、整形される行を編集しても先頭の空行を保全する", () => {
+      const original = "\n* a\n\n* b";
+      const baseline = "- a\n\n- b";
+      const current = "- a2\n\n- b";
+
+      expect(mergeUserEdits(original, baseline, current)).toBe("\n- a2\n\n* b");
+    });
+
+    it("まとめられる連続した空行の手前の行を編集しても、空行と後続の記法を保全する", () => {
+      const original = "* a\n\n\n\n* b";
+      const baseline = "- a\n\n- b";
+      const current = "- a2\n\n- b";
+
+      expect(mergeUserEdits(original, baseline, current)).toBe("- a2\n\n\n\n* b");
+    });
+
+    it("まとめられる連続した空行の後ろの行を編集しても、空行と手前の記法を保全する", () => {
+      const original = "* a\n\n\n\n* b";
+      const baseline = "- a\n\n- b";
+      const current = "- a\n\n- b2";
+
+      expect(mergeUserEdits(original, baseline, current)).toBe("* a\n\n\n\n- b2");
+    });
+
+    it("先頭の空行が落ち、空行もまとめられる文書で、先頭の行を編集する", () => {
+      const original = "\n\n* a\n\n\n* b\n\n\n* c";
+      const baseline = "- a\n\n- b\n\n- c";
+      const current = "- a2\n\n- b\n\n- c";
+
+      expect(mergeUserEdits(original, baseline, current)).toBe("\n\n- a2\n\n\n* b\n\n\n* c");
+    });
+
+    it("中ほどの行を編集しても、前後の空行と記法を保全する", () => {
+      const original = "\n* a\n\n\n* b\n\n\n* c\n";
+      const baseline = "- a\n\n- b\n\n- c";
+      const current = "- a\n\n- b2\n\n- c";
+
+      expect(mergeUserEdits(original, baseline, current)).toBe("\n* a\n\n\n- b2\n\n\n* c\n");
+    });
+
+    it("空行だけの編集（箇条書きの間を空ける）も反映する", () => {
+      const original = "- a\n- b";
+      const baseline = "- a\n- b";
+      const current = "- a\n\n- b";
+
+      expect(mergeUserEdits(original, baseline, current)).toBe("- a\n\n- b");
+    });
+  });
 });

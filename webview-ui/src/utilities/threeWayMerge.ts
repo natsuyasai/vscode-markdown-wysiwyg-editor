@@ -3,6 +3,7 @@ import { diffIndices } from "node-diff3";
 /**
  * baseline→originalの行アライメント（正規化差分の対応関係）を表すセグメント
  * 差分箇所（mismatch）のみを保持し、その間は共通行として1:1に対応する
+ * 行は空行を除いた内容のある行（内容行）の並びで数える
  */
 interface AlignmentSegment {
   baselineStart: number;
@@ -22,6 +23,41 @@ function buildAlignment(baselineLines: string[], originalLines: string[]): Align
     originalStart: mismatch.buffer2[0],
     originalLength: mismatch.buffer2[1],
   }));
+}
+
+/**
+ * 行の並びと、空行を除いた内容行の位置情報
+ *
+ * 空行はどこにあっても同じ行に見えるため、行の対応付けの目印にならない。
+ * 対応付けは内容行だけで行い、空行は隣り合う内容行からの相対位置で扱う。
+ */
+interface LineIndex {
+  lineCount: number;
+  /** 内容行の番号 → 全行の中での行位置 */
+  contentPositions: number[];
+  contentLines: string[];
+}
+
+function indexLines(lines: string[]): LineIndex {
+  const contentPositions: number[] = [];
+  const contentLines: string[] = [];
+  lines.forEach((line, position) => {
+    if (line.trim() !== "") {
+      contentPositions.push(position);
+      contentLines.push(line);
+    }
+  });
+  return { lineCount: lines.length, contentPositions, contentLines };
+}
+
+/** 内容行`contentIndex`の直後から次の内容行（なければ末尾）の直前までの、空行の範囲 */
+function blankRunAfter(index: LineIndex, contentIndex: number): { start: number; end: number } {
+  const start = contentIndex > 0 ? index.contentPositions[contentIndex - 1] + 1 : 0;
+  const end =
+    contentIndex < index.contentPositions.length
+      ? index.contentPositions[contentIndex]
+      : index.lineCount;
+  return { start, end };
 }
 
 /** 変換する位置が編集範囲の開始か終了かを表す境界種別 */
@@ -58,6 +94,47 @@ function mapBaselinePositionToOriginal(
     offset += segment.originalLength - segment.baselineLength;
   }
   return position + offset;
+}
+
+/**
+ * baseline上の行位置（行と行の境界）をoriginal上の行位置に変換する
+ *
+ * 内容行どうしの対応で、境界の手前にある内容行の数`k`を`k'`に変換し、
+ * 境界が`k`番目の内容行の後ろの空行の並びのどこにあったかを、`k'`の後ろの空行の並びに写す。
+ * - 空行の並びの先頭（空行の手前）にある境界は、original側でも並びの先頭に対応させる
+ * - 空行の並びの末尾（次の内容行の直前）にある境界は、original側でも並びの末尾に対応させる
+ * - 空行の並びがない境界は、開始位置なら次の内容行の直前、終了位置なら前の内容行の直後に対応させる。
+ *   original側にだけある空行（まとめられた空行など）は、編集範囲に含めず保全する
+ * - 並びの途中にある境界は、original側の並びの長さを超えない範囲で同じ位置に対応させる
+ */
+function mapBoundaryToOriginal(
+  position: number,
+  baseline: LineIndex,
+  original: LineIndex,
+  alignment: AlignmentSegment[],
+  boundary: BoundaryKind
+): number {
+  const contentBefore = baseline.contentPositions.filter((p) => p < position).length;
+  const baselineRun = blankRunAfter(baseline, contentBefore);
+  const blanksBefore = position - baselineRun.start;
+  const baselineRunLength = baselineRun.end - baselineRun.start;
+
+  const mappedContentBefore = mapBaselinePositionToOriginal(contentBefore, alignment, boundary);
+  const originalRun = blankRunAfter(
+    original,
+    Math.min(mappedContentBefore, original.contentPositions.length)
+  );
+
+  if (baselineRunLength === 0) {
+    return boundary === "start" ? originalRun.end : originalRun.start;
+  }
+  if (blanksBefore === 0) {
+    return originalRun.start;
+  }
+  if (blanksBefore === baselineRunLength) {
+    return originalRun.end;
+  }
+  return originalRun.start + Math.min(blanksBefore, originalRun.end - originalRun.start);
 }
 
 /**
@@ -104,8 +181,10 @@ function mergeBodies(original: string, baseline: string, current: string): strin
     return original;
   }
 
-  // 正規化差分の対応関係 = baseline→originalの行アライメント
-  const alignment = buildAlignment(baselineLines, originalLines);
+  // 正規化差分の対応関係 = baseline→originalの内容行のアライメント（空行は目印にしない）
+  const baselineIndex = indexLines(baselineLines);
+  const originalIndex = indexLines(originalLines);
+  const alignment = buildAlignment(baselineIndex.contentLines, originalIndex.contentLines);
 
   // 各編集ハンクをoriginal上の行範囲にマップし、currentの内容で置き換える
   const resultLines: string[] = [];
@@ -113,12 +192,18 @@ function mergeBodies(original: string, baseline: string, current: string): strin
   for (const hunk of editHunks) {
     const baselineStart = hunk.buffer1[0];
     const baselineEnd = baselineStart + hunk.buffer1[1];
-    const originalStart = mapBaselinePositionToOriginal(baselineStart, alignment, "start");
+    const originalStart = mapBoundaryToOriginal(
+      baselineStart,
+      baselineIndex,
+      originalIndex,
+      alignment,
+      "start"
+    );
     // 開始と終了で境界規則が異なるため、純粋な挿入ハンクでは終了位置が開始位置を
     // 下回ることがある。範囲が逆転しないよう終了位置を開始位置以上に丸める
     const originalEnd = Math.max(
       originalStart,
-      mapBaselinePositionToOriginal(baselineEnd, alignment, "end")
+      mapBoundaryToOriginal(baselineEnd, baselineIndex, originalIndex, alignment, "end")
     );
 
     resultLines.push(...originalLines.slice(consumedOriginalLines, originalStart));
