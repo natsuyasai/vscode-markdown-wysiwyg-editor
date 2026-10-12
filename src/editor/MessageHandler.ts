@@ -11,6 +11,7 @@ import {
 import {
   ExportBlogHtmlMessage,
   ExportHtmlMessage,
+  ExportPdfMessage,
   OpenFileMessage,
   RenderPlantUmlMessage,
   SaveImageMessage,
@@ -124,7 +125,13 @@ export async function handleMessage(
       return;
 
     case "exportPdf":
-      await handleExportPdf(document, webviewPanel, context.getThemeKind, exportOperations);
+      await handleExportPdf(
+        message as ExportPdfMessage,
+        document,
+        webviewPanel,
+        context.getThemeKind,
+        exportOperations
+      );
       return;
   }
 }
@@ -350,6 +357,7 @@ async function handleExportBlogHtml(
 }
 
 async function handleExportPdf(
+  message: ExportPdfMessage,
   document: vscode.TextDocument,
   webviewPanel: vscode.WebviewPanel,
   getThemeKind: () => ThemeKind,
@@ -370,6 +378,7 @@ async function handleExportPdf(
       title,
       embedImages: true,
       customCss,
+      mermaidImages: buildMermaidImageMap(message.payload?.mermaidImages),
     });
 
     const tempDir = os.tmpdir();

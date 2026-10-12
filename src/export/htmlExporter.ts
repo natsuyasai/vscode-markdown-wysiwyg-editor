@@ -116,7 +116,7 @@ export function generateHtmlForPdf(
   basePath: string,
   options: ExportOptions
 ): string {
-  const { theme, title = "Document", embedImages = true } = options;
+  const { theme, title = "Document", embedImages = true, mermaidImages } = options;
 
   // Process markdown to embed images if enabled
   let processedMarkdown = markdown;
@@ -125,9 +125,7 @@ export function generateHtmlForPdf(
   }
 
   // Convert Markdown to HTML using marked
-  const htmlContent = new Marked({ gfm: true, breaks: false }).parse(processedMarkdown, {
-    async: false,
-  });
+  const htmlContent = renderMarkdownToHtml(processedMarkdown, mermaidImages);
 
   // Embed images in HTML (for HTML img tags in markdown)
   let processedHtml = htmlContent;

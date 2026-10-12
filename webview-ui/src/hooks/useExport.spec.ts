@@ -58,14 +58,14 @@ describe("useExport", () => {
     });
   });
 
-  it("handleExportPdfがpostMessageを呼び出すこと", async () => {
+  it("handleExportPdfがpostMessageを呼び出すこと（Mermaidを含まない場合はpayload無し）", async () => {
     const { vscode } = await import("@/utilities/vscode");
     const { result } = renderHook(() =>
       useExport({ markdown: NO_MERMAID_MARKDOWN, themeSetting: "auto", theme: "light" })
     );
 
-    act(() => {
-      result.current.handleExportPdf();
+    await act(async () => {
+      await result.current.handleExportPdf();
     });
 
     expect(vscode.postMessage).toHaveBeenCalledWith({
@@ -127,8 +127,9 @@ describe("useExport", () => {
 
     vi.clearAllMocks();
 
-    act(() => {
+    await act(async () => {
       result.current.contextMenuItems[2].onClick();
+      await Promise.resolve();
     });
 
     expect(vscode.postMessage).toHaveBeenCalledWith({
@@ -252,6 +253,45 @@ describe("useExport", () => {
       payload: {
         mermaidImages: [{ code: "graph TD;A-->B;", dataUri: "data:image/png;base64,YYY" }],
       },
+    });
+  });
+
+  it("Mermaidブロックを含む場合、handleExportPdfはmermaidImages付きでpostMessageすること", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const { renderMermaidToPng } = await import("@/utilities/mermaidToPng");
+    vi.mocked(renderMermaidToPng).mockResolvedValue("data:image/png;base64,PPP");
+
+    const { result } = renderHook(() =>
+      useExport({ markdown: SINGLE_MERMAID_MARKDOWN, themeSetting: "auto", theme: "light" })
+    );
+
+    await act(async () => {
+      await result.current.handleExportPdf();
+    });
+
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      type: "exportPdf",
+      payload: {
+        mermaidImages: [{ code: "graph TD;A-->B;", dataUri: "data:image/png;base64,PPP" }],
+      },
+    });
+  });
+
+  it("Mermaidブロックが全て失敗した場合、handleExportPdfはpayload無しでpostMessageすること", async () => {
+    const { vscode } = await import("@/utilities/vscode");
+    const { renderMermaidToPng } = await import("@/utilities/mermaidToPng");
+    vi.mocked(renderMermaidToPng).mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useExport({ markdown: SINGLE_MERMAID_MARKDOWN, themeSetting: "auto", theme: "light" })
+    );
+
+    await act(async () => {
+      await result.current.handleExportPdf();
+    });
+
+    expect(vscode.postMessage).toHaveBeenCalledWith({
+      type: "exportPdf",
     });
   });
 
