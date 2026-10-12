@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as http from "http";
 import * as path from "path";
 import * as vscode from "vscode";
+import { collectBody } from "./collectBody";
 import { encodePlantUml } from "./encoder";
 import { resolveJavaPath } from "./javaLocator";
 
@@ -139,21 +140,20 @@ export class PlantUmlServer {
 
       return await new Promise((resolve) => {
         const request = http.get(url, (response) => {
-          let data = "";
-
-          response.on("data", (chunk: string) => {
-            data += chunk;
-          });
-
-          response.on("end", () => {
-            if (response.statusCode === 200) {
-              resolve({ svg: data });
-            } else {
-              resolve({
-                error: `PlantUML server returned status ${String(response.statusCode)}`,
-              });
-            }
-          });
+          collectBody(response)
+            .then((data) => {
+              if (response.statusCode === 200) {
+                resolve({ svg: data });
+              } else {
+                resolve({
+                  error: `PlantUML server returned status ${String(response.statusCode)}`,
+                });
+              }
+            })
+            .catch((error: unknown) => {
+              const message = error instanceof Error ? error.message : String(error);
+              resolve({ error: `Failed to read PlantUML server response: ${message}` });
+            });
         });
 
         request.on("error", (error) => {
