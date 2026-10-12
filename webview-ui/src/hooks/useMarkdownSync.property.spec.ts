@@ -105,18 +105,7 @@ describe("useMarkdownSync プロパティ", () => {
 
   it("1ブロックだけ編集したら、そのブロックだけが変わる", () => {
     fc.assert(
-      // 空行は行単位のdiffで一意なアンカーにならないため、編集箇所の近くで空行の圧縮や先頭の空行の除去と
-      // 同じ行の記法の正規化が重なると、対応を取り違えうる（既知の制約）。ここではその組み合わせを除いて検証する
-      fc.property(docArbitrary, fc.nat(), (generated, seed) => {
-        const doc: Doc = {
-          ...generated,
-          gaps: generated.gaps.map(() => "\n\n" as const),
-          // 先頭の空行が落ちる文書では、編集する先頭ブロックの記法の正規化は重ねない
-          blocks: generated.blocks.map((block) => ({
-            ...block,
-            marker: generated.leadingBlankLines > 0 && block.marker === "* " ? "- " : block.marker,
-          })),
-        };
+      fc.property(docArbitrary, fc.nat(), (doc, seed) => {
         const index = seed % doc.blocks.length;
         const hook = load(doc);
         act(() => {
