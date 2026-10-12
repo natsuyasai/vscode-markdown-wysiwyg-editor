@@ -44,7 +44,7 @@ export async function handleMessage(
   message: unknown,
   context: MessageHandlerContext
 ): Promise<void> {
-  const { document, webviewPanel, extensionPath } = context;
+  const { document, webviewPanel } = context;
   if (!isValidWebviewMessage(message)) return; // 不正な形式のメッセージは無視する
 
   switch (message.type) {
@@ -78,7 +78,7 @@ export async function handleMessage(
       return;
 
     case "renderPlantUml":
-      await handleRenderPlantUml(message as RenderPlantUmlMessage, webviewPanel, extensionPath);
+      await handleRenderPlantUml(message as RenderPlantUmlMessage, webviewPanel);
       return;
 
     case "saveSettings":
@@ -134,11 +134,10 @@ async function handleSaveImage(
 
 async function handleRenderPlantUml(
   message: RenderPlantUmlMessage,
-  webviewPanel: vscode.WebviewPanel,
-  extensionPath: string
+  webviewPanel: vscode.WebviewPanel
 ): Promise<void> {
   const { code, requestId } = message.payload;
-  const server = getPlantUmlServer(extensionPath);
+  const server = getPlantUmlServer();
   const result = await server.render(code);
   webviewPanel.webview.postMessage({
     type: "plantUmlResult",

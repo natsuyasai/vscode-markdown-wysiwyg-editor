@@ -1,13 +1,161 @@
 import * as child_process from "child_process";
 import * as fs from "fs";
 import * as http from "http";
-import * as path from "path";
+import * as net from "net";
+import * as os from "os";
+import type { Readable } from "stream";
 import * as vscode from "vscode";
+import { collectBody } from "./collectBody";
 import { encodePlantUml } from "./encoder";
+import { JAR_PATH_SETTING, JAVA_PATH_SETTING, PORT_SETTING, resolveJarPath } from "./jarPath";
+import { resolveJavaPath } from "./javaLocator";
+import { PlantUmlConfigurationError } from "./plantUmlErrors";
 
 export interface PlantUmlRenderResult {
   svg?: string;
   error?: string;
+}
+
+/** PlantUMLサーバーの起動に使う設定値 */
+export interface PlantUmlServerConfig {
+  jarPath: string;
+  javaPath: string;
+  port: number;
+}
+
+/** PlantUMLサーバーのプロセスとして必要な最小限のインターフェース */
+export interface PlantUmlProcess {
+  readonly stderr: Readable | null;
+  kill(): boolean;
+  on(event: "close", listener: (code: number | null) => void): this;
+  on(event: "error", listener: (error: Error) => void): this;
+}
+
+/** HTTPリクエストの結果 */
+export interface PlantUmlHttpResponse {
+  statusCode: number | undefined;
+  body: string;
+}
+
+/** 設定エラーの通知に使うUI（テストで差し替える） */
+export interface PlantUmlNotificationUi {
+  showErrorMessage(message: string, ...items: string[]): PromiseLike<string | undefined>;
+  openSettings(settingKey: string): void;
+}
+
+/** 設定エラーの通知に表示するボタン */
+export const OPEN_SETTINGS_ACTION = "設定を開く";
+
+const vscodeNotificationUi: PlantUmlNotificationUi = {
+  showErrorMessage: (message, ...items) => vscode.window.showErrorMessage(message, ...items),
+  openSettings: (settingKey) => {
+    void vscode.commands.executeCommand("workbench.action.openSettings", settingKey);
+  },
+};
+
+/**
+ * PlantUmlServerの依存（テストで差し替える）。
+ * 省略した項目は実際の環境（vscode設定・child_process・fs・http）を使う。
+ */
+export interface PlantUmlServerOptions {
+  getConfig?: () => PlantUmlServerConfig;
+  spawn?: (command: string, args: string[]) => PlantUmlProcess;
+  existsSync?: (filePath: string) => boolean;
+  resolveJava?: (configuredJavaPath: string) => string | null;
+  homedir?: () => string;
+  /** 指定したポートを他のプロセスが使っていないか確認する */
+  isPortAvailable?: (port: number) => Promise<boolean>;
+  /** サーバーがHTTPに応答できる状態か確認する */
+  readinessProbe?: (port: number) => Promise<boolean>;
+  /** SVGを取得するHTTPリクエスト */
+  request?: (url: string, timeoutMs: number) => Promise<PlantUmlHttpResponse>;
+  /** 起動待ちの上限（ミリ秒） */
+  startupTimeoutMs?: number;
+  /** 起動確認の間隔（ミリ秒） */
+  readinessIntervalMs?: number;
+  /** 描画リクエストの上限（ミリ秒） */
+  requestTimeoutMs?: number;
+  /** 設定エラーの通知に使うUI */
+  notificationUi?: PlantUmlNotificationUi;
+}
+
+const HOST = "localhost";
+const DEFAULT_STARTUP_TIMEOUT_MS = 30_000;
+const DEFAULT_READINESS_INTERVAL_MS = 250;
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
+function readConfigFromVsCode(): PlantUmlServerConfig {
+  const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
+  return {
+    jarPath: config.get<string>("plantumlJarPath", ""),
+    javaPath: config.get<string>("javaPath", ""),
+    port: config.get<number>("plantumlServerPort", 8888),
+  };
+}
+
+function httpRequest(url: string, timeoutMs: number): Promise<PlantUmlHttpResponse> {
+  return new Promise((resolve, reject) => {
+    const request = http.get(url, (response) => {
+      collectBody(response)
+        .then((body) => {
+          resolve({ statusCode: response.statusCode, body });
+        })
+        .catch(reject);
+    });
+    request.on("error", reject);
+    request.setTimeout(timeoutMs, () => {
+      request.destroy(new Error("PlantUML render timeout"));
+    });
+  });
+}
+
+/** ポートに接続できれば、他のプロセスが使用中とみなす */
+function isPortAvailableByConnecting(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: HOST, port });
+    socket.setTimeout(1_000);
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => {
+      resolve(true);
+    });
+  });
+}
+
+function isSameConfig(a: PlantUmlServerConfig, b: PlantUmlServerConfig): boolean {
+  return a.jarPath === b.jarPath && a.javaPath === b.javaPath && a.port === b.port;
+}
+
+/** HTTPで何らかの応答が返れば、サーバーが起動済みとみなす */
+function probeByHttp(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const request = http.get(`http://${HOST}:${String(port)}/`, (response) => {
+      response.resume();
+      resolve(true);
+    });
+    request.on("error", () => {
+      resolve(false);
+    });
+    request.setTimeout(1_000, () => {
+      request.destroy();
+      resolve(false);
+    });
+  });
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+interface RunningServer {
+  process: PlantUmlProcess;
+  config: PlantUmlServerConfig;
 }
 
 /**
@@ -15,143 +163,167 @@ export interface PlantUmlRenderResult {
  * picowebモードでローカルサーバーを起動し、SVGレンダリングを行う
  */
 export class PlantUmlServer {
-  private serverProcess: child_process.ChildProcess | null = null;
-  private port: number;
-  private isStarted = false;
-  private startPromise: Promise<void> | null = null;
+  private running: RunningServer | null = null;
+  private startPromise: Promise<RunningServer> | null = null;
+  /** 設定エラーを通知済みか（通知はセッション中に1回だけにする） */
+  private configurationErrorNotified = false;
 
-  constructor(private extensionPath: string) {
-    const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
-    this.port = config.get<number>("plantumlServerPort", 8888);
+  private readonly getConfig: () => PlantUmlServerConfig;
+  private readonly spawnProcess: (command: string, args: string[]) => PlantUmlProcess;
+  private readonly existsSync: (filePath: string) => boolean;
+  private readonly resolveJava: (configuredJavaPath: string) => string | null;
+  private readonly homedir: () => string;
+  private readonly isPortAvailable: (port: number) => Promise<boolean>;
+  private readonly readinessProbe: (port: number) => Promise<boolean>;
+  private readonly request: (url: string, timeoutMs: number) => Promise<PlantUmlHttpResponse>;
+  private readonly startupTimeoutMs: number;
+  private readonly readinessIntervalMs: number;
+  private readonly requestTimeoutMs: number;
+  private readonly notificationUi: PlantUmlNotificationUi;
+
+  constructor(options: PlantUmlServerOptions = {}) {
+    this.getConfig = options.getConfig ?? readConfigFromVsCode;
+    this.spawnProcess =
+      options.spawn ??
+      ((command, args) =>
+        // 標準出力は使わないため捨てる（パイプのまま読まないとバッファが詰まる）
+        child_process.spawn(command, args, { stdio: ["ignore", "ignore", "pipe"] }));
+    this.existsSync = options.existsSync ?? ((filePath) => fs.existsSync(filePath));
+    this.resolveJava = options.resolveJava ?? ((configured) => resolveJavaPath(configured));
+    this.homedir = options.homedir ?? (() => os.homedir());
+    this.isPortAvailable = options.isPortAvailable ?? isPortAvailableByConnecting;
+    this.readinessProbe = options.readinessProbe ?? probeByHttp;
+    this.request = options.request ?? httpRequest;
+    this.startupTimeoutMs = options.startupTimeoutMs ?? DEFAULT_STARTUP_TIMEOUT_MS;
+    this.readinessIntervalMs = options.readinessIntervalMs ?? DEFAULT_READINESS_INTERVAL_MS;
+    this.requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    this.notificationUi = options.notificationUi ?? vscodeNotificationUi;
   }
 
   /**
-   * Javaの実行可能ファイルパスを取得する
-   */
-  private getJavaPath(): string | null {
-    const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
-    const configuredPath = config.get<string>("javaPath");
-
-    if (configuredPath && fs.existsSync(configuredPath)) {
-      return configuredPath;
-    }
-
-    // JAVA_HOMEから探す
-    const javaHome = process.env["JAVA_HOME"];
-    if (javaHome) {
-      const javaExe =
-        process.platform === "win32"
-          ? path.join(javaHome, "bin", "java.exe")
-          : path.join(javaHome, "bin", "java");
-      if (fs.existsSync(javaExe)) {
-        return javaExe;
-      }
-    }
-
-    // PATHから探す（コマンドが存在することを確認）
-    try {
-      const result = child_process.spawnSync(
-        process.platform === "win32" ? "where" : "which",
-        ["java"],
-        { encoding: "utf8" }
-      );
-      if (result.status === 0 && result.stdout.trim()) {
-        return result.stdout.trim().split("\n")[0];
-      }
-    } catch {
-      // ignore
-    }
-
-    return null;
-  }
-
-  /**
-   * PlantUMLサーバーを起動する
+   * PlantUMLサーバーを起動する。起動済みであれば何もしない。
+   * 起動に失敗した場合や、プロセスが終了した場合は、次の呼び出しで起動し直す。
+   * 起動後に設定（jar・Java・ポート）が変わった場合も、新しい設定で起動し直す。
    */
   async start(): Promise<void> {
-    if (this.isStarted) {
-      return;
-    }
+    await this.ensureStarted();
+  }
 
-    if (this.startPromise) {
-      return this.startPromise;
+  private async ensureStarted(): Promise<RunningServer> {
+    if (this.running) {
+      if (isSameConfig(this.running.config, this.getConfig())) {
+        return this.running;
+      }
+      this.stop();
     }
-
-    this.startPromise = this.doStart();
+    if (!this.startPromise) {
+      const startPromise = this.doStart().finally(() => {
+        if (this.startPromise === startPromise) {
+          this.startPromise = null;
+        }
+      });
+      this.startPromise = startPromise;
+    }
     return this.startPromise;
   }
 
-  private async doStart(): Promise<void> {
-    const javaPath = this.getJavaPath();
+  private async doStart(): Promise<RunningServer> {
+    const config = this.getConfig();
+
+    const jarPath = resolveJarPath(config.jarPath, this.homedir());
+    if (!this.existsSync(jarPath)) {
+      throw new PlantUmlConfigurationError(
+        `PlantUMLのjarファイルが見つかりません: ${jarPath}。設定 "${JAR_PATH_SETTING}" を確認してください。`,
+        JAR_PATH_SETTING
+      );
+    }
+
+    const javaPath = this.resolveJava(config.javaPath);
     if (!javaPath) {
-      throw new Error(
-        "Java not found. Please install Java 11 or later, or set the javaPath in settings."
+      throw new PlantUmlConfigurationError(
+        `Javaが見つかりません。Java 11以降をインストールするか、設定 "${JAVA_PATH_SETTING}" にJavaの実行ファイルのパスを指定してください。`,
+        JAVA_PATH_SETTING
       );
     }
 
-    const jarPath = path.join(this.extensionPath, "resources", "plantuml.jar");
-    if (!fs.existsSync(jarPath)) {
-      throw new Error(
-        `PlantUML JAR not found at ${jarPath}. Please ensure the extension is properly installed.`
+    // 他のプロセスが使っているポートでは起動せず、そのプロセスに接続しないようにする
+    if (!(await this.isPortAvailable(config.port))) {
+      throw new PlantUmlConfigurationError(
+        `ポート ${String(config.port)} は他のプロセスが使用しています。設定 "${PORT_SETTING}" を変更してください。`,
+        PORT_SETTING
       );
     }
 
-    return new Promise((resolve, reject) => {
-      const args = ["-jar", jarPath, "-picoweb:" + String(this.port)];
+    const serverProcess = this.spawnProcess(javaPath, [
+      "-jar",
+      jarPath,
+      `-picoweb:${String(config.port)}`,
+    ]);
+    const running: RunningServer = { process: serverProcess, config };
 
-      this.serverProcess = child_process.spawn(javaPath, args, {
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-
-      let startupOutput = "";
-      let errorOutput = "";
-
-      const timeout = setTimeout(() => {
-        // サーバーが起動したと仮定
-        this.isStarted = true;
-        resolve();
-      }, 3000);
-
-      this.serverProcess.stdout?.on("data", (data: Buffer) => {
-        startupOutput += data.toString();
-        // サーバーが起動したことを示すメッセージを検出
-        if (startupOutput.includes("Starting PlantUML Picoweb")) {
-          clearTimeout(timeout);
-          this.isStarted = true;
-          resolve();
-        }
-      });
-
-      this.serverProcess.stderr?.on("data", (data: Buffer) => {
-        errorOutput += data.toString();
-      });
-
-      this.serverProcess.on("error", (error) => {
-        clearTimeout(timeout);
-        reject(new Error(`Failed to start PlantUML server: ${error.message}`));
-      });
-
-      this.serverProcess.on("close", (code) => {
-        if (!this.isStarted) {
-          clearTimeout(timeout);
-          reject(
-            new Error(`PlantUML server exited with code ${String(code)}. Error: ${errorOutput}`)
-          );
-        }
-        this.isStarted = false;
-        this.serverProcess = null;
-      });
+    let errorOutput = "";
+    serverProcess.stderr?.on("data", (data: Buffer | string) => {
+      errorOutput += data.toString();
     });
+
+    let exitError: Error | null = null;
+    serverProcess.on("error", (error) => {
+      exitError = new Error(`PlantUMLサーバーを起動できませんでした: ${error.message}`);
+    });
+    serverProcess.on("close", (code) => {
+      exitError ??= new Error(
+        `PlantUMLサーバーが終了コード${String(code)}で終了しました: ${errorOutput.trim()}`
+      );
+      if (this.running === running) {
+        this.running = null;
+      }
+    });
+
+    await this.waitUntilReady(config.port, serverProcess, () => exitError);
+    this.running = running;
+    return running;
+  }
+
+  /**
+   * サーバーがHTTPに応答するまで待つ。
+   * 上限までに応答がない場合はプロセスを停止し、起動失敗とする。
+   */
+  private async waitUntilReady(
+    port: number,
+    serverProcess: PlantUmlProcess,
+    getExitError: () => Error | null
+  ): Promise<void> {
+    const deadline = Date.now() + this.startupTimeoutMs;
+    for (;;) {
+      const errorBeforeProbe = getExitError();
+      if (errorBeforeProbe) {
+        throw errorBeforeProbe;
+      }
+      const ready = await this.readinessProbe(port);
+      const errorAfterProbe = getExitError();
+      if (errorAfterProbe) {
+        throw errorAfterProbe;
+      }
+      if (ready) {
+        return;
+      }
+      if (Date.now() >= deadline) {
+        serverProcess.kill();
+        throw new Error(
+          `PlantUMLサーバーの起動を確認できませんでした（${String(this.startupTimeoutMs / 1000)}秒）。`
+        );
+      }
+      await delay(this.readinessIntervalMs);
+    }
   }
 
   /**
    * PlantUMLサーバーを停止する
    */
   stop(): void {
-    if (this.serverProcess) {
-      this.serverProcess.kill();
-      this.serverProcess = null;
-      this.isStarted = false;
+    if (this.running) {
+      this.running.process.kill();
+      this.running = null;
     }
   }
 
@@ -162,51 +334,47 @@ export class PlantUmlServer {
    */
   async render(code: string): Promise<PlantUmlRenderResult> {
     try {
-      await this.start();
+      const running = await this.ensureStarted();
 
-      // PlantUMLエンコード
       const encoded = encodePlantUml(code);
-      const url = `http://localhost:${String(this.port)}/svg/${encoded}`;
-
-      return await new Promise((resolve) => {
-        const request = http.get(url, (response) => {
-          let data = "";
-
-          response.on("data", (chunk: string) => {
-            data += chunk;
-          });
-
-          response.on("end", () => {
-            if (response.statusCode === 200) {
-              resolve({ svg: data });
-            } else {
-              resolve({
-                error: `PlantUML server returned status ${String(response.statusCode)}`,
-              });
-            }
-          });
-        });
-
-        request.on("error", (error) => {
-          resolve({ error: `Failed to connect to PlantUML server: ${error.message}` });
-        });
-
-        request.setTimeout(30000, () => {
-          request.destroy();
-          resolve({ error: "PlantUML render timeout" });
-        });
-      });
+      const url = `http://${HOST}:${String(running.config.port)}/svg/${encoded}`;
+      const response = await this.request(url, this.requestTimeoutMs);
+      if (response.statusCode === 200) {
+        return { svg: response.body };
+      }
+      return { error: `PlantUML server returned status ${String(response.statusCode)}` };
     } catch (error) {
+      if (error instanceof PlantUmlConfigurationError) {
+        this.notifyConfigurationErrorOnce(error);
+      }
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return { error: errorMessage };
     }
   }
 
   /**
+   * 設定の誤りを「設定を開く」ボタン付きで通知する。
+   * 描画のたびに通知しないよう、セッション中に1回だけにする（エラーはプレビューにも表示される）。
+   */
+  private notifyConfigurationErrorOnce(error: PlantUmlConfigurationError): void {
+    if (this.configurationErrorNotified) {
+      return;
+    }
+    this.configurationErrorNotified = true;
+    void this.notificationUi
+      .showErrorMessage(error.message, OPEN_SETTINGS_ACTION)
+      .then((selected) => {
+        if (selected === OPEN_SETTINGS_ACTION) {
+          this.notificationUi.openSettings(error.settingKey);
+        }
+      });
+  }
+
+  /**
    * サーバーが起動しているかどうか
    */
   get isRunning(): boolean {
-    return this.isStarted;
+    return this.running !== null;
   }
 }
 
@@ -216,10 +384,8 @@ let plantUmlServerInstance: PlantUmlServer | null = null;
 /**
  * PlantUMLサーバーのシングルトンインスタンスを取得する
  */
-export function getPlantUmlServer(extensionPath: string): PlantUmlServer {
-  if (!plantUmlServerInstance) {
-    plantUmlServerInstance = new PlantUmlServer(extensionPath);
-  }
+export function getPlantUmlServer(): PlantUmlServer {
+  plantUmlServerInstance ??= new PlantUmlServer();
   return plantUmlServerInstance;
 }
 
