@@ -3,10 +3,11 @@ import { parse } from "yaml";
 /**
  * Markdown先頭のYAMLフロントマターブロックにマッチする正規表現。
  * WebView側の parseFrontmatter（webview-ui/src/utilities/parseFrontmatter.ts）と同じ判定にする。
- * - 先頭が "---" 行で始まり、次の "---" 行までをブロックとする（CRLFにも対応）
+ * - 先頭が "---" 行で始まり、次の "---" だけの行までをブロックとする（CRLFにも対応）
+ * - 閉じの "---" は行全体であること（"----" や "---x" では閉じない）
  * - キャプチャグループ1がフロントマター本文（YAML）
  */
-const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 
 function isPlainObject(value: unknown): boolean {
   return typeof value === "object" && value !== null && !Array.isArray(value);
