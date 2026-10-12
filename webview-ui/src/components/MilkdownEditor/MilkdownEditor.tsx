@@ -52,8 +52,10 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
   const readonlyRef = useRef(readonly);
   const themeRef = useRef(theme);
   const onContentLoadedRef = useRef(onContentLoaded);
+  const valueRef = useRef(value);
 
   // refを最新の値で更新
+  valueRef.current = value;
   readonlyRef.current = readonly;
   themeRef.current = theme;
   onContentLoadedRef.current = onContentLoaded;
@@ -102,9 +104,10 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
     let isMounted = true;
     let previewIdCounter = 0;
 
+    const initialValue = normalizeLineEndings(lastKnownValueRef.current);
     const crepe = new Crepe({
       root: divRef.current,
-      defaultValue: normalizeLineEndings(lastKnownValueRef.current),
+      defaultValue: initialValue,
       featureConfigs: {
         [Crepe.Feature.CodeMirror]: {
           renderPreview: (language, content, applyPreview) => {
@@ -163,6 +166,12 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
         isEditorReadyRef.current = true;
         // 初期化後にreadonlyを適用
         crepe.setReadonly(readonlyRef.current);
+        // 初期化中に値が変わっていた場合は、最新の値へ置き換える（初期化中は値の変更が反映されないため）
+        const latestValue = normalizeLineEndings(valueRef.current);
+        if (latestValue !== initialValue) {
+          crepe.editor.action(replaceAll(latestValue, true));
+          lastKnownValueRef.current = latestValue;
+        }
         // 初期コンテンツのシリアライズ結果（ラウンドトリップ後のMarkdown）を通知
         onContentLoadedRef.current?.(normalizeLineEndings(crepe.getMarkdown()));
       }
@@ -171,6 +180,18 @@ export const MilkdownEditor: FC<MilkdownEditorProps> = ({
     const initPromise = initializeEditor();
 
     return () => {
+      // 作り直し・破棄の前に、通知が間に合っていない最新の編集内容を取り込む（編集を失わないため）
+      if (isEditorReadyRef.current) {
+        try {
+          const latest = normalizeLineEndings(crepe.getMarkdown());
+          if (latest !== lastKnownValueRef.current) {
+            lastKnownValueRef.current = latest;
+            onChange(latest);
+          }
+        } catch {
+          // エディタが既に破棄されている場合は取り込めない
+        }
+      }
       isMounted = false;
       isEditorReadyRef.current = false;
       crepeRef.current = null;

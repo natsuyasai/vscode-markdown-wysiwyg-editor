@@ -3,14 +3,15 @@ import styles from "./App.module.scss";
 import { ContextMenu } from "./components/ContextMenu";
 import { EditorToolbar } from "./components/EditorToolbar";
 import { MarkdownViewer } from "./components/MarkdownViewer";
+import { MergeConflictNotice } from "./components/MergeConflictNotice";
 import { MilkdownEditor } from "./components/MilkdownEditor";
 import { useCustomCss } from "./hooks/useCustomCss";
 import { useExport } from "./hooks/useExport";
 import { useExtensionMessages } from "./hooks/useExtensionMessages";
-import { useImageHandler } from "./hooks/useImageHandler";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useLinkHandler } from "./hooks/useLinkHandler";
 import { useMarkdownSync } from "./hooks/useMarkdownSync";
+import { useReadonlyInputGuard } from "./hooks/useReadonlyInputGuard";
 import { useTheme } from "./hooks/useTheme";
 
 export default function App() {
@@ -36,7 +37,8 @@ export default function App() {
     updateMarkdownFromExtension,
     handleBaselineLoaded,
     handleApply,
-    handleImageInserted,
+    hasMergeConflict,
+    dismissMergeConflict,
   } = useMarkdownSync();
 
   // Extension通信
@@ -59,7 +61,7 @@ export default function App() {
   // エクスポート機能
   const { contextMenuItems } = useExport({ markdown, themeSetting, theme });
 
-  // グローバルキーボードショートカット
+  // グローバルキーボードショートカット（Windows/Linux は Ctrl+S、macOS は Cmd+S で保存）
   useKeyboardShortcuts({
     shortcuts: [
       {
@@ -69,16 +71,20 @@ export default function App() {
         stopPropagation: true,
         preventDefault: true,
       },
+      {
+        key: "s",
+        meta: true,
+        handler: () => handleApply(),
+        stopPropagation: true,
+        preventDefault: true,
+      },
     ],
     element: window as unknown as HTMLElement,
   });
 
-  // 画像ペースト/ドロップハンドラ（プレビューモード時のみ有効）
+  // 読み取り専用の間は、画像などの貼り付けとドロップを無効にする
   // 編集モードではCrepeのImageBlock.onUploadが画像処理を担当する
-  useImageHandler({
-    onImageInserted: handleImageInserted,
-    enabled: readonly,
-  });
+  useReadonlyInputGuard(readonly);
 
   return (
     <>
@@ -90,6 +96,7 @@ export default function App() {
             themeSetting={themeSetting}
             onThemeSettingChange={handleThemeSettingChange}
           />
+          {hasMergeConflict && <MergeConflictNotice onDismiss={dismissMergeConflict} />}
         </header>
         <ContextMenu items={contextMenuItems}>
           <main className={styles.main}>

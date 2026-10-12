@@ -1,19 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanupMarkdown, convertLineEndings, detectLineEnding } from "@/utilities/markdownCleanup";
-
-describe("detectLineEnding", () => {
-  it("CRLFを含むテキストではCRLFを返す", () => {
-    expect(detectLineEnding("Line1\r\nLine2")).toBe("\r\n");
-  });
-
-  it("LFのみのテキストではLFを返す", () => {
-    expect(detectLineEnding("Line1\nLine2")).toBe("\n");
-  });
-
-  it("改行なしのテキストではLFを返す", () => {
-    expect(detectLineEnding("No newline")).toBe("\n");
-  });
-});
+import { cleanupMarkdown, convertLineEndings } from "@/utilities/markdownCleanup";
 
 describe("convertLineEndings", () => {
   it("LFをCRLFに変換する", () => {

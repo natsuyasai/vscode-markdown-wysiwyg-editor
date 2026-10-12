@@ -8,14 +8,19 @@ const imageUploadCallbacks = new Map<string, (result: string | null) => void>();
 
 /**
  * 相対パスをWebView URIに変換する
- * 読み込み時にExtensionが行うconvertImagePathsToWebviewUriと同等の処理
+ * 読み込み時にExtensionが行う表示用URIへの変換と同じく、セグメントごとにパーセントエンコードする
+ * （空白や日本語、括弧を含む名前でも有効なURIにする）。拡張機能が保存時にデコードして相対パスへ戻す
  */
 function toWebviewUri(relativePath: string, baseUri: string): string {
   if (!baseUri) {
     return relativePath;
   }
   const normalizedBaseUri = baseUri.endsWith("/") ? baseUri : `${baseUri}/`;
-  return `${normalizedBaseUri}${relativePath}`;
+  const encodedPath = relativePath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `${normalizedBaseUri}${encodedPath}`;
 }
 
 interface UseImageUploadResult {

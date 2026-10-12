@@ -5,7 +5,9 @@ import {
   SAMPLE_HEADING_TEXT,
   UPDATED_HEADING_TEXT,
   UPDATED_MARKDOWN,
+  pressCmdS,
   pressCtrlS,
+  selectTheme,
   sendInit,
   sendUpdate,
   toggleMode,
@@ -164,6 +166,123 @@ export const SaveWithoutEditKeepsOriginalUnchanged: Story = {
       const saveMessage = findSaveMessage(logSpy.mock.calls);
       // 未編集（baseline===current）のため、originalがバイト単位で不変のまま保存される
       await expect(saveMessage?.payload).toBe(original);
+    } finally {
+      logSpy.mockRestore();
+    }
+  },
+};
+
+/** console.log スパイの呼び出し引数から、最後の save メッセージを取得する */
+function findLastSaveMessage(calls: unknown[][]): SaveMessage | undefined {
+  return calls
+    .map((call): unknown => call[0])
+    .filter(isSaveMessage)
+    .at(-1);
+}
+
+/** 段落の末尾にカーソルを置いて文字を挿入する（userEvent.keyboard は contenteditable の選択範囲を扱えない） */
+function appendTextToParagraph(paragraph: HTMLElement, text: string): void {
+  const editable = paragraph.closest<HTMLElement>("[contenteditable]");
+  editable?.focus();
+  const range = document.createRange();
+  range.selectNodeContents(paragraph);
+  range.collapse(false);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  document.execCommand("insertText", false, text);
+}
+
+export const CmdSSavesLikeCtrlS: Story = {
+  name: "Cmd+S(macOS)でもCtrl+Sと同じく保存される",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const logSpy = spyOn(console, "log");
+
+    try {
+      await waitForEditorReady(canvasElement);
+      const original = "# タイトル\n\n本文\n";
+      sendInit(original);
+      await waitFor(
+        async () => {
+          await expect(canvas.getByText("本文")).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      pressCmdS();
+
+      await waitFor(async () => {
+        await expect(findSaveMessage(logSpy.mock.calls)?.payload).toBe(original);
+      });
+    } finally {
+      logSpy.mockRestore();
+    }
+  },
+};
+
+export const EditsSurviveEditorRecreation: Story = {
+  name: "編集後にモード切替・テーマ変更をしても、編集は失われずに保存される",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const logSpy = spyOn(console, "log");
+
+    try {
+      await waitForEditorReady(canvasElement);
+      sendInit("# タイトル\n\n本文\n");
+      await waitFor(
+        async () => {
+          await expect(canvas.getByText("本文")).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // 本文の末尾に追記する
+      appendTextToParagraph(canvas.getByText("本文"), "追記");
+      await waitFor(
+        async () => {
+          await expect(canvas.getByText("本文追記")).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+
+      // 読み取りモードへ切り替えて戻す（エディタが作り直される）
+      await toggleMode(canvasElement);
+      await waitFor(
+        async () => {
+          await expect(canvasElement.querySelector("[contenteditable]")).toBeNull();
+        },
+        { timeout: 5000 }
+      );
+      await toggleMode(canvasElement);
+      await waitForEditorReady(canvasElement);
+      await waitFor(
+        async () => {
+          await expect(canvas.getByText("本文追記")).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+
+      // テーマを変更する（エディタが作り直される）
+      await selectTheme(canvasElement, "dark");
+      await waitForEditorReady(canvasElement);
+      await waitFor(
+        async () => {
+          await expect(canvas.getByText("本文追記")).toBeInTheDocument();
+        },
+        { timeout: 5000 }
+      );
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      pressCtrlS();
+
+      await waitFor(async () => {
+        await expect(findLastSaveMessage(logSpy.mock.calls)?.payload).toBe(
+          "# タイトル\n\n本文追記\n"
+        );
+      });
     } finally {
       logSpy.mockRestore();
     }
