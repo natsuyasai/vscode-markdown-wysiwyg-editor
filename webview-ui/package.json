@@ -72,6 +72,7 @@
     "playwright": "^1.58.2",
     "postcss": "^8.5.8",
     "prettier": "^3.8.1",
+    "quickpickle": "^1.11.2",
     "sass": "^1.98.0",
     "storybook": "^10.3.1",
     "tsx": "^4.21.0",
