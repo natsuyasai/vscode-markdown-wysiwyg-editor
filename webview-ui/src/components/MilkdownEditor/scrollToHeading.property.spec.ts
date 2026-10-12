@@ -21,6 +21,8 @@ function createContainer(headings: HeadingItem[]): {
   const container = document.createElement("div");
   const mocks = headings.map((heading) => {
     const element = document.createElement(`h${heading.level}`);
+    // 空の見出し要素は対応付けで数えないため、内容を持たせる
+    element.textContent = "見出し";
     const mock = vi.fn();
     element.scrollIntoView = mock;
     container.appendChild(element);

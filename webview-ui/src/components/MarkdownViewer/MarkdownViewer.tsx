@@ -6,7 +6,7 @@ import Markdown, { Components, defaultUrlTransform } from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { SVG_COLOR_REPLACEMENTS, type ThemeKind } from "../../constants/themeColors";
-import { extractHeadings, generateHeadingId } from "../../utilities/extractHeadings";
+import { extractHeadings } from "../../utilities/extractHeadings";
 import { LOCAL_FILE_SCHEME } from "../../utilities/imagePathConverter";
 import { initializeMermaid } from "../../utilities/mermaidInitializer";
 import { parseFrontmatter } from "../../utilities/parseFrontmatter";
@@ -15,6 +15,7 @@ import {
   PLANTUML_TIMEOUT_MESSAGE,
   PlantUmlCallbackManager,
 } from "../../utilities/plantUmlCallbackManager";
+import { remarkHeadingIds } from "../../utilities/remarkHeadingIds";
 import { vscode } from "../../utilities/vscode";
 import { OutlineSidebar } from "../OutlineSidebar";
 import { CodeBlock } from "./CodeBlock";
@@ -155,15 +156,12 @@ function customUrlTransform(url: string): string {
   return defaultUrlTransform(url);
 }
 
-// childrenを文字列に変換するヘルパー関数（純粋関数のためモジュールレベルに配置）
-function childrenToString(children: React.ReactNode): string {
-  if (typeof children === "string") {
-    return children;
-  }
-  if (Array.isArray(children)) {
-    return children.map(childrenToString).join("");
-  }
-  return "";
+/**
+ * `/…`、`\…`（UNCを含む）、`C:\…` / `C:/…` のような絶対パスか
+ * Markdownの解析で、先頭のバックスラッシュは `%5C` にエンコードされて渡ってくる
+ */
+function isAbsolutePath(src: string): boolean {
+  return /^([\\/]|%5C|[A-Za-z]:[\\/])/i.test(src);
 }
 
 // hastノードからテキストを再帰的に抽出するヘルパー関数
@@ -186,12 +184,6 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
 
   // コンテンツ領域のref
   const contentRef = useRef<HTMLDivElement>(null);
-
-  // 重複ID管理用（レンダリングごとにリセット）
-  const idCountsRef = useRef(new Map<string, number>());
-
-  // レンダリングのたびにリセット（valueが変わった時もIDが正しくリセットされるよう、useMemo外に配置）
-  idCountsRef.current = new Map<string, number>();
 
   // スクロールハンドラ
   const handleHeadingClick = useCallback((id: string) => {
@@ -230,8 +222,8 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
       ) {
         return src;
       }
-      // 相対パスの場合はbaseUriで解決
-      if (baseUri && !src.startsWith("/")) {
+      // 相対パスの場合はbaseUriで解決。絶対パスは拡張機能が表示用URIへ変換する（変換されなかったものは編集モードと同じく触らない）
+      if (baseUri && !isAbsolutePath(src)) {
         const normalizedBaseUri = baseUri.endsWith("/") ? baseUri : `${baseUri}/`;
         return `${normalizedBaseUri}${src}`;
       }
@@ -242,34 +234,7 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
 
   // カスタムコンポーネント（resolveImagePathとthemeが変わった時のみ再生成）
   const components: Components = useMemo(() => {
-    const createHeadingComponent = (level: number) => {
-      const HeadingTag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
-      const HeadingComponent = ({
-        children,
-        ...props
-      }: React.HTMLAttributes<HTMLHeadingElement>) => {
-        const text = childrenToString(children);
-        const baseId = generateHeadingId(text);
-        const count = idCountsRef.current.get(baseId) ?? 0;
-        const id = count > 0 ? `${baseId}-${count}` : baseId;
-        idCountsRef.current.set(baseId, count + 1);
-        return (
-          <HeadingTag id={id} {...props}>
-            {children}
-          </HeadingTag>
-        );
-      };
-      HeadingComponent.displayName = `Heading${level}`;
-      return HeadingComponent;
-    };
-
     return {
-      h1: createHeadingComponent(1),
-      h2: createHeadingComponent(2),
-      h3: createHeadingComponent(3),
-      h4: createHeadingComponent(4),
-      h5: createHeadingComponent(5),
-      h6: createHeadingComponent(6),
       pre: ({ node, children, ...props }) => {
         const codeNode = node?.children.find(
           (child): child is Element => child.type === "element" && child.tagName === "code"
@@ -310,7 +275,7 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
       <div className="markdown-viewer" data-theme={theme} ref={contentRef}>
         {frontmatter && <FrontmatterTable data={frontmatter} />}
         <Markdown
-          remarkPlugins={[remarkGfm]}
+          remarkPlugins={[remarkGfm, remarkHeadingIds]}
           rehypePlugins={[rehypeRaw]}
           components={components}
           urlTransform={customUrlTransform}
