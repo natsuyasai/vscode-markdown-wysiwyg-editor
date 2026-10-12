@@ -65,6 +65,11 @@ export class PlantUmlServerHarness {
   readonly requestedUrls: string[] = [];
   result?: PlantUmlRenderResult;
   concurrentResults: PlantUmlRenderResult[] = [];
+  /** 表示されたエラー通知（メッセージとボタン） */
+  readonly notifications: { message: string; items: string[] }[] = [];
+  /** 通知で利用者が選ぶボタン（undefinedなら閉じる） */
+  notificationChoice: string | undefined;
+  readonly openedSettings: string[] = [];
 
   private server?: PlantUmlServer;
 
@@ -93,6 +98,15 @@ export class PlantUmlServerHarness {
       startupTimeoutMs: this.startupTimeoutMs,
       readinessIntervalMs: 10,
       requestTimeoutMs: 1_000,
+      notificationUi: {
+        showErrorMessage: (message, ...items) => {
+          this.notifications.push({ message, items });
+          return Promise.resolve(this.notificationChoice);
+        },
+        openSettings: (settingKey) => {
+          this.openedSettings.push(settingKey);
+        },
+      },
     });
     return this.server;
   }

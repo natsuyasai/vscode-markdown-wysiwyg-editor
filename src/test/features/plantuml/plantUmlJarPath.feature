@@ -77,3 +77,16 @@
     かつ PlantUMLサーバーが準備完了になり、SVG"<svg>ok</svg>"を返す
     かつ PlantUMLのサンプル図を描画する
     ならば PlantUMLの描画結果はSVG"<svg>ok</svg>"になる
+
+  シナリオ: 設定の誤りは「設定を開く」ボタン付きで、セッション中に1回だけ通知する
+    前提 PlantUMLのjarパス設定が空である
+    もし PlantUMLのサンプル図を描画する
+    かつ PlantUMLのサンプル図を描画する
+    ならば PlantUMLの設定エラーの通知は1回だけ「設定を開く」ボタン付きで表示されている
+    かつ PlantUMLの描画結果は"PlantUMLのjarファイルが設定されていません"を含むエラーになる
+
+  シナリオ: 通知の「設定を開く」を選ぶと、見直すべき設定を開く
+    前提 PlantUMLのjarパス設定が空である
+    かつ PlantUMLの設定エラーの通知では「設定を開く」を選ぶ
+    もし PlantUMLのサンプル図を描画する
+    ならば 設定画面でPlantUML用の設定"markdownWysiwygEditor.plantumlJarPath"が開かれる

@@ -2,6 +2,7 @@ import * as assert from "assert";
 import * as path from "path";
 import * as vscode from "vscode";
 import { After, Given, Then, When, type IWorld } from "@cucumber/cucumber";
+import { OPEN_SETTINGS_ACTION } from "../../../../plantuml/plantUmlServer";
 import {
   FAKE_HOME_DIR,
   PlantUmlServerHarness,
@@ -250,5 +251,27 @@ Then(
     const target = harness(this).processes[nth - 1];
     assert.ok(target, `${String(nth)}回目に起動したプロセスがありません`);
     assert.ok(target.killed, `${String(nth)}回目に起動したプロセスが停止されていません`);
+  }
+);
+
+Given("PlantUMLの設定エラーの通知では「設定を開く」を選ぶ", function (this: PlantUmlServerWorld) {
+  harness(this).notificationChoice = OPEN_SETTINGS_ACTION;
+});
+
+Then(
+  "PlantUMLの設定エラーの通知は1回だけ「設定を開く」ボタン付きで表示されている",
+  function (this: PlantUmlServerWorld) {
+    const { notifications } = harness(this);
+    assert.strictEqual(notifications.length, 1);
+    assert.deepStrictEqual(notifications[0]?.items, [OPEN_SETTINGS_ACTION]);
+  }
+);
+
+Then(
+  "設定画面でPlantUML用の設定{string}が開かれる",
+  async function (this: PlantUmlServerWorld, settingKey: string) {
+    // 通知のボタン選択は非同期に処理されるため、処理が終わるのを待つ
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.deepStrictEqual(harness(this).openedSettings, [settingKey]);
   }
 );

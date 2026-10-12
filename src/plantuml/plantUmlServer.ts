@@ -36,6 +36,22 @@ export interface PlantUmlHttpResponse {
   body: string;
 }
 
+/** 設定エラーの通知に使うUI（テストで差し替える） */
+export interface PlantUmlNotificationUi {
+  showErrorMessage(message: string, ...items: string[]): PromiseLike<string | undefined>;
+  openSettings(settingKey: string): void;
+}
+
+/** 設定エラーの通知に表示するボタン */
+export const OPEN_SETTINGS_ACTION = "設定を開く";
+
+const vscodeNotificationUi: PlantUmlNotificationUi = {
+  showErrorMessage: (message, ...items) => vscode.window.showErrorMessage(message, ...items),
+  openSettings: (settingKey) => {
+    void vscode.commands.executeCommand("workbench.action.openSettings", settingKey);
+  },
+};
+
 /**
  * PlantUmlServerの依存（テストで差し替える）。
  * 省略した項目は実際の環境（vscode設定・child_process・fs・http）を使う。
@@ -56,6 +72,8 @@ export interface PlantUmlServerOptions {
   readinessIntervalMs?: number;
   /** 描画リクエストの上限（ミリ秒） */
   requestTimeoutMs?: number;
+  /** 設定エラーの通知に使うUI */
+  notificationUi?: PlantUmlNotificationUi;
 }
 
 const HOST = "localhost";
@@ -121,6 +139,8 @@ interface RunningServer {
 export class PlantUmlServer {
   private running: RunningServer | null = null;
   private startPromise: Promise<RunningServer> | null = null;
+  /** 設定エラーを通知済みか（通知はセッション中に1回だけにする） */
+  private configurationErrorNotified = false;
 
   private readonly getConfig: () => PlantUmlServerConfig;
   private readonly spawnProcess: (command: string, args: string[]) => PlantUmlProcess;
@@ -132,6 +152,7 @@ export class PlantUmlServer {
   private readonly startupTimeoutMs: number;
   private readonly readinessIntervalMs: number;
   private readonly requestTimeoutMs: number;
+  private readonly notificationUi: PlantUmlNotificationUi;
 
   constructor(options: PlantUmlServerOptions = {}) {
     this.getConfig = options.getConfig ?? readConfigFromVsCode;
@@ -148,6 +169,7 @@ export class PlantUmlServer {
     this.startupTimeoutMs = options.startupTimeoutMs ?? DEFAULT_STARTUP_TIMEOUT_MS;
     this.readinessIntervalMs = options.readinessIntervalMs ?? DEFAULT_READINESS_INTERVAL_MS;
     this.requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    this.notificationUi = options.notificationUi ?? vscodeNotificationUi;
   }
 
   /**
@@ -282,9 +304,30 @@ export class PlantUmlServer {
       }
       return { error: `PlantUML server returned status ${String(response.statusCode)}` };
     } catch (error) {
+      if (error instanceof PlantUmlConfigurationError) {
+        this.notifyConfigurationErrorOnce(error);
+      }
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return { error: errorMessage };
     }
+  }
+
+  /**
+   * 設定の誤りを「設定を開く」ボタン付きで通知する。
+   * 描画のたびに通知しないよう、セッション中に1回だけにする（エラーはプレビューにも表示される）。
+   */
+  private notifyConfigurationErrorOnce(error: PlantUmlConfigurationError): void {
+    if (this.configurationErrorNotified) {
+      return;
+    }
+    this.configurationErrorNotified = true;
+    void this.notificationUi
+      .showErrorMessage(error.message, OPEN_SETTINGS_ACTION)
+      .then((selected) => {
+        if (selected === OPEN_SETTINGS_ACTION) {
+          this.notificationUi.openSettings(error.settingKey);
+        }
+      });
   }
 
   /**
