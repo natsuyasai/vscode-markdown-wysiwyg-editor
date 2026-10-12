@@ -808,3 +808,37 @@ export const ContentLoadedOnExternalUpdate: Story = {
     );
   },
 };
+
+// 数式（Crepeの数式機能が使うKaTeX）を含むMarkdown
+const mathMarkdown = `# 数式のテスト
+
+インライン数式 $E = mc^2$ のあとに続く文章です。
+
+$$
+\\int_0^1 x^2 \\, dx = \\frac{1}{3}
+$$
+`;
+
+export const MathRendering: Story = {
+  render: () => <MilkdownEditorWrapper initialValue={mathMarkdown} theme="light" />,
+  name: "数式 - KaTeXで描画される",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await waitFor(
+      async () => {
+        await expect(canvas.getByRole("heading", { name: "数式のテスト" })).toBeInTheDocument();
+      },
+      { timeout: 10000 }
+    );
+
+    // インライン数式とブロック数式の両方がKaTeXで描画され、描画エラーになっていないこと
+    await waitFor(
+      async () => {
+        await expect(canvasElement.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(2);
+        await expect(canvasElement.querySelector(".katex-error")).toBeNull();
+      },
+      { timeout: 10000 }
+    );
+  },
+};
