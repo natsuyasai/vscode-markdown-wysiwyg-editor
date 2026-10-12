@@ -23,10 +23,6 @@ export default mergeConfig(
             globals: true,
             environment: "jsdom",
             setupFiles: "./vitest.setup.ts",
-            alias: {
-              "@vscode-elements/elements/dist/vscode-context-menu/vscode-context-menu":
-                "@vscode-elements/elements/dist/vscode-context-menu/vscode-context-menu.js",
-            },
           },
         },
         {
