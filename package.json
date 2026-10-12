@@ -14,6 +14,16 @@
     "Other"
   ],
   "activationEvents": [],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "制限モードでは、ワークスペースの設定で指定したJavaとPlantUMLのjarのパスを使いません。",
+      "restrictedConfigurations": [
+        "markdownWysiwygEditor.javaPath",
+        "markdownWysiwygEditor.plantumlJarPath"
+      ]
+    }
+  },
   "main": "./dist/extension.js",
   "contributes": {
     "customEditors": [
@@ -49,7 +59,14 @@
         "markdownWysiwygEditor.javaPath": {
           "type": "string",
           "default": "",
+          "scope": "machine",
           "description": "Path to Java executable. If not set, the extension will try to find Java in JAVA_HOME or PATH."
+        },
+        "markdownWysiwygEditor.plantumlJarPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "PlantUMLのjarファイル（plantuml.jar）のパスを絶対パスで指定します。先頭の「~」はホームディレクトリに展開します。PlantUMLのプレビューに必要です。jarは拡張機能に同梱していないため、https://plantuml.com/download から入手してください。"
         },
         "markdownWysiwygEditor.plantumlServerPort": {
           "type": "number",
