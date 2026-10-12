@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { stringify } from "yaml";
-import { parseFrontmatter } from "@/utilities/parseFrontmatter";
+import { parseFrontmatter, splitFrontmatter } from "@/utilities/parseFrontmatter";
 
 /**
  * parseFrontmatter のプロパティベーステスト。
@@ -80,6 +80,36 @@ describe("parseFrontmatter プロパティ", () => {
         expect(result.frontmatter).toEqual(frontmatterObject);
         expect(result.content).toBe(body);
       })
+    );
+  });
+});
+
+describe("splitFrontmatter のプロパティ", () => {
+  it("任意の文字列で、raw と body をつなげると元の文字列に戻り、parseFrontmatter と判定が一致する", () => {
+    const fragments = fc.constantFrom(
+      "---",
+      "\n",
+      "\r\n",
+      "a: b",
+      "# c",
+      "- x",
+      "[",
+      "text",
+      " ",
+      "----"
+    );
+    fc.assert(
+      fc.property(
+        fc.array(fragments, { maxLength: 14 }).map((parts) => parts.join("")),
+        (text) => {
+          const split = splitFrontmatter(text);
+          const parsed = parseFrontmatter(text);
+          expect(split.raw + split.body).toBe(text);
+          expect(parsed.content).toBe(split.body);
+          expect(parsed.frontmatter === null).toBe(split.raw === "");
+        }
+      ),
+      { numRuns: 500 }
     );
   });
 });
