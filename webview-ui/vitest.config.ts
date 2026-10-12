@@ -67,7 +67,8 @@ export default mergeConfig(
         {
           // Gherkin（.browser.feature）を実ブラウザで実行する。step定義は src/**/*.browser.steps.ts
           extends: true,
-          plugins: [quickpickle()],
+          // 実ブラウザでのエディタ操作は、並列実行中は既定の3秒を超えることがあるため長めにする
+          plugins: [quickpickle({ stepTimeout: 8_000 })],
           test: {
             name: "gherkin-browser",
             include: ["src/**/*.browser.feature"],
