@@ -209,23 +209,39 @@ Then(
   }
 );
 
+// 変更通知は入力から遅れて届くため、最後の通知が期待どおりになるまで待って判定する
+const CHANGE_NOTIFICATION_TIMEOUT_MS = 2_000;
+
 Then(
   "最後の変更通知は、元のフロントマターと同じ文字列で始まる",
-  (world: QuickPickleWorldInterface) => {
-    expect(worldData(world).changes.at(-1)?.startsWith(originalFrontmatter(world))).toBe(true);
+  async (world: QuickPickleWorldInterface) => {
+    await expect
+      .poll(() => worldData(world).changes.at(-1)?.startsWith(originalFrontmatter(world)), {
+        timeout: CHANGE_NOTIFICATION_TIMEOUT_MS,
+      })
+      .toBe(true);
   }
 );
 
 Then(
   "最後の変更通知は、次の文字列で始まる:",
-  (world: QuickPickleWorldInterface, prefix: DocString) => {
-    expect(worldData(world).changes.at(-1)?.startsWith(prefix.toString())).toBe(true);
+  async (world: QuickPickleWorldInterface, prefix: DocString) => {
+    await expect
+      .poll(() => worldData(world).changes.at(-1)?.startsWith(prefix.toString()), {
+        timeout: CHANGE_NOTIFICATION_TIMEOUT_MS,
+      })
+      .toBe(true);
   }
 );
 
-Then("最後の変更通知には{string}が含まれる", (world: QuickPickleWorldInterface, text: string) => {
-  expect(worldData(world).changes.at(-1)).toContain(text);
-});
+Then(
+  "最後の変更通知には{string}が含まれる",
+  async (world: QuickPickleWorldInterface, text: string) => {
+    await expect
+      .poll(() => worldData(world).changes.at(-1), { timeout: CHANGE_NOTIFICATION_TIMEOUT_MS })
+      .toContain(text);
+  }
+);
 
 Then("編集領域の内容は置き換えられていない", (world: QuickPickleWorldInterface) => {
   expect(worldData(world).domMutationsDuringUpdate).toBe(0);
