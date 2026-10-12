@@ -20,6 +20,8 @@ interface EditorWorld {
   opened: string;
   /** 外部（拡張機能）からの更新を与える */
   setExternal?: (markdown: string) => void;
+  /** 配色テーマを切り替える（エディタが作り直される） */
+  setTheme?: (theme: "light" | "dark") => void;
   /** 外部更新の間に編集領域のDOMに起きた変更の数（本文を置き換えると変わる。置き換えなければ0） */
   domMutationsDuringUpdate?: number;
 }
@@ -31,8 +33,10 @@ function worldData(world: QuickPickleWorldInterface): EditorWorld {
 /** useMarkdownSync と同じ使い方（onChange で値を更新し、外部更新も同じ値として渡す）をするテスト用の親 */
 function EditorHost({ state, initial }: { state: EditorWorld; initial: string }) {
   const [value, setValue] = useState(initial);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   useEffect(() => {
     state.setExternal = setValue;
+    state.setTheme = setTheme;
   }, [state]);
   // MilkdownEditor は onChange が変わるとエディタを作り直すため、useMarkdownSync.setMarkdown と同じく安定した関数を渡す
   const handleChange = useCallback(
@@ -50,7 +54,7 @@ function EditorHost({ state, initial }: { state: EditorWorld; initial: string })
   );
   return createElement(MilkdownEditor, {
     value,
-    theme: "light",
+    theme,
     onChange: handleChange,
     onContentLoaded: handleContentLoaded,
   });
@@ -137,9 +141,10 @@ When(
     if (!(target instanceof HTMLElement)) {
       throw new Error(`段落 "${paragraph}" がありません`);
     }
+    const changesBefore = worldData(world).changes.length;
     await userEvent.click(target);
     await userEvent.keyboard(`{End}${typed}`);
-    await vi.waitFor(() => expect(worldData(world).changes.length).toBeGreaterThan(0), {
+    await vi.waitFor(() => expect(worldData(world).changes.length).toBeGreaterThan(changesBefore), {
       timeout: WAIT_TIMEOUT_MS,
     });
   }
@@ -255,5 +260,23 @@ Then(
   (world: QuickPickleWorldInterface) => {
     const expected = originalFrontmatter(world) + "\n# 本文の見出し\n";
     expect(worldData(world).loaded[0].startsWith(expected)).toBe(true);
+  }
+);
+
+When("配色テーマが暗色に切り替わる", async (world: QuickPickleWorldInterface) => {
+  const state = worldData(world);
+  const loadedBefore = state.loaded.length;
+  state.setTheme?.("dark");
+  await vi.waitFor(() => expect(state.loaded.length).toBeGreaterThan(loadedBefore), {
+    timeout: WAIT_TIMEOUT_MS,
+  });
+});
+
+Then(
+  "最後の読み込み完了の通知は、元のフロントマターで始まり、追記した本文を含む",
+  (world: QuickPickleWorldInterface) => {
+    const last = worldData(world).loaded.at(-1);
+    expect(last?.startsWith(originalFrontmatter(world) + "\n# 本文の見出し")).toBe(true);
+    expect(last).toContain("本文の段落を追記");
   }
 );

@@ -156,9 +156,12 @@ function customUrlTransform(url: string): string {
   return defaultUrlTransform(url);
 }
 
-/** `/…`、`\…`（UNCを含む）、`C:\…` / `C:/…` のような絶対パスか */
+/**
+ * `/…`、`\…`（UNCを含む）、`C:\…` / `C:/…` のような絶対パスか
+ * Markdownの解析で、先頭のバックスラッシュは `%5C` にエンコードされて渡ってくる
+ */
 function isAbsolutePath(src: string): boolean {
-  return /^([\\/]|[A-Za-z]:[\\/])/.test(src);
+  return /^([\\/]|%5C|[A-Za-z]:[\\/])/i.test(src);
 }
 
 // hastノードからテキストを再帰的に抽出するヘルパー関数
