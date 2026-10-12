@@ -1,16 +1,12 @@
-import {
-  ExportBlogHtmlMessage,
-  ExportHtmlMessage,
-  ExportPdfMessage,
-  MermaidImagePayload,
-  ThemeSetting,
-} from "@message/messageTypeToExtention";
+import { ExportDiagramImages, ThemeSetting } from "@message/messageTypeToExtention";
 import { useCallback, useMemo, useRef } from "react";
 import { ContextMenuItem } from "../components/ContextMenu";
 import type { ThemeKind } from "../constants/themeColors";
 import { resolveExportTheme } from "../utilities/exportTheme";
 import { extractMermaidBlocks } from "../utilities/extractMermaidBlocks";
+import { extractPlantUmlBlocks } from "../utilities/extractPlantUmlBlocks";
 import { renderMermaidToPng } from "../utilities/mermaidToPng";
+import { renderPlantUmlToPng } from "../utilities/plantUmlToPng";
 import { vscode } from "../utilities/vscode";
 
 interface UseExportParams {
@@ -26,30 +22,52 @@ interface UseExportResult {
   contextMenuItems: ContextMenuItem[];
 }
 
+type ExportMessageType = "exportHtml" | "exportBlogHtml" | "exportPdf";
+
 /**
- * 現在のmarkdownからMermaidブロックを抽出し、エクスポートテーマでPNG化する。
+ * 図のコードを順次（for...of await）画像化する。
  * 失敗（null）したブロックは除外し、レンダリング成功分のみを返す。
- * Mermaidの並行レンダリングは避け、順次（for...of await）処理する。
+ * 図の並行レンダリングは避ける。
  */
-async function collectMermaidImages(
+async function renderBlocks(
+  blocks: string[],
+  render: (code: string) => Promise<string | null>
+): Promise<Array<{ code: string; dataUri: string }>> {
+  const images: Array<{ code: string; dataUri: string }> = [];
+  for (const code of blocks) {
+    const dataUri = await render(code);
+    if (dataUri !== null) {
+      images.push({ code, dataUri });
+    }
+  }
+  return images;
+}
+
+/**
+ * 現在のmarkdownからMermaid / PlantUMLのブロックを抽出し、PNG化する。
+ * Mermaidはエクスポートテーマで描画する。画像化できた図が無い種類のキーは含めない。
+ */
+async function collectDiagramImages(
   markdown: string,
   themeSetting: ThemeSetting,
   theme: ThemeKind
-): Promise<MermaidImagePayload[]> {
-  const blocks = extractMermaidBlocks(markdown);
-  if (blocks.length === 0) {
-    return [];
-  }
-
+): Promise<ExportDiagramImages> {
   const exportTheme = resolveExportTheme(themeSetting, theme);
-  const mermaidImages: MermaidImagePayload[] = [];
-  for (const code of blocks) {
-    const dataUri = await renderMermaidToPng(code, exportTheme);
-    if (dataUri !== null) {
-      mermaidImages.push({ code, dataUri });
-    }
+  const mermaidImages = await renderBlocks(extractMermaidBlocks(markdown), (code) =>
+    renderMermaidToPng(code, exportTheme)
+  );
+  const plantUmlImages = await renderBlocks(extractPlantUmlBlocks(markdown), (code) =>
+    renderPlantUmlToPng(code)
+  );
+
+  const images: ExportDiagramImages = {};
+  if (mermaidImages.length > 0) {
+    images.mermaidImages = mermaidImages;
   }
-  return mermaidImages;
+  if (plantUmlImages.length > 0) {
+    images.plantUmlImages = plantUmlImages;
+  }
+  return images;
 }
 
 /**
@@ -66,65 +84,30 @@ export function useExport({ markdown, themeSetting, theme }: UseExportParams): U
   const themeRef = useRef(theme);
   themeRef.current = theme;
 
-  const handleExportHtml = useCallback(async () => {
-    const mermaidImages = await collectMermaidImages(
+  const exportWithDiagrams = useCallback(async (type: ExportMessageType) => {
+    const images = await collectDiagramImages(
       markdownRef.current,
       themeSettingRef.current,
       themeRef.current
     );
 
-    if (mermaidImages.length === 0) {
-      vscode.postMessage({
-        type: "exportHtml",
-      } satisfies ExportHtmlMessage);
+    if (Object.keys(images).length === 0) {
+      vscode.postMessage({ type });
       return;
     }
 
-    vscode.postMessage({
-      type: "exportHtml",
-      payload: { mermaidImages },
-    } satisfies ExportHtmlMessage);
+    vscode.postMessage({ type, payload: images });
   }, []);
 
-  const handleExportPdf = useCallback(async () => {
-    const mermaidImages = await collectMermaidImages(
-      markdownRef.current,
-      themeSettingRef.current,
-      themeRef.current
-    );
-
-    if (mermaidImages.length === 0) {
-      vscode.postMessage({
-        type: "exportPdf",
-      } satisfies ExportPdfMessage);
-      return;
-    }
-
-    vscode.postMessage({
-      type: "exportPdf",
-      payload: { mermaidImages },
-    } satisfies ExportPdfMessage);
-  }, []);
-
-  const handleExportBlogHtml = useCallback(async () => {
-    const mermaidImages = await collectMermaidImages(
-      markdownRef.current,
-      themeSettingRef.current,
-      themeRef.current
-    );
-
-    if (mermaidImages.length === 0) {
-      vscode.postMessage({
-        type: "exportBlogHtml",
-      } satisfies ExportBlogHtmlMessage);
-      return;
-    }
-
-    vscode.postMessage({
-      type: "exportBlogHtml",
-      payload: { mermaidImages },
-    } satisfies ExportBlogHtmlMessage);
-  }, []);
+  const handleExportHtml = useCallback(
+    () => exportWithDiagrams("exportHtml"),
+    [exportWithDiagrams]
+  );
+  const handleExportPdf = useCallback(() => exportWithDiagrams("exportPdf"), [exportWithDiagrams]);
+  const handleExportBlogHtml = useCallback(
+    () => exportWithDiagrams("exportBlogHtml"),
+    [exportWithDiagrams]
+  );
 
   const contextMenuItems: ContextMenuItem[] = useMemo(
     () => [

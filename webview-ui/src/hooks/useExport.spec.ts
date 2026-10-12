@@ -15,6 +15,11 @@ vi.mock("@/utilities/mermaidToPng", () => ({
   renderMermaidToPng: vi.fn(),
 }));
 
+// plantUmlToPngをモック（拡張機能への描画要求は行わない）
+vi.mock("@/utilities/plantUmlToPng", () => ({
+  renderPlantUmlToPng: vi.fn(),
+}));
+
 const NO_MERMAID_MARKDOWN = "# タイトル\n\n本文のみでMermaidブロックを含まない\n";
 
 const SINGLE_MERMAID_MARKDOWN = ["# タイトル", "", "```mermaid", "graph TD;A-->B;", "```", ""].join(
@@ -308,5 +313,78 @@ describe("useExport", () => {
     });
 
     expect(renderMermaidToPng).toHaveBeenCalledWith("graph TD;A-->B;", "dark");
+  });
+
+  describe("PlantUMLの画像化", () => {
+    const PLANTUML_CODE = "@startuml\nA -> B\n@enduml";
+    const PLANTUML_MARKDOWN = ["# タイトル", "", "```plantuml", PLANTUML_CODE, "```", ""].join(
+      "\n"
+    );
+    const MIXED_MARKDOWN = [PLANTUML_MARKDOWN, "```mermaid", "graph TD;A-->B;", "```", ""].join(
+      "\n"
+    );
+
+    it.each([
+      ["handleExportHtml", "exportHtml"],
+      ["handleExportBlogHtml", "exportBlogHtml"],
+      ["handleExportPdf", "exportPdf"],
+    ] as const)("%sがPlantUMLの画像をplantUmlImagesとして送ること", async (handler, type) => {
+      const { vscode } = await import("@/utilities/vscode");
+      const { renderPlantUmlToPng } = await import("@/utilities/plantUmlToPng");
+      vi.mocked(renderPlantUmlToPng).mockResolvedValue("data:image/png;base64,PUML");
+      const { result } = renderHook(() =>
+        useExport({ markdown: PLANTUML_MARKDOWN, themeSetting: "auto", theme: "light" })
+      );
+
+      await act(async () => {
+        await result.current[handler]();
+      });
+
+      expect(renderPlantUmlToPng).toHaveBeenCalledWith(PLANTUML_CODE);
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        type,
+        payload: {
+          plantUmlImages: [{ code: PLANTUML_CODE, dataUri: "data:image/png;base64,PUML" }],
+        },
+      });
+    });
+
+    it("MermaidとPlantUMLが混在する場合は両方を送ること", async () => {
+      const { vscode } = await import("@/utilities/vscode");
+      const { renderMermaidToPng } = await import("@/utilities/mermaidToPng");
+      const { renderPlantUmlToPng } = await import("@/utilities/plantUmlToPng");
+      vi.mocked(renderMermaidToPng).mockResolvedValue("data:image/png;base64,MMD");
+      vi.mocked(renderPlantUmlToPng).mockResolvedValue("data:image/png;base64,PUML");
+      const { result } = renderHook(() =>
+        useExport({ markdown: MIXED_MARKDOWN, themeSetting: "auto", theme: "light" })
+      );
+
+      await act(async () => {
+        await result.current.handleExportHtml();
+      });
+
+      expect(vscode.postMessage).toHaveBeenCalledWith({
+        type: "exportHtml",
+        payload: {
+          mermaidImages: [{ code: "graph TD;A-->B;", dataUri: "data:image/png;base64,MMD" }],
+          plantUmlImages: [{ code: PLANTUML_CODE, dataUri: "data:image/png;base64,PUML" }],
+        },
+      });
+    });
+
+    it("PlantUMLの画像化に失敗したブロックは除外し、全て失敗ならpayload無しで送ること", async () => {
+      const { vscode } = await import("@/utilities/vscode");
+      const { renderPlantUmlToPng } = await import("@/utilities/plantUmlToPng");
+      vi.mocked(renderPlantUmlToPng).mockResolvedValue(null);
+      const { result } = renderHook(() =>
+        useExport({ markdown: PLANTUML_MARKDOWN, themeSetting: "auto", theme: "light" })
+      );
+
+      await act(async () => {
+        await result.current.handleExportHtml();
+      });
+
+      expect(vscode.postMessage).toHaveBeenCalledWith({ type: "exportHtml" });
+    });
   });
 });

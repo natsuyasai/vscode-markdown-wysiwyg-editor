@@ -1,5 +1,9 @@
 import * as assert from "assert";
-import { buildMermaidImageMap, renderMarkdownToHtml } from "../../export/htmlExporter";
+import {
+  buildMermaidImageMap,
+  buildPlantUmlImageMap,
+  renderMarkdownToHtml,
+} from "../../export/htmlExporter";
 
 suite("htmlExporter", () => {
   suite("buildMermaidImageMap", () => {
@@ -47,6 +51,64 @@ suite("htmlExporter", () => {
       assert.ok(result instanceof Map);
       assert.strictEqual(result.size, 1);
       assert.strictEqual(result.get("graph TD;\nA-->B;"), "data:image/png;base64,NEW");
+    });
+  });
+
+  suite("buildPlantUmlImageMap", () => {
+    test("imagesが未指定または空配列の場合、undefinedを返すこと", () => {
+      assert.strictEqual(buildPlantUmlImageMap(undefined), undefined);
+      assert.strictEqual(buildPlantUmlImageMap([]), undefined);
+    });
+
+    test("コードをtrimしたキーでMapへ変換すること", () => {
+      const result = buildPlantUmlImageMap([
+        { code: "  @startuml\nA -> B\n@enduml\n", dataUri: "data:image/png;base64,AAAA" },
+      ]);
+
+      assert.strictEqual(result?.get("@startuml\nA -> B\n@enduml"), "data:image/png;base64,AAAA");
+    });
+  });
+
+  suite("renderMarkdownToHtml (PlantUML)", () => {
+    const code = "@startuml\nA -> B\n@enduml";
+    const markdown = "```plantuml\n" + code + "\n```";
+
+    test("plantumlブロックでマップに一致する画像がある場合、img要素に置換されること", () => {
+      const plantUmlImages = new Map<string, string>([[code, "data:image/png;base64,BBBB"]]);
+
+      const result = renderMarkdownToHtml(markdown, undefined, undefined, plantUmlImages);
+
+      assert.ok(result.includes('<img src="data:image/png;base64,BBBB"'));
+      assert.ok(result.includes('alt="plantuml diagram"'));
+      assert.ok(!result.includes("language-plantuml"));
+    });
+
+    test("一致する画像がない場合、従来のコードブロックにフォールバックすること", () => {
+      const plantUmlImages = new Map<string, string>([["other", "data:image/png;base64,BBBB"]]);
+
+      const result = renderMarkdownToHtml(markdown, undefined, undefined, plantUmlImages);
+
+      assert.ok(result.includes('<code class="language-plantuml">'));
+      assert.ok(!result.includes("<img"));
+    });
+
+    test("plantUmlImagesが未指定の場合、従来のコードブロックとして出力されること", () => {
+      const result = renderMarkdownToHtml(markdown);
+
+      assert.ok(result.includes('<code class="language-plantuml">'));
+    });
+
+    test("MermaidとPlantUMLの画像が混在しても、それぞれ対応する画像に置換されること", () => {
+      const both = markdown + "\n\n```mermaid\ngraph TD;A-->B;\n```";
+      const mermaidImages = new Map<string, string>([
+        ["graph TD;A-->B;", "data:image/png;base64,MMMM"],
+      ]);
+      const plantUmlImages = new Map<string, string>([[code, "data:image/png;base64,PPPP"]]);
+
+      const result = renderMarkdownToHtml(both, mermaidImages, undefined, plantUmlImages);
+
+      assert.ok(result.includes("data:image/png;base64,MMMM"));
+      assert.ok(result.includes("data:image/png;base64,PPPP"));
     });
   });
 

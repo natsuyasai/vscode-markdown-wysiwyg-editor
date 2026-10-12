@@ -7,20 +7,12 @@
 const FENCE_START_REGEX = /^ {0,3}```([^\n]*)\n/gm;
 
 /**
- * info stringがmermaidブロックを示すかどうかを判定する
- * 大文字小文字は区別せず、前後の空白は無視する
- */
-function isMermaidInfoString(infoString: string): boolean {
-  return infoString.trim().toLowerCase() === "mermaid";
-}
-
-/**
- * Markdown文字列からMermaidフェンスドコードブロックの中身を出現順に抽出する
+ * Markdown文字列から、指定した言語のフェンスドコードブロックの中身を出現順に抽出する
  * - 対象はバックティック（```）によるフェンスドコードブロックのうち、info stringが
- *   "mermaid"（大文字小文字を区別しない、前後空白は許容）であるもの
- * - 返す各要素はフェンス行を含まないブロックの中身（trimするとMermaidソースそのものになる）
+ *   指定の言語（小文字で渡す。大文字小文字を区別せず、前後空白は許容）であるもの
+ * - 返す各要素はフェンス行を含まないブロックの中身（trimすると図のソースそのものになる）
  */
-export function extractMermaidBlocks(markdown: string): string[] {
+export function extractFencedBlocks(markdown: string, language: string): string[] {
   const blocks: string[] = [];
 
   FENCE_START_REGEX.lastIndex = 0;
@@ -40,7 +32,7 @@ export function extractMermaidBlocks(markdown: string): string[] {
     // 中身の末尾にある改行1個はフェンス行との区切りなので除去する
     const contentWithoutTrailingNewline = content.endsWith("\n") ? content.slice(0, -1) : content;
 
-    if (isMermaidInfoString(infoString)) {
+    if (infoString.trim().toLowerCase() === language) {
       blocks.push(contentWithoutTrailingNewline);
     }
 
@@ -52,4 +44,9 @@ export function extractMermaidBlocks(markdown: string): string[] {
   }
 
   return blocks;
+}
+
+/** Markdown文字列からMermaidブロックの中身を出現順に抽出する */
+export function extractMermaidBlocks(markdown: string): string[] {
+  return extractFencedBlocks(markdown, "mermaid");
 }

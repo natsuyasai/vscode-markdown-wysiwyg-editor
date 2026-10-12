@@ -10,7 +10,7 @@ import {
 import {
   ExportBlogHtmlMessage,
   ExportHtmlMessage,
-  MermaidImagePayload,
+  ExportDiagramImages,
   ExportPdfMessage,
   OpenFileMessage,
   RenderPlantUmlMessage,
@@ -22,6 +22,7 @@ import { saveImageLocally } from "./imageStorage";
 import { getPlantUmlServer } from "../plantuml/plantUmlServer";
 import {
   buildMermaidImageMap,
+  buildPlantUmlImageMap,
   exportToHtml,
   generateHtmlForPdf,
   type ExportOptions,
@@ -302,7 +303,7 @@ interface HtmlFileExportSpec {
   fileNameSuffix: string;
   label: string;
   successMessage: string;
-  mermaidImages: MermaidImagePayload[] | undefined;
+  diagramImages: ExportDiagramImages | undefined;
   buildOptions: (base: ExportOptions, settings: ExportSettings) => ExportOptions;
 }
 
@@ -331,7 +332,8 @@ async function handleExportHtmlFile(
       title: baseName,
       embedImages: true,
       customCss: settings.customCss,
-      mermaidImages: buildMermaidImageMap(spec.mermaidImages),
+      mermaidImages: buildMermaidImageMap(spec.diagramImages?.mermaidImages),
+      plantUmlImages: buildPlantUmlImageMap(spec.diagramImages?.plantUmlImages),
     };
     exportToHtml(document.getText(), basePath, saveUri.fsPath, spec.buildOptions(base, settings));
 
@@ -358,7 +360,7 @@ async function handleExportHtml(
       fileNameSuffix: ".html",
       label: "HTMLエクスポート",
       successMessage: "HTMLファイルをエクスポートしました",
-      mermaidImages: message.payload?.mermaidImages,
+      diagramImages: message.payload,
       buildOptions: (base) => base,
     },
     document,
@@ -380,7 +382,7 @@ async function handleExportBlogHtml(
       fileNameSuffix: "_blog.html",
       label: "ブログ用HTMLエクスポート",
       successMessage: "ブログ用HTMLファイルをエクスポートしました",
-      mermaidImages: message.payload?.mermaidImages,
+      diagramImages: message.payload,
       buildOptions: (base, settings) => ({
         ...base,
         scopedCss: true,
@@ -412,6 +414,7 @@ async function handleExportPdf(
       embedImages: true,
       customCss: settings.customCss,
       mermaidImages: buildMermaidImageMap(message.payload?.mermaidImages),
+      plantUmlImages: buildPlantUmlImageMap(message.payload?.plantUmlImages),
     });
     const tempHtmlPath = writePdfTempHtml(htmlContent, baseName);
 

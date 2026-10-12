@@ -75,23 +75,26 @@ export interface MermaidImagePayload {
   dataUri: string;
 }
 
+/** 図の画像（Mermaid / PlantUML 共通の形） */
+export type PlantUmlImagePayload = MermaidImagePayload;
+
+/** エクスポート時にWebViewで画像化した図 */
+export interface ExportDiagramImages {
+  mermaidImages?: MermaidImagePayload[];
+  plantUmlImages?: PlantUmlImagePayload[];
+}
+
 export interface ExportHtmlMessage extends Message {
   type: "exportHtml";
-  payload?: {
-    mermaidImages: MermaidImagePayload[];
-  };
+  payload?: ExportDiagramImages;
 }
 
 export interface ExportPdfMessage extends Message {
   type: "exportPdf";
-  payload?: {
-    mermaidImages: MermaidImagePayload[];
-  };
+  payload?: ExportDiagramImages;
 }
 
 export interface ExportBlogHtmlMessage extends Message {
   type: "exportBlogHtml";
-  payload?: {
-    mermaidImages: MermaidImagePayload[];
-  };
+  payload?: ExportDiagramImages;
 }

@@ -27,11 +27,15 @@ function hasStringFields(payload: unknown, keys: readonly string[]): boolean {
   return keys.every((key) => isString(payload[key]));
 }
 
-function isMermaidImage(value: unknown): boolean {
+function isDiagramImage(value: unknown): boolean {
   return hasStringFields(value, ["code", "dataUri"]);
 }
 
-/** exportHtml / exportBlogHtml / exportPdf: payload は省略可。指定する場合 mermaidImages は {code, dataUri} の配列 */
+function isOptionalDiagramImageArray(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.every(isDiagramImage));
+}
+
+/** exportHtml / exportBlogHtml / exportPdf: payload は省略可。指定する場合 mermaidImages / plantUmlImages は {code, dataUri} の配列 */
 function isExportPayload(payload: unknown): boolean {
   if (payload === undefined) {
     return true;
@@ -39,11 +43,10 @@ function isExportPayload(payload: unknown): boolean {
   if (!isRecord(payload)) {
     return false;
   }
-  const { mermaidImages } = payload;
-  if (mermaidImages === undefined) {
-    return true;
-  }
-  return Array.isArray(mermaidImages) && mermaidImages.every(isMermaidImage);
+  return (
+    isOptionalDiagramImageArray(payload.mermaidImages) &&
+    isOptionalDiagramImageArray(payload.plantUmlImages)
+  );
 }
 
 const acceptAnyPayload: PayloadValidator = () => true;
