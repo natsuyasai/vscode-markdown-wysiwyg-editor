@@ -18,15 +18,38 @@ import {
   restorePathsFromDisplay,
 } from "../util/imagePathConverter";
 import { handleMessage } from "./MessageHandler";
-import { WebviewDocumentSync } from "./webviewDocumentSync";
-import { loadCustomCss } from "../util/customCssLoader";
+import { getCustomCssWatchTarget, loadCustomCss } from "../util/customCssLoader";
 import {
   computeImageRoots,
   computeLocalResourceRoots,
   getLocalWorkspaceFolderPaths,
 } from "../util/localResourceRoots";
+import { getCustomCssBaseDir, reportCustomCssErrorsOnce } from "./customCssWarnings";
+import { WebviewDocumentSync } from "./webviewDocumentSync";
+import { buildWebviewHtml } from "./webviewHtml";
 import * as fs from "fs";
 import * as path from "path";
+
+/**
+ * エディタの登録に使う VS Code API（テストで記録用の実装に差し替えられるようにする）
+ */
+export interface EditorRegistrationApi {
+  registerCommand(command: string, callback: () => void): vscode.Disposable;
+  registerCustomEditorProvider(
+    viewType: string,
+    provider: vscode.CustomTextEditorProvider,
+    options: {
+      readonly webviewOptions?: vscode.WebviewPanelOptions;
+      readonly supportsMultipleEditorsPerDocument?: boolean;
+    }
+  ): vscode.Disposable;
+}
+
+const defaultEditorRegistrationApi: EditorRegistrationApi = {
+  registerCommand: (command, callback) => vscode.commands.registerCommand(command, callback),
+  registerCustomEditorProvider: (viewType, provider, options) =>
+    vscode.window.registerCustomEditorProvider(viewType, provider, options),
+};
 
 export class EditorProvider implements vscode.CustomTextEditorProvider {
   /**
@@ -35,19 +58,22 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
    * @param context The extension context.
    * @returns A disposable that unregisters the editor provider.
    */
-  public static register(context: vscode.ExtensionContext): vscode.Disposable {
+  public static register(
+    context: vscode.ExtensionContext,
+    api: EditorRegistrationApi = defaultEditorRegistrationApi
+  ): vscode.Disposable {
     // 現在アクティブなファイルを開くコマンドを登録
-    vscode.commands.registerCommand("markdown-wysiwyg-editor.openEditor", () => {
+    const openEditorCommand = api.registerCommand("markdown-wysiwyg-editor.openEditor", () => {
       const activeEditor = vscode.window.activeTextEditor;
       if (!activeEditor) {
-        vscode.window.showErrorMessage("markdown-wysiwyg-editor: No active editor.");
+        void vscode.window.showErrorMessage("markdown-wysiwyg-editor: No active editor.");
         return;
       }
       const uri = activeEditor.document.uri;
-      vscode.commands.executeCommand("vscode.openWith", uri, EditorProvider.viewType);
+      void vscode.commands.executeCommand("vscode.openWith", uri, EditorProvider.viewType);
     });
 
-    return vscode.window.registerCustomEditorProvider(
+    const customEditorProvider = api.registerCustomEditorProvider(
       EditorProvider.viewType,
       new EditorProvider(context),
       {
@@ -58,6 +84,9 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
         supportsMultipleEditorsPerDocument: false, // 同一ドキュメントに対して複数のエディタをサポートするかどうか
       }
     );
+
+    // 呼び出し側（activate）が subscriptions に追加し、拡張機能の破棄時にまとめて解除する
+    return vscode.Disposable.from(openEditorCommand, customEditorProvider);
   }
 
   // package.jsonのviewTypeと一致させる
@@ -121,17 +150,15 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
 
     function sendSettings() {
       const cssPaths = getCustomCssPaths();
-      const { css, errors } = loadCustomCss(cssPaths);
-      for (const error of errors) {
-        vscode.window.showWarningMessage(`Markdown WYSIWYG Editor: ${error}`);
-      }
+      const { css, errors } = loadCustomCss(cssPaths, { baseDir: getCustomCssBaseDir(document) });
+      reportCustomCssErrorsOnce(errors);
       webviewPanel.webview.postMessage({
         type: "updateSettings",
         payload: { themeSetting: getThemeSetting(), customCss: css },
       } satisfies UpdateSettingsMessage);
     }
 
-    vscode.window.onDidChangeActiveColorTheme(() => {
+    const themeChangeSubscription = vscode.window.onDidChangeActiveColorTheme(() => {
       updateTheme();
     });
 
@@ -223,8 +250,12 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
 
       const cssPaths = getCustomCssPaths();
       for (const cssPath of cssPaths) {
-        if (cssPath.trim() === "") continue;
-        const watcher = vscode.workspace.createFileSystemWatcher(cssPath);
+        // 読み込みと同じ規則で解決したパスを監視する
+        const target = getCustomCssWatchTarget(cssPath, { baseDir: getCustomCssBaseDir(document) });
+        if (target === undefined) continue;
+        const watcher = vscode.workspace.createFileSystemWatcher(
+          new vscode.RelativePattern(vscode.Uri.file(target.baseDir), target.fileName)
+        );
         watcher.onDidChange(() => {
           sendSettings();
         });
@@ -241,6 +272,7 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
 
     // Make sure we get rid of the listener when our editor is closed.
     webviewPanel.onDidDispose(() => {
+      themeChangeSubscription.dispose();
       changeDocumentSubscription.dispose();
       webviewReceiveMessageSubscription.dispose();
       configChangeSubscription.dispose();
@@ -274,22 +306,12 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
 
     // Use a nonce to whitelist which scripts can be run
-    const nonce = getNonce();
-    return /*html*/ `
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} data: blob: file: https:;">
-          <link rel="stylesheet" type="text/css" href="${stylesUri.toString()}" />
-          <title>CSVEditor</title>
-        </head>
-        <body>
-          <div id="root"></div>
-          <script type="module" nonce="${nonce}" src="${scriptUri.toString()}"></script>
-        </body>
-      </html>
-    `;
+    return buildWebviewHtml({
+      cspSource: webview.cspSource,
+      stylesUri: stylesUri.toString(),
+      scriptUri: scriptUri.toString(),
+      nonce: getNonce(),
+      lang: vscode.env.language,
+    });
   }
 }

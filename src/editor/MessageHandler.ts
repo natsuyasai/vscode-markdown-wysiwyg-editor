@@ -11,12 +11,12 @@ import {
 import {
   ExportBlogHtmlMessage,
   ExportHtmlMessage,
-  Message,
   OpenFileMessage,
   RenderPlantUmlMessage,
   SaveImageMessage,
   SaveSettingsMessage,
 } from "../message/messageTypeToExtention";
+import { isValidWebviewMessage } from "../message/validateWebviewMessage";
 import { saveImageLocally } from "./imageStorage";
 import { getPlantUmlServer } from "../plantuml/plantUmlServer";
 import { buildMermaidImageMap, exportToHtml, generateHtmlForPdf } from "../export/htmlExporter";
@@ -41,10 +41,11 @@ export interface MessageHandlerContext {
  * WebViewからのメッセージを処理するハンドラ
  */
 export async function handleMessage(
-  message: Message,
+  message: unknown,
   context: MessageHandlerContext
 ): Promise<void> {
   const { document, webviewPanel, extensionPath } = context;
+  if (!isValidWebviewMessage(message)) return; // 不正な形式のメッセージは無視する
 
   switch (message.type) {
     case "init":
@@ -119,6 +120,9 @@ async function handleSaveImage(
 ): Promise<void> {
   const { requestId, imageData, fileName, mimeType } = message.payload;
   const result = await saveImageLocally(document, imageData, fileName, mimeType);
+  if (!result.success && result.error !== undefined) {
+    void vscode.window.showErrorMessage(`Markdown WYSIWYG Editor: ${result.error}`);
+  }
   webviewPanel.webview.postMessage({
     type: "saveImageResult",
     payload: {
@@ -149,13 +153,49 @@ async function handleRenderPlantUml(
 async function handleSaveSettings(message: SaveSettingsMessage): Promise<void> {
   const { themeSetting } = message.payload;
   const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
-  await config.update("theme", themeSetting, vscode.ConfigurationTarget.Global);
+  const target = chooseThemeConfigurationTarget(config.inspect("theme"));
+  await config.update("theme", themeSetting, target);
+}
+
+/**
+ * テーマ設定の保存先を決める。
+ * ワークスペース設定に値があればワークスペース設定へ、なければユーザー設定（Global）へ保存する。
+ * （ワークスペース設定がある環境で Global に保存すると、変更が有効にならないため）
+ */
+export function chooseThemeConfigurationTarget(
+  inspected: { workspaceValue?: unknown } | undefined
+): vscode.ConfigurationTarget {
+  return inspected?.workspaceValue !== undefined
+    ? vscode.ConfigurationTarget.Workspace
+    : vscode.ConfigurationTarget.Global;
 }
 
 async function handleOpenFile(message: OpenFileMessage): Promise<void> {
+  // anchor は受け付けるが使わない（見出しへのジャンプは対象外）
   const { filePath } = message.payload;
-  const fileUri = vscode.Uri.file(filePath);
-  await vscode.commands.executeCommand("vscode.open", fileUri);
+  if (!(await isOpenableFilePath(filePath))) {
+    void vscode.window.showWarningMessage(
+      `Markdown WYSIWYG Editor: ファイルを開けません: ${filePath}`
+    );
+    return;
+  }
+  await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(filePath));
+}
+
+/**
+ * WebView から開く要求を受けたパスが、開いてよいファイルかを判定する。
+ * 絶対パスで、実在する通常のファイルだけを許可する。
+ */
+export async function isOpenableFilePath(filePath: string): Promise<boolean> {
+  if (filePath === "" || !path.isAbsolute(filePath)) {
+    return false;
+  }
+  try {
+    const stat = await fs.promises.stat(filePath);
+    return stat.isFile();
+  } catch {
+    return false;
+  }
 }
 
 /**
