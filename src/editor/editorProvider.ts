@@ -18,6 +18,7 @@ import {
   restorePathsFromDisplay,
 } from "../util/imagePathConverter";
 import { handleMessage } from "./MessageHandler";
+import { WebviewDocumentSync } from "./webviewDocumentSync";
 import { loadCustomCss } from "../util/customCssLoader";
 import {
   computeImageRoots,
@@ -168,28 +169,46 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
         payload: convertPathsForDisplay(lfText, pathEnv, pathRegistry),
       } satisfies UpdateMessage);
     }
+    // WebViewの内容を TextDocument に反映・保存する（表示用URIは元の表記に戻す）
+    const documentSync = new WebviewDocumentSync(document, (text) =>
+      restorePathsFromDisplay(text, pathEnv, pathRegistry)
+    );
+
     // Update the webview when the document changes
     const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
-      if (e.document.uri.toString() === document.uri.toString()) {
-        updateWebview();
+      if (e.document.uri.toString() !== document.uri.toString()) {
+        return;
       }
+      // 自分の反映のエコーや、内容の変わらない状態変化（未保存状態の変化など）は送らない
+      if (documentSync.isOwnChange(e)) {
+        return;
+      }
+      updateWebview();
     });
 
     // Receive message from the webview.
+    // メッセージは届いた順に1つずつ処理する（反映の途中で保存やエクスポートが割り込まないようにする）
+    let messageQueue: Promise<void> = Promise.resolve();
     const webviewReceiveMessageSubscription = webviewPanel.webview.onDidReceiveMessage(
-      async (e: Message) => {
-        await handleMessage(e, {
-          document,
-          webviewPanel,
-          extensionPath: this.context.extensionPath,
-          updateTextDocument: (doc, text) =>
-            this.updateTextDocument(doc, restorePathsFromDisplay(text, pathEnv, pathRegistry)),
-          updateWebview,
-          updateTheme,
-          sendDocumentInfo,
-          sendSettings,
-          getThemeKind: () => EditorProvider.getThemeKind(),
-        });
+      (e: Message) => {
+        messageQueue = messageQueue
+          .then(() =>
+            handleMessage(e, {
+              document,
+              webviewPanel,
+              extensionPath: this.context.extensionPath,
+              applyWebviewText: (text) => documentSync.apply(text),
+              saveWebviewText: (text) => documentSync.save(text),
+              updateWebview,
+              updateTheme,
+              sendDocumentInfo,
+              sendSettings,
+              getThemeKind: () => EditorProvider.getThemeKind(),
+            })
+          )
+          .catch((error: unknown) => {
+            console.error("Markdown WYSIWYG Editor: failed to handle a webview message", error);
+          });
       }
     );
 
@@ -272,23 +291,5 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
         </body>
       </html>
     `;
-  }
-
-  private async updateTextDocument(
-    document: vscode.TextDocument,
-    markdownText: string
-  ): Promise<vscode.Uri | undefined> {
-    // 内容が同一なら編集適用をスキップして保存のみ行う
-    // （未変更時に無駄なダーティ化やonDidChangeTextDocumentのエコーを起こさないため）
-    if (markdownText === document.getText()) {
-      return vscode.workspace.save(document.uri);
-    }
-
-    const edit = new vscode.WorkspaceEdit();
-    // ドキュメント全体を置き換える（最小限の差分計算は行わない）
-    edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), markdownText);
-    await vscode.workspace.applyEdit(edit);
-
-    return vscode.workspace.save(document.uri);
   }
 }

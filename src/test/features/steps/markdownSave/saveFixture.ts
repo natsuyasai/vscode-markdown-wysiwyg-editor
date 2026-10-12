@@ -18,6 +18,8 @@ export interface SaveWorld extends IWorld {
   saveWorkspaceFolders?: string[];
   /** asWebviewUri を使うための検証用WebViewパネル */
   savePanel?: vscode.WebviewPanel;
+  /** シナリオの終了時に破棄する購読 */
+  saveDisposables?: vscode.Disposable[];
 }
 
 /** 文書の内容に書く、一時ディレクトリの絶対パスのプレースホルダ */
@@ -74,7 +76,7 @@ function webviewPanel(world: SaveWorld): vscode.WebviewPanel {
   world.savePanel ??= vscode.window.createWebviewPanel(
     "b1-save-test",
     "保存検証用",
-    { viewColumn: vscode.ViewColumn.Active, preserveFocus: true },
+    { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
     {}
   );
   return world.savePanel;
@@ -108,11 +110,19 @@ async function revertDirtyDocumentsUnder(root: string) {
 
 After({ tags: "@B1" }, async function (this: SaveWorld) {
   this.savePanel?.dispose();
+  for (const disposable of this.saveDisposables ?? []) {
+    disposable.dispose();
+  }
   if (this.saveRoot) {
     await revertDirtyDocumentsUnder(this.saveRoot);
   }
   await vscode.commands.executeCommand("workbench.action.closeAllEditors");
   if (this.saveRoot) {
-    fs.rmSync(this.saveRoot, { recursive: true, force: true });
+    // Windowsではファイルの解放が遅れることがあるため、再試行し、それでも消せなければ残す（OSの一時フォルダ）
+    try {
+      fs.rmSync(this.saveRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    } catch {
+      // 後片付けの失敗は検証結果に影響しない
+    }
   }
 });
