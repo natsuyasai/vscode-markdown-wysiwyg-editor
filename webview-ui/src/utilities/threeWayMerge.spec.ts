@@ -125,4 +125,19 @@ describe("mergeUserEdits", () => {
   it("originalが空でbaseline/currentに内容がある場合でも例外を出さない", () => {
     expect(() => mergeUserEdits("", "text\n", "text edited\n")).not.toThrow();
   });
+
+  it("末尾の行を編集しても、編集していない末尾の改行はoriginalのまま保全する", () => {
+    const original = "* item1\n* item2\n";
+    const baseline = "- item1\n- item2";
+    const current = "- item1\n- item2 edited";
+
+    expect(mergeUserEdits(original, baseline, current)).toBe("* item1\n- item2 edited\n");
+  });
+
+  it("編集していなければ、先頭の空行が落ちるbaselineでもoriginalを完全に返す", () => {
+    const original = "\n\n# H\n\n本文";
+    const baseline = "# H\n\n本文";
+
+    expect(mergeUserEdits(original, baseline, baseline)).toBe(original);
+  });
 });

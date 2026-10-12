@@ -73,6 +73,27 @@ function mapBaselinePositionToOriginal(
  * 入力はすべてLF改行前提。出力もLF。
  */
 export function mergeUserEdits(original: string, baseline: string, current: string): string {
+  // 文書末尾の改行は、ユーザーが変えていなければoriginalのまま保全する。
+  // 末尾の行と同時に正規化されていると、行単位のdiffでは末尾の行の編集と一体の差分になり、
+  // 末尾の行を編集しただけで末尾の改行まで失われてしまう
+  const originalTail = splitTrailingNewlines(original);
+  const baselineTail = splitTrailingNewlines(baseline);
+  const currentTail = splitTrailingNewlines(current);
+  const mergedBody = mergeBodies(originalTail.body, baselineTail.body, currentTail.body);
+  const tail = currentTail.tail === baselineTail.tail ? originalTail.tail : currentTail.tail;
+  return mergedBody + tail;
+}
+
+/** 末尾の改行の連なりと、それを除いた本体に分ける */
+function splitTrailingNewlines(text: string): { body: string; tail: string } {
+  let end = text.length;
+  while (end > 0 && text[end - 1] === "\n") {
+    end--;
+  }
+  return { body: text.slice(0, end), tail: text.slice(end) };
+}
+
+function mergeBodies(original: string, baseline: string, current: string): string {
   const originalLines = original.split("\n");
   const baselineLines = baseline.split("\n");
   const currentLines = current.split("\n");
