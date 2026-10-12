@@ -34,7 +34,7 @@ export default mergeConfig(
           plugins: [
             storybookTest({
               configDir: path.join(dirname, ".storybook"),
-              storybookScript: "yarn storybook --ci",
+              storybookScript: "npm run storybook -- --ci",
             }),
           ],
           test: {

@@ -3,7 +3,7 @@
 		"module": "commonjs",
 		"moduleResolution": "bundler",
 		"target": "ES2022",
-		"outDir": "dsit",
+		"outDir": "out",
 		"lib": [
 			"ES2022"
 		],
