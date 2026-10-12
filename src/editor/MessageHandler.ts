@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import * as os from "os";
 import {
   ExportResultMessage,
   PlantUmlResultMessage,
@@ -21,6 +20,7 @@ import { isValidWebviewMessage } from "../message/validateWebviewMessage";
 import { saveImageLocally } from "./imageStorage";
 import { getPlantUmlServer } from "../plantuml/plantUmlServer";
 import { buildMermaidImageMap, exportToHtml, generateHtmlForPdf } from "../export/htmlExporter";
+import { writePdfTempHtml } from "../export/pdfTempFile";
 import { loadCustomCss } from "../util/customCssLoader";
 
 /** エクスポートで使う VS Code の操作（テストで差し替えられるようにする） */
@@ -381,9 +381,7 @@ async function handleExportPdf(
       mermaidImages: buildMermaidImageMap(message.payload?.mermaidImages),
     });
 
-    const tempDir = os.tmpdir();
-    const tempHtmlPath = path.join(tempDir, `${title}_export.html`);
-    fs.writeFileSync(tempHtmlPath, htmlContent, "utf-8");
+    const tempHtmlPath = writePdfTempHtml(htmlContent, title);
 
     // ブラウザで開く
     const tempUri = vscode.Uri.file(tempHtmlPath);

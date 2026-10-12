@@ -7,6 +7,7 @@ import {
   type ExportOperations,
   type MessageHandlerContext,
 } from "../../../../editor/MessageHandler";
+import { cleanupPdfTempHtml } from "../../../../export/pdfTempFile";
 import { type ThemeKind } from "../../../../message/messageTypeToWebview";
 import { createWebviewMessageContext } from "../shared/webviewMessageContext";
 
@@ -121,6 +122,7 @@ async function revertDirtyDocumentsUnder(root: string) {
 }
 
 After({ tags: "@B2" }, async function (this: ExportWorld) {
+  cleanupPdfTempHtml();
   for (const restore of this.exportRestoreConfigs ?? []) {
     await restore();
   }
