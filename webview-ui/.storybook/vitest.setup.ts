@@ -1,10 +1,8 @@
-import { setProjectAnnotations } from "@storybook/react-vite";
 import { beforeAll } from "vitest";
-import * as projectAnnotations from "./preview";
 
-// This is an important step to apply the right configuration when testing your stories.
-// More info at: https://storybook.js.org/docs/api/portable-stories/portable-stories-vitest#setprojectannotations
-const project = setProjectAnnotations([projectAnnotations]);
+// プレビューのアノテーション（preview.tsx）は Storybook 10.3 以降
+// @storybook/addon-vitest が自動で適用するため、ここでは適用しない。
+// （このファイル内に適用APIの関数名が文字列として含まれるだけで自動適用が無効になる点に注意）
 
 beforeAll(() => {
   // Milkdownエディタのストーリー切替時に内部ランナーが
@@ -25,5 +23,3 @@ beforeAll(() => {
     true
   );
 });
-
-beforeAll(project.beforeAll);

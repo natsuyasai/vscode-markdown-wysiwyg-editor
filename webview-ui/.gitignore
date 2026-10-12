@@ -7,3 +7,7 @@ build-ssr
 *.local
 
 *storybook.log
+
+# vitest browser mode failure screenshots
+__screenshots__
+.vitest-attachments

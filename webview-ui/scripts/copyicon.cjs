@@ -1,2 +1,0 @@
-require("fs").copyFileSync("./node_modules/@vscode/codicons/dist/codicon.css","./src/icons/codicon.css");
-require("fs").copyFileSync("./node_modules/@vscode/codicons/dist/codicon.ttf","./src/icons/codicon.ttf");

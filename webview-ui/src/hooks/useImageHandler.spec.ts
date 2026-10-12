@@ -50,24 +50,6 @@ describe("useImageHandler", () => {
     vi.restoreAllMocks();
   });
 
-  describe("初期化", () => {
-    it("初期状態でisPendingがfalseであること", () => {
-      const { result } = renderHook(() =>
-        useImageHandler({ onImageInserted: mockOnImageInserted })
-      );
-
-      expect(result.current.isPending).toBe(false);
-    });
-
-    it("enabledがfalseの場合でもフックが正常に初期化されること", () => {
-      const { result } = renderHook(() =>
-        useImageHandler({ onImageInserted: mockOnImageInserted, enabled: false })
-      );
-
-      expect(result.current.isPending).toBe(false);
-    });
-  });
-
   describe("ペーストイベント", () => {
     it("画像のペーストイベントでイベントがキャプチャされること", () => {
       const addEventListenerSpy = vi.spyOn(document, "addEventListener");

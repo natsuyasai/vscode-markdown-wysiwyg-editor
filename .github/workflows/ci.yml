@@ -41,7 +41,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # package.json の lint / test スクリプトは `&` 連結で Linux では失敗が伝播しないため、直接実行する
+      # ルートの lint / test スクリプトは webview-ui も実行する（webview-ui は上のジョブで検証済み）ため、
+      # このジョブでは拡張機能側だけを直接実行する
       - run: npm run check-types
       - run: npx eslint src
       - run: npm run compile-tests

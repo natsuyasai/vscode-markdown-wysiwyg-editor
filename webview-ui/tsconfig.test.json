@@ -17,6 +17,8 @@
   ],
   "exclude": [
     "src/**/*.stories.ts",
-    "src/**/*.stories.tsx"
+    "src/**/*.stories.tsx",
+    "src/**/*.browser.steps.ts",
+    "src/test/gherkin/registerBrowserSteps.ts"
   ]
 }
