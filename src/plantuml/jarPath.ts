@@ -3,6 +3,7 @@ import { PlantUmlConfigurationError } from "./plantUmlErrors";
 
 export const JAR_PATH_SETTING = "markdownWysiwygEditor.plantumlJarPath";
 export const JAVA_PATH_SETTING = "markdownWysiwygEditor.javaPath";
+export const PORT_SETTING = "markdownWysiwygEditor.plantumlServerPort";
 
 /**
  * 設定 plantumlJarPath の値から、jarファイルの絶対パスを求める。

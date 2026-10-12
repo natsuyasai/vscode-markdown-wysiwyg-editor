@@ -47,8 +47,8 @@ function configurationProperty(key: string): ConfigurationProperty {
   return property;
 }
 
-After(function (this: PlantUmlServerWorld) {
-  this.plantUmlServer?.dispose();
+After(async function (this: PlantUmlServerWorld) {
+  await this.plantUmlServer?.dispose();
 });
 
 // ---- 前提 ----
@@ -273,5 +273,26 @@ Then(
     // 通知のボタン選択は非同期に処理されるため、処理が終わるのを待つ
     await new Promise<void>((resolve) => setImmediate(resolve));
     assert.deepStrictEqual(harness(this).openedSettings, [settingKey]);
+  }
+);
+
+Given(
+  "PlantUMLサーバーのポート設定のポートを別のプロセスが使用している",
+  async function (this: PlantUmlServerWorld) {
+    await harness(this).occupyConfiguredPort();
+  }
+);
+
+Given(
+  "PlantUMLサーバーの応答として、SVG{string}をUTF-8の1バイトずつ分割して返すHTTPスタブを使う",
+  async function (this: PlantUmlServerWorld, svg: string) {
+    await harness(this).startHttpStubSplittingBytes(svg);
+  }
+);
+
+Given(
+  "PlantUMLサーバーのポート設定を{int}に変更する",
+  function (this: PlantUmlServerWorld, port: number) {
+    harness(this).config.port = port;
   }
 );

@@ -1,12 +1,13 @@
 import * as child_process from "child_process";
 import * as fs from "fs";
 import * as http from "http";
+import * as net from "net";
 import * as os from "os";
 import type { Readable } from "stream";
 import * as vscode from "vscode";
 import { collectBody } from "./collectBody";
 import { encodePlantUml } from "./encoder";
-import { JAR_PATH_SETTING, JAVA_PATH_SETTING, resolveJarPath } from "./jarPath";
+import { JAR_PATH_SETTING, JAVA_PATH_SETTING, PORT_SETTING, resolveJarPath } from "./jarPath";
 import { resolveJavaPath } from "./javaLocator";
 import { PlantUmlConfigurationError } from "./plantUmlErrors";
 
@@ -62,6 +63,8 @@ export interface PlantUmlServerOptions {
   existsSync?: (filePath: string) => boolean;
   resolveJava?: (configuredJavaPath: string) => string | null;
   homedir?: () => string;
+  /** 指定したポートを他のプロセスが使っていないか確認する */
+  isPortAvailable?: (port: number) => Promise<boolean>;
   /** サーバーがHTTPに応答できる状態か確認する */
   readinessProbe?: (port: number) => Promise<boolean>;
   /** SVGを取得するHTTPリクエスト */
@@ -106,6 +109,29 @@ function httpRequest(url: string, timeoutMs: number): Promise<PlantUmlHttpRespon
   });
 }
 
+/** ポートに接続できれば、他のプロセスが使用中とみなす */
+function isPortAvailableByConnecting(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: HOST, port });
+    socket.setTimeout(1_000);
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => {
+      resolve(true);
+    });
+  });
+}
+
+function isSameConfig(a: PlantUmlServerConfig, b: PlantUmlServerConfig): boolean {
+  return a.jarPath === b.jarPath && a.javaPath === b.javaPath && a.port === b.port;
+}
+
 /** HTTPで何らかの応答が返れば、サーバーが起動済みとみなす */
 function probeByHttp(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -147,6 +173,7 @@ export class PlantUmlServer {
   private readonly existsSync: (filePath: string) => boolean;
   private readonly resolveJava: (configuredJavaPath: string) => string | null;
   private readonly homedir: () => string;
+  private readonly isPortAvailable: (port: number) => Promise<boolean>;
   private readonly readinessProbe: (port: number) => Promise<boolean>;
   private readonly request: (url: string, timeoutMs: number) => Promise<PlantUmlHttpResponse>;
   private readonly startupTimeoutMs: number;
@@ -164,6 +191,7 @@ export class PlantUmlServer {
     this.existsSync = options.existsSync ?? ((filePath) => fs.existsSync(filePath));
     this.resolveJava = options.resolveJava ?? ((configured) => resolveJavaPath(configured));
     this.homedir = options.homedir ?? (() => os.homedir());
+    this.isPortAvailable = options.isPortAvailable ?? isPortAvailableByConnecting;
     this.readinessProbe = options.readinessProbe ?? probeByHttp;
     this.request = options.request ?? httpRequest;
     this.startupTimeoutMs = options.startupTimeoutMs ?? DEFAULT_STARTUP_TIMEOUT_MS;
@@ -175,6 +203,7 @@ export class PlantUmlServer {
   /**
    * PlantUMLサーバーを起動する。起動済みであれば何もしない。
    * 起動に失敗した場合や、プロセスが終了した場合は、次の呼び出しで起動し直す。
+   * 起動後に設定（jar・Java・ポート）が変わった場合も、新しい設定で起動し直す。
    */
   async start(): Promise<void> {
     await this.ensureStarted();
@@ -182,7 +211,10 @@ export class PlantUmlServer {
 
   private async ensureStarted(): Promise<RunningServer> {
     if (this.running) {
-      return this.running;
+      if (isSameConfig(this.running.config, this.getConfig())) {
+        return this.running;
+      }
+      this.stop();
     }
     if (!this.startPromise) {
       const startPromise = this.doStart().finally(() => {
@@ -211,6 +243,14 @@ export class PlantUmlServer {
       throw new PlantUmlConfigurationError(
         `Javaが見つかりません。Java 11以降をインストールするか、設定 "${JAVA_PATH_SETTING}" にJavaの実行ファイルのパスを指定してください。`,
         JAVA_PATH_SETTING
+      );
+    }
+
+    // 他のプロセスが使っているポートでは起動せず、そのプロセスに接続しないようにする
+    if (!(await this.isPortAvailable(config.port))) {
+      throw new PlantUmlConfigurationError(
+        `ポート ${String(config.port)} は他のプロセスが使用しています。設定 "${PORT_SETTING}" を変更してください。`,
+        PORT_SETTING
       );
     }
 

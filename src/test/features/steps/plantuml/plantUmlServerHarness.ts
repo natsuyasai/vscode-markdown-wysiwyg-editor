@@ -1,4 +1,7 @@
 import { EventEmitter } from "events";
+import * as http from "http";
+import type { AddressInfo } from "net";
+import * as net from "net";
 import * as path from "path";
 import { PassThrough } from "stream";
 import {
@@ -59,6 +62,8 @@ export class PlantUmlServerHarness {
   response: PlantUmlHttpResponse = { statusCode: 200, body: "" };
   /** trueのときは差し替えずに実際のHTTPリクエストを使う */
   useRealHttpRequest = false;
+  /** trueのときは差し替えずに実際のポート確認を使う */
+  useRealPortCheck = false;
   spawnBehavior: SpawnBehavior = { kind: "normal" };
   startupTimeoutMs = 200;
   readonly processes: FakePlantUmlProcess[] = [];
@@ -72,6 +77,7 @@ export class PlantUmlServerHarness {
   readonly openedSettings: string[] = [];
 
   private server?: PlantUmlServer;
+  private readonly openedServers: net.Server[] = [];
 
   getServer(): PlantUmlServer {
     this.server ??= new PlantUmlServer({
@@ -88,6 +94,7 @@ export class PlantUmlServerHarness {
         }
         return fakeProcess;
       },
+      isPortAvailable: this.useRealPortCheck ? undefined : () => Promise.resolve(true),
       readinessProbe: () => Promise.resolve(this.ready),
       request: this.useRealHttpRequest
         ? undefined
@@ -123,7 +130,55 @@ export class PlantUmlServerHarness {
     return last;
   }
 
-  dispose(): void {
+  /** localhostの空いているポートで待ち受け、そのポート番号を返す */
+  async listenOnFreePort(server: net.Server): Promise<number> {
+    this.openedServers.push(server);
+    await new Promise<void>((resolve) => server.listen(0, "localhost", resolve));
+    return (server.address() as AddressInfo).port;
+  }
+
+  /**
+   * SVGを返すHTTPスタブを起動し、ポート設定をそのポートにする。
+   * 本文はUTF-8の1バイトずつ、間隔を空けて書き込む（チャンクの境界でマルチバイト文字を分割する）。
+   */
+  async startHttpStubSplittingBytes(svg: string): Promise<void> {
+    const bytes = Buffer.from(svg, "utf8");
+    const stub = http.createServer((_request, response) => {
+      response.writeHead(200, { "Content-Type": "image/svg+xml" });
+      let index = 0;
+      const writeNext = (): void => {
+        if (index >= bytes.length) {
+          response.end();
+          return;
+        }
+        response.write(bytes.subarray(index, index + 1));
+        index++;
+        setTimeout(writeNext, 1);
+      };
+      writeNext();
+    });
+    this.useRealHttpRequest = true;
+    this.ready = true;
+    this.config.port = await this.listenOnFreePort(stub);
+  }
+
+  /** 他のプロセスがポートを使用している状態にし、ポート設定をそのポートにする */
+  async occupyConfiguredPort(): Promise<void> {
+    this.useRealPortCheck = true;
+    this.config.port = await this.listenOnFreePort(net.createServer((socket) => socket.end()));
+  }
+
+  async dispose(): Promise<void> {
     this.server?.stop();
+    await Promise.all(
+      this.openedServers.map(
+        (server) =>
+          new Promise<void>((resolve) =>
+            server.close(() => {
+              resolve();
+            })
+          )
+      )
+    );
   }
 }

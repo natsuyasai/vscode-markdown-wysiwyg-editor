@@ -12,3 +12,16 @@
     前提 PlantUMLサーバーのレスポンス本文"<svg>😀</svg>"がUTF-8の7バイト目で2つのチャンクに分かれて届く
     もし PlantUMLサーバーのレスポンス本文を組み立てる
     ならば 組み立てたPlantUMLサーバーのレスポンス本文は"<svg>😀</svg>"である
+
+  シナリオ: ローカルのPlantUMLサーバーから分割して届いた日本語のSVGを文字化けせずに表示する
+    前提 PlantUMLサーバーのJava実行ファイルとして"/fake/java"が見つかる
+    かつ PlantUMLのjarパス設定を"/opt/plantuml/plantuml.jar"にする
+    かつ PlantUMLのjarファイル"/opt/plantuml/plantuml.jar"が存在する
+    かつ PlantUMLサーバーの応答として、SVG"<svg><text>日本語のラベル</text></svg>"をUTF-8の1バイトずつ分割して返すHTTPスタブを使う
+    もし 次のPlantUMLコードを描画する:
+      """
+      @startuml
+      Alice -> Bob : 日本語のラベル
+      @enduml
+      """
+    ならば PlantUMLの描画結果はSVG"<svg><text>日本語のラベル</text></svg>"になる
