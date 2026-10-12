@@ -156,6 +156,11 @@ function customUrlTransform(url: string): string {
   return defaultUrlTransform(url);
 }
 
+/** `/…`、`\…`（UNCを含む）、`C:\…` / `C:/…` のような絶対パスか */
+function isAbsolutePath(src: string): boolean {
+  return /^([\\/]|[A-Za-z]:[\\/])/.test(src);
+}
+
 // hastノードからテキストを再帰的に抽出するヘルパー関数
 function hastToText(node: ElementContent): string {
   if (node.type === "text") {
@@ -214,8 +219,8 @@ export const MarkdownViewer: FC<MarkdownViewerProps> = ({ value, theme, baseUri 
       ) {
         return src;
       }
-      // 相対パスの場合はbaseUriで解決
-      if (baseUri && !src.startsWith("/")) {
+      // 相対パスの場合はbaseUriで解決。絶対パスは拡張機能が表示用URIへ変換する（変換されなかったものは編集モードと同じく触らない）
+      if (baseUri && !isAbsolutePath(src)) {
         const normalizedBaseUri = baseUri.endsWith("/") ? baseUri : `${baseUri}/`;
         return `${normalizedBaseUri}${src}`;
       }
