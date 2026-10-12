@@ -31,7 +31,7 @@ interface UseMarkdownSyncResult {
  * 編集内容は3-wayマージ方式で組み立てる:
  * - original: 拡張機能の TextDocument にあるテキスト（WebView表現）のアンカー
  * - baseline: エディタのラウンドトリップ結果（onContentLoadedで通知される）
- * - current: 現在のエディタ出力（markdown state）
+ * - current: 現在のエディタ出力（markdown state）。読み込み直後で未編集の間は baseline と同一
  * baseline→currentの差分（＝ユーザーの実編集）のみをoriginalに適用することで、
  * エディタの再シリアライズによる正規化が未編集行へ及ぶのを防ぐ。
  *
@@ -164,6 +164,13 @@ export function useMarkdownSync(): UseMarkdownSyncResult {
         // 外部から与えた内容の読み込み完了。originalはすでに設定済み
         awaitingExternalLoadRef.current = false;
         baselineRef.current = serialized;
+        if (markdownRef.current === originalRef.current) {
+          // まだ編集されていない: 現在のエディタ出力は、読み込み前に仮置きした元のテキストではなく、
+          // エディタが実際に出力するラウンドトリップ結果である。
+          // 仮置きのままだと、正規化で落ちた行（先頭の空行など）が baseline→current の「ユーザー編集」と
+          // みなされ、original へ二重に適用されてしまう
+          markdownRef.current = serialized;
+        }
         return;
       }
       // エディタが作り直された（モード切替・テーマ変更など）場合は、編集済みの内容を読み込んでいる。

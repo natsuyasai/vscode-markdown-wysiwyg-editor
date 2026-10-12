@@ -116,6 +116,20 @@ When("エクスポートの前に未反映の編集を確定させる", () => {
   });
 });
 
+When("タブが隠れる", () => {
+  const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+  act(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  visibility.mockRestore();
+});
+
+When("ページが閉じられる", () => {
+  act(() => {
+    window.dispatchEvent(new Event("pagehide"));
+  });
+});
+
 Then(
   "更新メッセージが1回だけ送られていて、内容は次のとおりである:",
   (world: QuickPickleWorldInterface, expected: DocString) => {
