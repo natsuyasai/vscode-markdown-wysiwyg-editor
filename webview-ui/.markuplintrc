@@ -11,11 +11,15 @@
   "specs": {
     ".tsx$": "@markuplint/react-spec"
   },
+  "rules": {
+    "case-sensitive-attr-name": false,
+    "no-event-handler-attr": false
+  },
   "nodeRules": [
     {
       "selector": "div[role=button]",
       "rules": {
-        "invalid-attr": {
+        "no-unknown-attr": {
           "options": {
             "allowAttrs": [
               "onDoubleClick"
