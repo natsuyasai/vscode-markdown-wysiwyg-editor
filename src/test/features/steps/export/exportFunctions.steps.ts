@@ -63,3 +63,29 @@ Then("HTMLのタイトルは{string}である", function (this: ExportWorld, tit
     `HTMLのタイトルが ${title} ではありません:\n${this.html ?? ""}`
   );
 });
+
+/** HTML中の、指定した代替テキストを持つimgタグ（属性の順序は問わない） */
+function imgTagsWithAlt(html: string, alt: string): string[] {
+  const escapedAlt = alt.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  return (html.match(/<img\b[^>]*>/g) ?? []).filter((tag) => tag.includes(`alt="${escapedAlt}"`));
+}
+
+Then(
+  "エクスポートしたHTMLで代替テキスト{string}の画像はdata URIで埋め込まれている",
+  function (this: ExportWorld, alt: string) {
+    const tags = imgTagsWithAlt(this.html ?? "", alt);
+    assert.ok(tags.length > 0, `代替テキスト"${alt}"の画像がありません:\n${this.html ?? ""}`);
+    assert.ok(
+      tags.every((tag) => /src="data:image\/png;base64,/.test(tag)),
+      `data URIで埋め込まれていません: ${tags.join(" ")}`
+    );
+  }
+);
+
+Then(
+  "エクスポートしたHTMLに、data URIで埋め込まれた画像は{int}個ある",
+  function (this: ExportWorld, count: number) {
+    const embedded = (this.html ?? "").match(/<img\b[^>]*src="data:image\//g) ?? [];
+    assert.strictEqual(embedded.length, count);
+  }
+);

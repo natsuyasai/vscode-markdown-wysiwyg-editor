@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { Marked, type Tokens } from "marked";
 import { stripFrontmatter } from "./frontmatter";
-import { embedImagesInMarkdown, embedImagesInHtml } from "./imageEmbedder";
+import { embedImagesInHtml, resolveImageDataUri } from "./imageEmbedder";
 import { generateHtmlDocument, generateScopedHtmlDocument } from "./htmlTemplate";
 
 export interface ExportOptions {
@@ -47,13 +47,25 @@ function extractLang(infostring: string | undefined): string {
  * ソース（trim済み）がマップのキーと一致するものをimg要素に置換する。
  * 一致しないmermaidブロックや、mermaid以外のコードブロックは
  * marked既定のコードブロック出力にフォールバックする。
+ * imageBasePathが指定されている場合、Markdownの画像記法のローカル画像をdata URIとして埋め込む。
  */
 export function renderMarkdownToHtml(
   markdown: string,
-  mermaidImages?: Map<string, string>
+  mermaidImages?: Map<string, string>,
+  imageBasePath?: string
 ): string {
   const instance = new Marked({ gfm: true, breaks: false });
   instance.use({
+    walkTokens(token) {
+      // コードブロックやインラインコードの中は画像のトークンにならないため、埋め込み対象にならない。
+      // 同じ記法が複数あっても、画像のトークンごとに埋め込む
+      if (imageBasePath !== undefined && token.type === "image") {
+        const dataUri = resolveImageDataUri(token.href, imageBasePath);
+        if (dataUri) {
+          token.href = dataUri;
+        }
+      }
+    },
     renderer: {
       code({ text, lang }: Tokens.Code): string | false {
         const language = extractLang(lang);
@@ -71,31 +83,26 @@ export function renderMarkdownToHtml(
   return instance.parse(markdown, { async: false });
 }
 
+/**
+ * エクスポート用に、フロントマターを除いた本文をHTMLへ変換する。
+ * 画像の埋め込みが有効な場合、Markdownの画像記法とHTMLのimgタグのローカル画像をdata URIにする。
+ */
+function renderExportBody(markdown: string, basePath: string, options: ExportOptions): string {
+  const { embedImages = true, mermaidImages } = options;
+  const body = stripFrontmatter(markdown);
+  const html = renderMarkdownToHtml(body, mermaidImages, embedImages ? basePath : undefined);
+  return embedImages ? embedImagesInHtml(html, basePath) : html;
+}
+
 export function exportToHtml(
   markdown: string,
   basePath: string,
   outputPath: string,
   options: ExportOptions
 ): void {
-  const { theme, title, embedImages = true, mermaidImages } = options;
+  const { theme, title } = options;
 
-  // YAMLフロントマターは出力に含めない
-  const body = stripFrontmatter(markdown);
-
-  // Process markdown to embed images if enabled
-  let processedMarkdown = body;
-  if (embedImages) {
-    processedMarkdown = embedImagesInMarkdown(body, basePath);
-  }
-
-  // Convert Markdown to HTML using marked
-  const htmlContent = renderMarkdownToHtml(processedMarkdown, mermaidImages);
-
-  // Embed images in HTML (for HTML img tags in markdown)
-  let processedHtml = htmlContent;
-  if (embedImages) {
-    processedHtml = embedImagesInHtml(htmlContent, basePath);
-  }
+  const processedHtml = renderExportBody(markdown, basePath, options);
 
   // Generate the final document title
   const documentTitle = title || path.basename(outputPath, ".html");
@@ -120,25 +127,9 @@ export function generateHtmlForPdf(
   basePath: string,
   options: ExportOptions
 ): string {
-  const { theme, title = "Document", embedImages = true, mermaidImages } = options;
+  const { theme, title = "Document" } = options;
 
-  // YAMLフロントマターは出力に含めない
-  const body = stripFrontmatter(markdown);
-
-  // Process markdown to embed images if enabled
-  let processedMarkdown = body;
-  if (embedImages) {
-    processedMarkdown = embedImagesInMarkdown(body, basePath);
-  }
-
-  // Convert Markdown to HTML using marked
-  const htmlContent = renderMarkdownToHtml(processedMarkdown, mermaidImages);
-
-  // Embed images in HTML (for HTML img tags in markdown)
-  let processedHtml = htmlContent;
-  if (embedImages) {
-    processedHtml = embedImagesInHtml(htmlContent, basePath);
-  }
+  const processedHtml = renderExportBody(markdown, basePath, options);
 
   // Generate the complete HTML document
   return generateHtmlDocument(processedHtml, title, theme, options.customCss);
