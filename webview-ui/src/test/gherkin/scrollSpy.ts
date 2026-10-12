@@ -4,20 +4,24 @@
  * 「どの要素に対して scrollIntoView が呼ばれたか」で判定する。
  */
 let scrolled: Element[] = [];
-let original: typeof Element.prototype.scrollIntoView | undefined;
+let originalDescriptor: PropertyDescriptor | undefined;
 
 export function installScrollSpy(): void {
   scrolled = [];
-  original = Element.prototype.scrollIntoView;
-  Element.prototype.scrollIntoView = function (this: Element) {
-    scrolled.push(this);
-  };
+  originalDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, "scrollIntoView");
+  Object.defineProperty(Element.prototype, "scrollIntoView", {
+    configurable: true,
+    writable: true,
+    value: function (this: Element) {
+      scrolled.push(this);
+    },
+  });
 }
 
 export function restoreScrollSpy(): void {
-  if (original) {
-    Element.prototype.scrollIntoView = original;
-    original = undefined;
+  if (originalDescriptor) {
+    Object.defineProperty(Element.prototype, "scrollIntoView", originalDescriptor);
+    originalDescriptor = undefined;
   }
 }
 
