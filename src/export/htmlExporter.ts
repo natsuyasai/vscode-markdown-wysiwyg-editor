@@ -13,14 +13,15 @@ export interface ExportOptions {
   scopedCss?: boolean;
   useShadowDom?: boolean;
   mermaidImages?: Map<string, string>;
+  plantUmlImages?: Map<string, string>;
 }
 
 /**
- * WebViewから送られたMermaid画像配列を、コード（trim済み）をキーとした
- * Mapへ変換する。imagesが未指定または空配列の場合はundefinedを返す。
+ * WebViewから送られた図の画像配列を、コード（trim済み）をキーとしたMapへ変換する。
+ * imagesが未指定または空配列の場合はundefinedを返す。
  * 同一trimキーが重複した場合は後勝ちで格納する。
  */
-export function buildMermaidImageMap(
+function buildDiagramImageMap(
   images?: Array<{ code: string; dataUri: string }>
 ): Map<string, string> | undefined {
   if (!images || images.length === 0) {
@@ -32,6 +33,9 @@ export function buildMermaidImageMap(
   }
   return map;
 }
+
+export const buildMermaidImageMap = buildDiagramImageMap;
+export const buildPlantUmlImageMap = buildDiagramImageMap;
 
 /**
  * infostringの先頭トークン（言語指定）を抽出する。
@@ -45,14 +49,16 @@ function extractLang(infostring: string | undefined): string {
  * MarkdownをHTMLへ変換する。
  * mermaidImagesが指定されている場合、mermaidのコードブロックのうち
  * ソース（trim済み）がマップのキーと一致するものをimg要素に置換する。
- * 一致しないmermaidブロックや、mermaid以外のコードブロックは
+ * plantUmlImagesが指定されている場合も、plantumlのコードブロックを同様にimg要素に置換する。
+ * 一致しない図のブロックや、図以外のコードブロックは
  * marked既定のコードブロック出力にフォールバックする。
  * imageBasePathが指定されている場合、Markdownの画像記法のローカル画像をdata URIとして埋め込む。
  */
 export function renderMarkdownToHtml(
   markdown: string,
   mermaidImages?: Map<string, string>,
-  imageBasePath?: string
+  imageBasePath?: string,
+  plantUmlImages?: Map<string, string>
 ): string {
   const instance = new Marked({ gfm: true, breaks: false });
   instance.use({
@@ -76,6 +82,12 @@ export function renderMarkdownToHtml(
             return `<img src="${dataUri}" alt="mermaid diagram" style="display:block;max-width:100%;" />\n`;
           }
         }
+        if (language.toLowerCase() === "plantuml" && plantUmlImages) {
+          const dataUri = plantUmlImages.get(text.trim());
+          if (dataUri) {
+            return `<img src="${dataUri}" alt="plantuml diagram" style="display:block;max-width:100%;" />\n`;
+          }
+        }
         return false;
       },
     },
@@ -89,9 +101,14 @@ export function renderMarkdownToHtml(
  * 画像の埋め込みが有効な場合、Markdownの画像記法とHTMLのimgタグのローカル画像をdata URIにする。
  */
 function renderExportBody(markdown: string, basePath: string, options: ExportOptions): string {
-  const { embedImages = true, mermaidImages } = options;
+  const { embedImages = true, mermaidImages, plantUmlImages } = options;
   const body = stripFrontmatter(markdown);
-  const html = renderMarkdownToHtml(body, mermaidImages, embedImages ? basePath : undefined);
+  const html = renderMarkdownToHtml(
+    body,
+    mermaidImages,
+    embedImages ? basePath : undefined,
+    plantUmlImages
+  );
   return embedImages ? embedImagesInHtml(html, basePath) : html;
 }
 

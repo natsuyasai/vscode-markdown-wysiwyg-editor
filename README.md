@@ -24,7 +24,7 @@ Milkdown（Crepe）を使用したリッチなMarkdownエディタで、従来�
   - ワークスペースフォルダまたは文書のディレクトリ内の画像は、相対パス・絶対パスのどちらでも表示できます
 - **ダイアグラムサポート**:
   - Mermaidのプレビュー表示・編集（HTML/ブログ用HTML/PDFのエクスポートでは画像として出力）
-  - PlantUMLのプレビュー表示・編集（ローカルのPlantUMLサーバーで動作。JavaとPlantUMLのjarが必要です。後述の「PlantUMLの準備」を参照）
+  - PlantUMLのプレビュー表示・編集（HTML/ブログ用HTML/PDFのエクスポートでは画像として出力。ローカルのPlantUMLサーバーで動作。JavaとPlantUMLのjarが必要です。後述の「PlantUMLの準備」を参照）
 - **テーマ対応**: VSCodeのテーマに自動追従（light/dark）。設定で固定することもできます
 
 ## 保存の動作
