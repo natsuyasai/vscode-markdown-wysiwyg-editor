@@ -6,6 +6,7 @@ import {
   PLANTUML_TIMEOUT_MESSAGE,
   PlantUmlCallbackManager,
 } from "../../utilities/plantUmlCallbackManager";
+import { sanitizeDiagramSvg } from "../../utilities/sanitizeDiagramSvg";
 import { vscode } from "../../utilities/vscode";
 
 type ApplyPreview = (result: HTMLElement | null) => void;
@@ -39,10 +40,12 @@ function createErrorElement(type: string, message: string): HTMLDivElement {
 
 /**
  * ダイアグラムコンテナを作成する
+ *
+ * 挿入するSVGは、配色の置換などの加工後にここで無害化する（MermaidとPlantUMLの共通経路）。
  */
 function createDiagramContainer(svgContent: string, additionalStyle = ""): HTMLDivElement {
   const container = document.createElement("div");
-  container.innerHTML = svgContent;
+  container.innerHTML = sanitizeDiagramSvg(svgContent);
   container.style.cssText = DIAGRAM_CONTAINER_STYLE + additionalStyle;
   return container;
 }

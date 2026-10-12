@@ -1,6 +1,6 @@
+import mermaid, { type MermaidConfig } from "mermaid";
 import { After, Then, When } from "quickpickle";
 import type { QuickPickleWorldInterface } from "quickpickle";
-import mermaid, { type MermaidConfig } from "mermaid";
 import { expect, vi, type MockInstance } from "vitest";
 import type { ThemeKind } from "@/constants/themeColors";
 import { initializeMermaid } from "@/utilities/mermaidInitializer";
