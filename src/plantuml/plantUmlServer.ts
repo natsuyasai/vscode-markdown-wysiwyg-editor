@@ -4,6 +4,7 @@ import * as http from "http";
 import * as path from "path";
 import * as vscode from "vscode";
 import { encodePlantUml } from "./encoder";
+import { resolveJavaPath } from "./javaLocator";
 
 export interface PlantUmlRenderResult {
   svg?: string;
@@ -30,39 +31,7 @@ export class PlantUmlServer {
    */
   private getJavaPath(): string | null {
     const config = vscode.workspace.getConfiguration("markdownWysiwygEditor");
-    const configuredPath = config.get<string>("javaPath");
-
-    if (configuredPath && fs.existsSync(configuredPath)) {
-      return configuredPath;
-    }
-
-    // JAVA_HOMEから探す
-    const javaHome = process.env["JAVA_HOME"];
-    if (javaHome) {
-      const javaExe =
-        process.platform === "win32"
-          ? path.join(javaHome, "bin", "java.exe")
-          : path.join(javaHome, "bin", "java");
-      if (fs.existsSync(javaExe)) {
-        return javaExe;
-      }
-    }
-
-    // PATHから探す（コマンドが存在することを確認）
-    try {
-      const result = child_process.spawnSync(
-        process.platform === "win32" ? "where" : "which",
-        ["java"],
-        { encoding: "utf8" }
-      );
-      if (result.status === 0 && result.stdout.trim()) {
-        return result.stdout.trim().split("\n")[0];
-      }
-    } catch {
-      // ignore
-    }
-
-    return null;
+    return resolveJavaPath(config.get<string>("javaPath", ""));
   }
 
   /**
