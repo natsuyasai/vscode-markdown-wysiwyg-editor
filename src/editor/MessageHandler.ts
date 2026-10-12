@@ -22,6 +22,17 @@ import { getPlantUmlServer } from "../plantuml/plantUmlServer";
 import { buildMermaidImageMap, exportToHtml, generateHtmlForPdf } from "../export/htmlExporter";
 import { loadCustomCss } from "../util/customCssLoader";
 
+/** エクスポートで使う VS Code の操作（テストで差し替えられるようにする） */
+export interface ExportOperations {
+  showSaveDialog: (options: vscode.SaveDialogOptions) => Thenable<vscode.Uri | undefined>;
+  openExternal: (uri: vscode.Uri) => Thenable<boolean>;
+}
+
+const defaultExportOperations: ExportOperations = {
+  showSaveDialog: (options) => vscode.window.showSaveDialog(options),
+  openExternal: (uri) => vscode.env.openExternal(uri),
+};
+
 export interface MessageHandlerContext {
   document: vscode.TextDocument;
   webviewPanel: vscode.WebviewPanel;
@@ -35,6 +46,8 @@ export interface MessageHandlerContext {
   sendDocumentInfo: () => void;
   sendSettings: () => void;
   getThemeKind: () => ThemeKind;
+  /** エクスポートで使う VS Code の操作（省略時は VS Code 本体の操作） */
+  exportOperations?: ExportOperations;
 }
 
 /**
@@ -45,6 +58,7 @@ export async function handleMessage(
   context: MessageHandlerContext
 ): Promise<void> {
   const { document, webviewPanel } = context;
+  const exportOperations = context.exportOperations ?? defaultExportOperations;
   if (!isValidWebviewMessage(message)) return; // 不正な形式のメッセージは無視する
 
   switch (message.type) {
@@ -94,7 +108,8 @@ export async function handleMessage(
         message as ExportHtmlMessage,
         document,
         webviewPanel,
-        context.getThemeKind
+        context.getThemeKind,
+        exportOperations
       );
       return;
 
@@ -103,12 +118,13 @@ export async function handleMessage(
         message as ExportBlogHtmlMessage,
         document,
         webviewPanel,
-        context.getThemeKind
+        context.getThemeKind,
+        exportOperations
       );
       return;
 
     case "exportPdf":
-      await handleExportPdf(document, webviewPanel, context.getThemeKind);
+      await handleExportPdf(document, webviewPanel, context.getThemeKind, exportOperations);
       return;
   }
 }
@@ -214,14 +230,15 @@ async function handleExportHtml(
   message: ExportHtmlMessage,
   document: vscode.TextDocument,
   webviewPanel: vscode.WebviewPanel,
-  getThemeKind: () => ThemeKind
+  getThemeKind: () => ThemeKind,
+  exportOperations: ExportOperations
 ): Promise<void> {
   try {
     const basePath = path.dirname(document.uri.fsPath);
     const defaultFileName =
       path.basename(document.uri.fsPath, path.extname(document.uri.fsPath)) + ".html";
 
-    const saveUri = await vscode.window.showSaveDialog({
+    const saveUri = await exportOperations.showSaveDialog({
       defaultUri: vscode.Uri.file(path.join(basePath, defaultFileName)),
       filters: {
         "HTML files": ["html"],
@@ -272,14 +289,15 @@ async function handleExportBlogHtml(
   message: ExportBlogHtmlMessage,
   document: vscode.TextDocument,
   webviewPanel: vscode.WebviewPanel,
-  getThemeKind: () => ThemeKind
+  getThemeKind: () => ThemeKind,
+  exportOperations: ExportOperations
 ): Promise<void> {
   try {
     const basePath = path.dirname(document.uri.fsPath);
     const defaultFileName =
       path.basename(document.uri.fsPath, path.extname(document.uri.fsPath)) + "_blog.html";
 
-    const saveUri = await vscode.window.showSaveDialog({
+    const saveUri = await exportOperations.showSaveDialog({
       defaultUri: vscode.Uri.file(path.join(basePath, defaultFileName)),
       filters: {
         "HTML files": ["html"],
@@ -334,7 +352,8 @@ async function handleExportBlogHtml(
 async function handleExportPdf(
   document: vscode.TextDocument,
   webviewPanel: vscode.WebviewPanel,
-  getThemeKind: () => ThemeKind
+  getThemeKind: () => ThemeKind,
+  exportOperations: ExportOperations
 ): Promise<void> {
   try {
     const basePath = path.dirname(document.uri.fsPath);
@@ -359,7 +378,7 @@ async function handleExportPdf(
 
     // ブラウザで開く
     const tempUri = vscode.Uri.file(tempHtmlPath);
-    await vscode.env.openExternal(tempUri);
+    await exportOperations.openExternal(tempUri);
 
     webviewPanel.webview.postMessage({
       type: "exportResult",
