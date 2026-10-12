@@ -155,9 +155,31 @@ async function handleSaveSettings(message: SaveSettingsMessage): Promise<void> {
 }
 
 async function handleOpenFile(message: OpenFileMessage): Promise<void> {
+  // anchor は受け付けるが使わない（見出しへのジャンプは対象外）
   const { filePath } = message.payload;
-  const fileUri = vscode.Uri.file(filePath);
-  await vscode.commands.executeCommand("vscode.open", fileUri);
+  if (!(await isOpenableFilePath(filePath))) {
+    void vscode.window.showWarningMessage(
+      `Markdown WYSIWYG Editor: ファイルを開けません: ${filePath}`
+    );
+    return;
+  }
+  await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(filePath));
+}
+
+/**
+ * WebView から開く要求を受けたパスが、開いてよいファイルかを判定する。
+ * 絶対パスで、実在する通常のファイルだけを許可する。
+ */
+export async function isOpenableFilePath(filePath: string): Promise<boolean> {
+  if (filePath === "" || !path.isAbsolute(filePath)) {
+    return false;
+  }
+  try {
+    const stat = await fs.promises.stat(filePath);
+    return stat.isFile();
+  } catch {
+    return false;
+  }
 }
 
 /**
