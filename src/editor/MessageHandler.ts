@@ -26,10 +26,10 @@ export interface MessageHandlerContext {
   document: vscode.TextDocument;
   webviewPanel: vscode.WebviewPanel;
   extensionPath: string;
-  updateTextDocument: (
-    document: vscode.TextDocument,
-    text: string
-  ) => Promise<vscode.Uri | undefined>;
+  /** WebViewの内容を TextDocument に反映する（保存はしない） */
+  applyWebviewText: (text: string) => Promise<boolean>;
+  /** WebViewの内容を TextDocument に反映してから保存する */
+  saveWebviewText: (text: string) => Promise<boolean>;
   updateWebview: () => void;
   updateTheme: () => void;
   sendDocumentInfo: () => void;
@@ -56,14 +56,16 @@ export async function handleMessage(
       return;
 
     case "update":
-      if (message.payload !== undefined) {
-        await context.updateTextDocument(document, message.payload as string);
+      // WebViewでの編集を TextDocument に反映する（保存はしない。VS Code が未保存状態を管理する）
+      if (typeof message.payload === "string") {
+        await context.applyWebviewText(message.payload);
       }
       return;
 
     case "save":
-      if (message.payload !== undefined) {
-        await context.updateTextDocument(document, message.payload as string);
+      // 明示保存: 反映してから保存する
+      if (typeof message.payload === "string") {
+        await context.saveWebviewText(message.payload);
       }
       return;
 

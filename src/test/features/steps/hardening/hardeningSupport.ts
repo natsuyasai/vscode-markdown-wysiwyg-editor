@@ -228,9 +228,13 @@ export function createFakeMessageContext(
     document,
     webviewPanel: panel.asPanel(),
     extensionPath: "",
-    updateTextDocument: () => {
-      panel.posted.push({ type: "__updateTextDocument" });
-      return Promise.resolve(undefined);
+    applyWebviewText: () => {
+      panel.posted.push({ type: "__applyWebviewText" });
+      return Promise.resolve(true);
+    },
+    saveWebviewText: () => {
+      panel.posted.push({ type: "__saveWebviewText" });
+      return Promise.resolve(true);
     },
     updateWebview: () => panel.posted.push({ type: "__updateWebview" }),
     updateTheme: () => panel.posted.push({ type: "__updateTheme" }),

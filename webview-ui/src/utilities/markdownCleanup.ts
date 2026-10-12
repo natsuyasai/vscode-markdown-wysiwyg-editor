@@ -1,14 +1,6 @@
 export type LineEnding = "\r\n" | "\n";
 
 /**
- * テキストから改行コードを検出する
- * CRLFが含まれていればCRLF、それ以外はLFを返す
- */
-export function detectLineEnding(text: string): LineEnding {
-  return text.includes("\r\n") ? "\r\n" : "\n";
-}
-
-/**
  * テキスト中の改行コード（CRLFおよびLF）を指定の改行コードに統一する
  * 空行の圧縮などの正規化は行わず、改行コードの変換のみを行う
  */

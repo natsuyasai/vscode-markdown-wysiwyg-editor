@@ -1,5 +1,9 @@
 import type { WebviewApi } from "vscode-webview";
 import { Message } from "../../../src/message/messageTypeToExtention";
+import { flushPendingEdits } from "./pendingEditsFlusher";
+
+/** 拡張機能が TextDocument の内容を読んで処理するメッセージ（未反映の編集を先に送る必要がある） */
+const MESSAGES_READING_DOCUMENT = new Set<string>(["exportHtml", "exportBlogHtml", "exportPdf"]);
 
 /**
  * A utility wrapper around the acquireVsCodeApi() function, which enables
@@ -30,6 +34,9 @@ class VSCodeAPIWrapper {
    * @param message Abitrary data (must be JSON serializable) to send to the extension context.
    */
   public postMessage(message: Message) {
+    if (MESSAGES_READING_DOCUMENT.has(message.type)) {
+      flushPendingEdits();
+    }
     if (this.vsCodeApi) {
       this.vsCodeApi.postMessage(message);
     } else {

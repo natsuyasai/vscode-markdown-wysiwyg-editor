@@ -11,11 +11,23 @@ import {
 import { Message } from "../message/messageTypeToExtention";
 import { getUri } from "../util/getUri";
 import { getNonce } from "../util/util";
-import { convertAllPathsToWebviewUri } from "../util/imagePathConverter";
+import {
+  convertPathsForDisplay,
+  DisplayPathRegistry,
+  type PathConversionEnv,
+  restorePathsFromDisplay,
+} from "../util/imagePathConverter";
 import { handleMessage } from "./MessageHandler";
 import { getCustomCssWatchTarget, loadCustomCss } from "../util/customCssLoader";
+import {
+  computeImageRoots,
+  computeLocalResourceRoots,
+  getLocalWorkspaceFolderPaths,
+} from "../util/localResourceRoots";
 import { getCustomCssBaseDir, reportCustomCssErrorsOnce } from "./customCssWarnings";
+import { WebviewDocumentSync } from "./webviewDocumentSync";
 import { buildWebviewHtml } from "./webviewHtml";
+import * as fs from "fs";
 import * as path from "path";
 
 /**
@@ -98,12 +110,14 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
   ): void {
     // ドキュメントのディレクトリを取得
     const documentDir = vscode.Uri.file(path.dirname(document.uri.fsPath));
+    // 画像の読み込みを許可するディレクトリ（文書のディレクトリとワークスペースフォルダ）
+    const imageRoots = computeImageRoots(documentDir.fsPath, getLocalWorkspaceFolderPaths());
 
     // Setup initial content for the webview
     webviewPanel.webview.options = {
       enableScripts: true,
       // ローカル画像ファイルへのアクセスを許可
-      localResourceRoots: [this.context.extensionUri, documentDir],
+      localResourceRoots: computeLocalResourceRoots(this.context.extensionUri, imageRoots),
     };
     webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
@@ -164,40 +178,64 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
       }
     });
 
+    // 表示用URI → 元の表記の対応表（パネルごとに保持し、保存時に元の表記へ正確に戻す）
+    const pathRegistry = new DisplayPathRegistry();
+    const pathEnv: PathConversionEnv = {
+      documentDir: documentDir.fsPath,
+      allowedRoots: imageRoots,
+      toWebviewUri: (fsPath) =>
+        webviewPanel.webview.asWebviewUri(vscode.Uri.file(fsPath)).toString(),
+      exists: (fsPath) => fs.existsSync(fsPath),
+    };
+
     function updateWebview() {
-      const dirPath = path.dirname(document.uri.fsPath);
-      // ローカル画像パスとリンクパスをWebView用URIに変換
-      const convertedMarkdown = convertAllPathsToWebviewUri(
-        document.getText(),
-        dirPath,
-        webviewPanel.webview
-      );
+      // WebViewは常にLFで扱う。ローカル画像パスとリンクパスを表示用URIに変換して送る
+      const lfText = document.getText().replace(/\r\n/g, "\n");
       webviewPanel.webview.postMessage({
         type: "update",
-        payload: convertedMarkdown.replace(/\r\n/g, "\n"),
+        payload: convertPathsForDisplay(lfText, pathEnv, pathRegistry),
       } satisfies UpdateMessage);
     }
+    // WebViewの内容を TextDocument に反映・保存する（表示用URIは元の表記に戻す）
+    const documentSync = new WebviewDocumentSync(document, (text) =>
+      restorePathsFromDisplay(text, pathEnv, pathRegistry)
+    );
+
     // Update the webview when the document changes
     const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
-      if (e.document.uri.toString() === document.uri.toString()) {
-        updateWebview();
+      if (e.document.uri.toString() !== document.uri.toString()) {
+        return;
       }
+      // 自分の反映のエコーや、内容の変わらない状態変化（未保存状態の変化など）は送らない
+      if (documentSync.isOwnChange(e)) {
+        return;
+      }
+      updateWebview();
     });
 
     // Receive message from the webview.
+    // メッセージは届いた順に1つずつ処理する（反映の途中で保存やエクスポートが割り込まないようにする）
+    let messageQueue: Promise<void> = Promise.resolve();
     const webviewReceiveMessageSubscription = webviewPanel.webview.onDidReceiveMessage(
-      async (e: Message) => {
-        await handleMessage(e, {
-          document,
-          webviewPanel,
-          extensionPath: this.context.extensionPath,
-          updateTextDocument: (doc, text) => this.updateTextDocument(doc, text),
-          updateWebview,
-          updateTheme,
-          sendDocumentInfo,
-          sendSettings,
-          getThemeKind: () => EditorProvider.getThemeKind(),
-        });
+      (e: Message) => {
+        messageQueue = messageQueue
+          .then(() =>
+            handleMessage(e, {
+              document,
+              webviewPanel,
+              extensionPath: this.context.extensionPath,
+              applyWebviewText: (text) => documentSync.apply(text),
+              saveWebviewText: (text) => documentSync.save(text),
+              updateWebview,
+              updateTheme,
+              sendDocumentInfo,
+              sendSettings,
+              getThemeKind: () => EditorProvider.getThemeKind(),
+            })
+          )
+          .catch((error: unknown) => {
+            console.error("Markdown WYSIWYG Editor: failed to handle a webview message", error);
+          });
       }
     );
 
@@ -275,23 +313,5 @@ export class EditorProvider implements vscode.CustomTextEditorProvider {
       nonce: getNonce(),
       lang: vscode.env.language,
     });
-  }
-
-  private async updateTextDocument(
-    document: vscode.TextDocument,
-    markdownText: string
-  ): Promise<vscode.Uri | undefined> {
-    // 内容が同一なら編集適用をスキップして保存のみ行う
-    // （未変更時に無駄なダーティ化やonDidChangeTextDocumentのエコーを起こさないため）
-    if (markdownText === document.getText()) {
-      return vscode.workspace.save(document.uri);
-    }
-
-    const edit = new vscode.WorkspaceEdit();
-    // ドキュメント全体を置き換える（最小限の差分計算は行わない）
-    edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), markdownText);
-    await vscode.workspace.applyEdit(edit);
-
-    return vscode.workspace.save(document.uri);
   }
 }
