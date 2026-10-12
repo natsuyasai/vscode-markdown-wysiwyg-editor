@@ -16,6 +16,7 @@ import {
   PlantUmlCallbackManager,
 } from "../../utilities/plantUmlCallbackManager";
 import { remarkHeadingIds } from "../../utilities/remarkHeadingIds";
+import { sanitizeDiagramSvg } from "../../utilities/sanitizeDiagramSvg";
 import { vscode } from "../../utilities/vscode";
 import { OutlineSidebar } from "../OutlineSidebar";
 import { CodeBlock } from "./CodeBlock";
@@ -73,7 +74,7 @@ const MermaidDiagram: FC<{ code: string; theme: ThemeKind }> = ({ code, theme })
         }
 
         if (containerRef.current) {
-          containerRef.current.innerHTML = processedSvg;
+          containerRef.current.innerHTML = sanitizeDiagramSvg(processedSvg);
         }
         setError(null);
       })
@@ -140,7 +141,12 @@ const PlantUmlDiagram: FC<{ code: string }> = ({ code }) => {
     return <div className="markdown-viewer-loading">Loading PlantUML diagram...</div>;
   }
 
-  return <div className="markdown-viewer-diagram" dangerouslySetInnerHTML={{ __html: svg }} />;
+  return (
+    <div
+      className="markdown-viewer-diagram"
+      dangerouslySetInnerHTML={{ __html: sanitizeDiagramSvg(svg) }}
+    />
+  );
 };
 
 /**

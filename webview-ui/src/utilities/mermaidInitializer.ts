@@ -5,7 +5,8 @@ import { getMermaidThemeColors, MERMAID_THEME, type ThemeKind } from "../constan
  * Mermaidをテーマに応じた設定で初期化する
  *
  * WebView環境でテキストが正しく表示されるよう、
- * htmlLabelsをfalseに設定し、SVGテキスト要素を使用する
+ * htmlLabelsをfalseに設定し、SVGテキスト要素を使用する。
+ * securityLevelはstrictに固定し、図の定義からのスクリプト実行・クリックコールバックを許さない
  */
 export function initializeMermaid(theme: ThemeKind): void {
   const mermaidTheme = MERMAID_THEME[theme];
@@ -14,7 +15,7 @@ export function initializeMermaid(theme: ThemeKind): void {
   mermaid.initialize({
     startOnLoad: false,
     theme: mermaidTheme,
-    securityLevel: "loose",
+    securityLevel: "strict",
     htmlLabels: false,
     flowchart: {
       htmlLabels: false,
