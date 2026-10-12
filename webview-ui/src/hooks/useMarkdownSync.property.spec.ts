@@ -33,10 +33,10 @@ const docArbitrary = fc
     leadingBlankLines,
     // 行単位のdiffが曖昧にならないよう、ブロックごとに一意な語を持たせる
     blocks: Array.from({ length: count }, (_, i) => ({
-      marker: markers[i] as "* " | "- " | "",
+      marker: markers[i],
       word: `word${i}`,
     })),
-    gaps: gaps.slice(0, count - 1) as Doc["gaps"],
+    gaps: gaps.slice(0, count - 1),
     trailingNewlines,
   }));
 
