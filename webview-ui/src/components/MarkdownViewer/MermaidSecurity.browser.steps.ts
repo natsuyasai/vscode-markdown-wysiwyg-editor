@@ -8,7 +8,7 @@ import { renderMermaidPreview } from "@/components/MilkdownEditor/diagramPreview
 import { findExecutableMarkup } from "@/test/gherkin/findExecutableMarkup";
 import { renderMermaidToPng } from "@/utilities/mermaidToPng";
 
-const ASSERTION_TIMEOUT_MS = 2_000;
+const ASSERTION_TIMEOUT_MS = 5_000;
 
 type ProbeWindow = Window & {
   __mermaidExecuted?: boolean;
@@ -56,8 +56,8 @@ Given(
     );
     data(world).mermaidDiagramRoot = container;
     await expect
-      .poll(() => container.querySelector(".markdown-viewer-diagram, .markdown-viewer-error"), {
-        timeout: ASSERTION_TIMEOUT_MS * 5,
+      .poll(() => container.querySelector(".markdown-viewer-diagram svg, .markdown-viewer-error"), {
+        timeout: ASSERTION_TIMEOUT_MS,
       })
       .not.toBeNull();
   }
@@ -84,7 +84,7 @@ Given(
       if (result) host.replaceChildren(result);
     });
     await expect
-      .poll(() => host.querySelector("svg"), { timeout: ASSERTION_TIMEOUT_MS * 5 })
+      .poll(() => host.querySelector("svg"), { timeout: ASSERTION_TIMEOUT_MS })
       .not.toBeNull();
   }
 );
