@@ -38,6 +38,45 @@ describe("parseFrontmatter", () => {
     });
   });
 
+  // 特性テスト（characterization test）: yamlの更新でスカラー値の型解釈が変わらないことを確認する（現行 yaml 2.9 の結果を固定）
+  it("日付風の値・引用符付きの数値・yes/no・空値・ブロックスカラー・アンカー参照を現行どおりに解釈する", () => {
+    const markdown = [
+      "---",
+      "date: 2024-01-01",
+      'quoted: "123"',
+      "flag: yes",
+      "empty:",
+      "tilde: ~",
+      "octal: 0o10",
+      "literal: |",
+      "  line1",
+      "  line2",
+      "folded: >",
+      "  a",
+      "  b",
+      "base: &b",
+      "  x: 1",
+      "ref: *b",
+      "---",
+      "Body",
+    ].join("\n");
+    expect(parseFrontmatter(markdown)).toEqual({
+      frontmatter: {
+        date: "2024-01-01",
+        quoted: "123",
+        flag: "yes",
+        empty: null,
+        tilde: null,
+        octal: 8,
+        literal: "line1\nline2\n",
+        folded: "a b\n",
+        base: { x: 1 },
+        ref: { x: 1 },
+      },
+      content: "Body",
+    });
+  });
+
   it("フロントマターが存在しない場合はfrontmatterがnullでcontentが元のmarkdownのままである", () => {
     const markdown = "# Title\n\nSome text";
     const result = parseFrontmatter(markdown);
