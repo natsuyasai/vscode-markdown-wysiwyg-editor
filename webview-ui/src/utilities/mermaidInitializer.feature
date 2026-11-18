@@ -12,3 +12,13 @@
       | テーマ |
       | light  |
       | dark   |
+
+  シナリオアウトライン: <テーマ>テーマでもMermaidは従来の見た目（classicルック・dagreレイアウト）で初期化される
+    もし <テーマ>テーマでMermaidを初期化する
+    ならば Mermaidの初期化設定のルックは"classic"である
+    かつ Mermaidの初期化設定のレイアウトは"dagre"である
+
+    例:
+      | テーマ |
+      | light  |
+      | dark   |
