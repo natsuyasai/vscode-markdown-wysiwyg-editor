@@ -147,3 +147,10 @@ Then(
 Then("Mermaidの図のPNG画像のdata URIが得られる", (world: QuickPickleWorldInterface) => {
   expect(data(world).mermaidPng).toMatch(/^data:image\/png;base64,/);
 });
+
+Then("Mermaidの図は従来のclassicの見た目で描画される", (world: QuickPickleWorldInterface) => {
+  const looks = [...diagramRoot(world).querySelectorAll("svg [data-look]")].map((element) =>
+    element.getAttribute("data-look")
+  );
+  expect(looks.filter((look) => look !== "classic")).toEqual([]);
+});

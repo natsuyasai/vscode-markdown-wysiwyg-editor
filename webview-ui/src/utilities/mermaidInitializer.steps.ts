@@ -44,3 +44,17 @@ Then("Mermaidの初期化設定でHTMLラベルは無効である", (world: Quic
   expect(config.htmlLabels).toBe(false);
   expect(config.flowchart?.htmlLabels).toBe(false);
 });
+
+Then(
+  "Mermaidの初期化設定のルックは{string}である",
+  (world: QuickPickleWorldInterface, look: string) => {
+    expect(initializedConfig(world).look).toBe(look);
+  }
+);
+
+Then(
+  "Mermaidの初期化設定のレイアウトは{string}である",
+  (world: QuickPickleWorldInterface, layout: string) => {
+    expect(initializedConfig(world).layout).toBe(layout);
+  }
+);

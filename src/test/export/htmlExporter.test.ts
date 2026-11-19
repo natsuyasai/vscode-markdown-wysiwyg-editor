@@ -202,4 +202,61 @@ suite("htmlExporter", () => {
       assert.ok(result.includes("<p>Some paragraph text.</p>"));
     });
   });
+
+  /**
+   * 特性テスト（characterization test）。
+   * markedの更新でエクスポートHTMLの出力が変わらないことを確認する。期待値は現行（marked 18.0）の出力を固定したもの。
+   */
+  suite("renderMarkdownToHtml（markedの出力の特性）", () => {
+    const cases: Array<{ name: string; markdown: string; html: string }> = [
+      {
+        name: "ATX見出し・Setext見出し・見出し内の強調",
+        markdown: "# H1\n\n## H2 *em*\n\nSetext\n===",
+        html: "<h1>H1</h1>\n<h2>H2 <em>em</em></h2>\n<h1>Setext</h1>\n",
+      },
+      {
+        name: "ネストした箇条書きと番号付きリスト",
+        markdown: "- a\n- b\n  - c\n\n1. one\n2. two",
+        html: "<ul>\n<li>a</li>\n<li>b<ul>\n<li>c</li>\n</ul>\n</li>\n</ul>\n<ol>\n<li>one</li>\n<li>two</li>\n</ol>\n",
+      },
+      {
+        name: "配置指定付きのGFMテーブル",
+        markdown: "| L | C | R |\n|:--|:-:|--:|\n| 1 | 2 | 3 |",
+        html:
+          '<table>\n<thead>\n<tr>\n<th align="left">L</th>\n<th align="center">C</th>\n<th align="right">R</th>\n</tr>\n</thead>\n' +
+          '<tbody><tr>\n<td align="left">1</td>\n<td align="center">2</td>\n<td align="right">3</td>\n</tr>\n</tbody></table>\n',
+      },
+      {
+        name: "言語指定付きコードブロック（HTMLエスケープ）",
+        markdown: '```ts\nconst a = 1 < 2 && "x";\n```',
+        html: '<pre><code class="language-ts">const a = 1 &lt; 2 &amp;&amp; &quot;x&quot;;\n</code></pre>\n',
+      },
+      {
+        name: "タイトル付きリンクとURLの自動リンク",
+        markdown: '[text](https://example.com "title") and https://example.org',
+        html: '<p><a href="https://example.com" title="title">text</a> and <a href="https://example.org">https://example.org</a></p>\n',
+      },
+      {
+        name: "取り消し線・太字・斜体・インラインコード",
+        markdown: "~~del~~ **bold** *em* `code`",
+        html: "<p><del>del</del> <strong>bold</strong> <em>em</em> <code>code</code></p>\n",
+      },
+      {
+        name: "タスクリスト",
+        markdown: "- [ ] todo\n- [x] done",
+        html: '<ul>\n<li><input disabled="" type="checkbox"> todo</li>\n<li><input checked="" disabled="" type="checkbox"> done</li>\n</ul>\n',
+      },
+      {
+        name: "引用・水平線・生HTML",
+        markdown: "> quote\n\n---\n\n<div>raw</div>",
+        html: "<blockquote>\n<p>quote</p>\n</blockquote>\n<hr>\n<div>raw</div>",
+      },
+    ];
+
+    for (const { name, markdown, html } of cases) {
+      test(`${name}が既知のHTMLに変換されること`, () => {
+        assert.strictEqual(renderMarkdownToHtml(markdown), html);
+      });
+    }
+  });
 });

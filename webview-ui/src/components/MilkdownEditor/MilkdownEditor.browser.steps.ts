@@ -296,3 +296,28 @@ Then(
     expect(last).toContain("本文の段落を追記");
   }
 );
+
+// --- 往復（Markdown → エディタ → シリアライズ）の特性テスト用 ---
+// DocStringは末尾の改行を表せないため、末尾の改行は「末尾に改行を1つ付けた」ことをstep名で明示して付け足す
+
+Given(
+  "往復の確認のため、編集モードで次のMarkdownを末尾に改行を1つ付けて開く:",
+  async (world: QuickPickleWorldInterface, markdown: DocString) => {
+    await openEditor(world, markdown.toString() + "\n");
+  }
+);
+
+Then(
+  "往復した読み込み完了の通知は、開いたMarkdownと完全に一致する",
+  (world: QuickPickleWorldInterface) => {
+    const state = worldData(world);
+    expect(state.loaded[0]).toBe(state.opened);
+  }
+);
+
+Then(
+  "往復した読み込み完了の通知は、次のMarkdownの末尾に改行を1つ付けたものと完全に一致する:",
+  (world: QuickPickleWorldInterface, expected: DocString) => {
+    expect(worldData(world).loaded[0]).toBe(expected.toString() + "\n");
+  }
+);
