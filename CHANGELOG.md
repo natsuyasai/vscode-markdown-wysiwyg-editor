@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+## [0.1.2]
+
+### 変更
+
+- 依存関係を更新（mermaid 12、jsdom 31、node-diff3 4 など）し、`npm audit` の脆弱性を解消
+- mermaid・Milkdown・highlight.js・yaml・node-diff3・pako・marked の特性テストを追加
+
 ## [0.1.1]
 
 ### 追加
